@@ -3,8 +3,10 @@ import type { FastifyInstance } from "fastify";
 import { access, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { createDatabase } from "./db/database.js";
+import type { Sql } from "./db/database.js";
 import { GameService } from "./services/gameService.js";
 import { registerGameRoutes } from "./routes/gameRoutes.js";
+import { registerAdminRoutes } from "./routes/adminRoutes.js";
 
 const clientDistRoot = path.resolve(process.cwd(), "dist", "client");
 const clientAssetRoot = path.join(clientDistRoot, "assets");
@@ -16,18 +18,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   const game = await GameService.create(sql);
 
   app.decorate("gameService", game);
+  app.decorate("sql", sql);
   app.register(registerGameRoutes);
+  app.register(registerAdminRoutes);
 
-  app.get("/", async (_request, reply) => {
-    if (await fileExists(clientIndexPath)) {
-      const html = await readFile(clientIndexPath, "utf8");
-      reply.type("text/html; charset=utf-8").send(html);
-      return;
-    }
-
-    reply.type("text/html; charset=utf-8").send(renderDevLanding());
-  });
-
+  // Serve built client assets
   app.get<{ Params: { "*": string } }>("/assets/*", async (request, reply) => {
     const assetPath = request.params["*"];
     const candidate = path.resolve(clientAssetRoot, assetPath);
@@ -39,6 +34,22 @@ export async function buildApp(): Promise<FastifyInstance> {
 
     const content = await readFile(candidate);
     reply.type(contentTypeFor(candidate)).send(content);
+  });
+
+  // SPA catch-all: serve index.html for all non-API, non-asset routes
+  app.get<{ Params: { "*": string } }>("/*", async (request, reply) => {
+    const url = request.url;
+    // Let API and asset requests fall through to 404
+    if (url.startsWith("/api/") || url.startsWith("/assets/")) {
+      reply.code(404).send({ ok: false, error: "Not found." });
+      return;
+    }
+    if (await fileExists(clientIndexPath)) {
+      const html = await readFile(clientIndexPath, "utf8");
+      reply.type("text/html; charset=utf-8").send(html);
+      return;
+    }
+    reply.type("text/html; charset=utf-8").send(renderDevLanding());
   });
 
   app.setErrorHandler((error, _request, reply) => {
@@ -106,22 +117,16 @@ function renderDevLanding(): string {
         display: grid;
         place-items: center;
         font-family: "Lucida Console", "Courier New", monospace;
-        background: linear-gradient(180deg, #120d11 0%, #09070a 100%);
-        color: #efe5cf;
+        background: linear-gradient(180deg, #000814 0%, #000509 100%);
+        color: #a8d8f0;
       }
       main {
         width: min(42rem, calc(100vw - 2rem));
         padding: 2rem;
-        border: 1px solid rgba(212, 163, 102, 0.36);
-        background: rgba(25, 19, 23, 0.92);
-        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(0, 180, 240, 0.25);
+        background: rgba(2, 8, 22, 0.93);
       }
-      a {
-        color: #f0c27d;
-      }
-      code {
-        color: #f0c27d;
-      }
+      a, code { color: #00d4ff; }
     </style>
   </head>
   <body>
@@ -138,5 +143,6 @@ function renderDevLanding(): string {
 declare module "fastify" {
   interface FastifyInstance {
     gameService: GameService;
+    sql: Sql;
   }
 }

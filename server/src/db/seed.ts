@@ -4,32 +4,31 @@ import { createDatabase } from "./database.js";
 import type { Sql } from "./database.js";
 
 export async function seedDatabase(sql: Sql): Promise<void> {
+  // Wipe and re-seed all world data
   await sql`DELETE FROM world_data`;
 
-  await sql.begin(async (tx) => {
-    await tx`
-      INSERT INTO world_data (kind, id, json)
-      VALUES ('meta', 'bootstrap', ${JSON.stringify({
-        title: worldSeed.title,
-        intro: worldSeed.intro,
-        startCellId: worldSeed.startCellId,
-        assets: worldSeed.assets
-      })})
-    `;
+  await sql`
+    INSERT INTO world_data (kind, id, json)
+    VALUES ('meta', 'bootstrap', ${JSON.stringify({
+      title: worldSeed.title,
+      intro: worldSeed.intro,
+      startCellId: worldSeed.startCellId,
+      assets: worldSeed.assets
+    })})
+  `;
 
-    for (const cell of worldSeed.cells) {
-      await tx`INSERT INTO world_data (kind, id, json) VALUES ('cell', ${cell.id}, ${JSON.stringify(cell)})`;
-    }
-    for (const item of worldSeed.items) {
-      await tx`INSERT INTO world_data (kind, id, json) VALUES ('item', ${item.id}, ${JSON.stringify(item)})`;
-    }
-    for (const enemy of worldSeed.enemies) {
-      await tx`INSERT INTO world_data (kind, id, json) VALUES ('enemy', ${enemy.id}, ${JSON.stringify(enemy)})`;
-    }
-    for (const encounter of worldSeed.encounters) {
-      await tx`INSERT INTO world_data (kind, id, json) VALUES ('encounter', ${encounter.id}, ${JSON.stringify(encounter)})`;
-    }
-  });
+  for (const cell of worldSeed.cells) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('cell', ${cell.id}, ${JSON.stringify(cell)})`;
+  }
+  for (const item of worldSeed.items) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('item', ${item.id}, ${JSON.stringify(item)})`;
+  }
+  for (const enemy of worldSeed.enemies) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('enemy', ${enemy.id}, ${JSON.stringify(enemy)})`;
+  }
+  for (const encounter of worldSeed.encounters) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('encounter', ${encounter.id}, ${JSON.stringify(encounter)})`;
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

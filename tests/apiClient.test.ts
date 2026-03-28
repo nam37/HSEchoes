@@ -28,11 +28,14 @@ const runEnvelope = {
   }
 };
 
+function mockFetch(data: unknown) {
+  const body = JSON.stringify({ ok: true, data });
+  return vi.fn(async () => ({ text: async () => body }));
+}
+
 describe("client api", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      json: async () => ({ ok: true, data: runEnvelope })
-    })));
+    vi.stubGlobal("fetch", mockFetch(runEnvelope));
   });
 
   afterEach(() => {

@@ -1,7 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import type { CombatPayload, InventoryPayload, MovePayload } from "../../../shared/src/index.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
 
 export async function registerGameRoutes(app: FastifyInstance): Promise<void> {
+  app.addHook("preHandler", requireAuth);
+
   app.get("/api/game/bootstrap", async () => ({ ok: true, data: await app.gameService.getBootstrap() }));
 
   app.post("/api/game/new-run", async () => ({ ok: true, data: { run: await app.gameService.createNewRun() } }));

@@ -84,6 +84,10 @@ const combatEnvelope = {
   }
 };
 
+function textBody(data: unknown): string {
+  return JSON.stringify({ ok: true, data });
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -92,11 +96,9 @@ beforeEach(() => {
 describe("App", () => {
   it("shows the landing panel before a run and swaps to the game layout after starting", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => ({
-      json: async () => {
-        if (String(input).includes("bootstrap")) {
-          return { ok: true, data: bootstrap };
-        }
-        return { ok: true, data: runEnvelope };
+      text: async () => {
+        if (String(input).includes("bootstrap")) return textBody(bootstrap);
+        return textBody(runEnvelope);
       }
     })));
 
@@ -128,15 +130,10 @@ describe("App", () => {
   });
 
   it("maps arrow keys to movement commands including back", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
-      json: async () => {
-        if (String(input).includes("bootstrap")) {
-          return { ok: true, data: bootstrap };
-        }
-        if (String(input).includes("/api/game/move")) {
-          return { ok: true, data: runEnvelope };
-        }
-        return { ok: true, data: runEnvelope };
+    const fetchMock = vi.fn(async (input: RequestInfo) => ({
+      text: async () => {
+        if (String(input).includes("bootstrap")) return textBody(bootstrap);
+        return textBody(runEnvelope);
       }
     }));
     vi.stubGlobal("fetch", fetchMock);
@@ -165,11 +162,9 @@ describe("App", () => {
 
   it("surfaces a visible combat panel when a run is in combat", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => ({
-      json: async () => {
-        if (String(input).includes("bootstrap")) {
-          return { ok: true, data: bootstrap };
-        }
-        return { ok: true, data: combatEnvelope };
+      text: async () => {
+        if (String(input).includes("bootstrap")) return textBody(bootstrap);
+        return textBody(combatEnvelope);
       }
     })));
 
@@ -198,4 +193,3 @@ async function flush(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 }
-
