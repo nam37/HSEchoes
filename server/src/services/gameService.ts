@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type Database from "better-sqlite3";
+import type { Sql } from "../db/database.js";
 import {
   forwardDelta,
   pushLog,
@@ -28,24 +28,28 @@ interface MetaRow {
 }
 
 export class GameService {
-  private readonly cells: Map<string, DungeonCell>;
-  private readonly enemies: Map<string, Enemy>;
-  private readonly encounters: Map<string, Encounter>;
-  private readonly items: Map<string, Item>;
-  private readonly meta: MetaRow;
+  private cells!: Map<string, DungeonCell>;
+  private enemies!: Map<string, Enemy>;
+  private encounters!: Map<string, Encounter>;
+  private items!: Map<string, Item>;
+  private meta!: MetaRow;
 
-  constructor(
-    private readonly db: Database.Database,
+  private constructor(
+    private readonly sql: Sql,
     private readonly random: () => number = Math.random
-  ) {
-    this.meta = this.loadMeta();
-    this.cells = this.loadMap<DungeonCell>("cell");
-    this.enemies = this.loadMap<Enemy>("enemy");
-    this.encounters = this.loadMap<Encounter>("encounter");
-    this.items = this.loadMap<Item>("item");
+  ) {}
+
+  static async create(sql: Sql, random: () => number = Math.random): Promise<GameService> {
+    const instance = new GameService(sql, random);
+    instance.meta = await instance.loadMeta();
+    instance.cells = await instance.loadMap<DungeonCell>("cell");
+    instance.enemies = await instance.loadMap<Enemy>("enemy");
+    instance.encounters = await instance.loadMap<Encounter>("encounter");
+    instance.items = await instance.loadMap<Item>("item");
+    return instance;
   }
 
-  getBootstrap(): BootstrapData {
+  async getBootstrap(): Promise<BootstrapData> {
     return {
       title: this.meta.title,
       intro: this.meta.intro,
@@ -55,12 +59,14 @@ export class GameService {
       encounters: [...this.encounters.values()],
       items: [...this.items.values()],
       assets: this.meta.assets,
-      saves: this.listSaves()
+      saves: await this.listSaves()
     };
   }
 
-  listSaves(): SaveSummary[] {
-    const rows = this.db.prepare("SELECT slot_id, json, updated_at FROM runs ORDER BY updated_at DESC").all() as Array<{ slot_id: string; json: string; updated_at: string }>;
+  async listSaves(): Promise<SaveSummary[]> {
+    const rows = await this.sql<Array<{ slot_id: string; json: string; updated_at: string }>>`
+      SELECT slot_id, json, updated_at FROM runs ORDER BY updated_at DESC
+    `;
     return rows.map((row) => {
       const run = JSON.parse(row.json) as RunState;
       return {
@@ -73,7 +79,7 @@ export class GameService {
     });
   }
 
-  createNewRun(): RunState {
+  async createNewRun(): Promise<RunState> {
     const now = new Date().toISOString();
     const run: RunState = {
       slotId: randomUUID().slice(0, 8),
@@ -106,16 +112,16 @@ export class GameService {
     };
 
     this.applyCellEffects(run, this.getCell(run.cellId));
-    this.persistRun(run);
+    await this.persistRun(run);
     return run;
   }
 
-  loadRun(slotId: string): RunState {
+  async loadRun(slotId: string): Promise<RunState> {
     return this.readRun(slotId);
   }
 
-  move(payload: MovePayload): RunEnvelope {
-    const run = this.readRun(payload.slotId);
+  async move(payload: MovePayload): Promise<RunEnvelope> {
+    const run = await this.readRun(payload.slotId);
     if (run.status !== "active") {
       return { run, message: "This run has already reached its end." };
     }
@@ -159,12 +165,12 @@ export class GameService {
 
     run.log = pushLog(run.log, message);
     this.touch(run);
-    this.persistRun(run);
+    await this.persistRun(run);
     return { run, message };
   }
 
-  handleCombat(slotId: string, action: CombatAction, itemId?: string): RunEnvelope {
-    const run = this.readRun(slotId);
+  async handleCombat(slotId: string, action: CombatAction, itemId?: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId);
     const combat = run.combat;
     if (!combat) {
       return { run, message: "No enemy confronts you right now." };
@@ -199,7 +205,7 @@ export class GameService {
         parts.push("You break away and stagger back into the corridor.");
         run.log = pushLog(run.log, parts.join(" "));
         this.touch(run);
-        this.persistRun(run);
+        await this.persistRun(run);
         return { run, message: parts.join(" ") };
       } else {
         parts.push("You lunge for an opening, but the foe cuts you off.");
@@ -217,7 +223,7 @@ export class GameService {
       this.applyCellEffects(run, this.getCell(run.cellId));
       run.log = pushLog(run.log, parts.join(" "));
       this.touch(run);
-      this.persistRun(run);
+      await this.persistRun(run);
       return { run, message: parts.join(" ") };
     }
 
@@ -239,20 +245,20 @@ export class GameService {
 
     run.log = pushLog(run.log, parts.join(" "));
     this.touch(run);
-    this.persistRun(run);
+    await this.persistRun(run);
     return { run, message: parts.join(" ") };
   }
 
-  useItem(slotId: string, itemId: string): RunEnvelope {
-    const run = this.readRun(slotId);
+  async useItem(slotId: string, itemId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId);
     const message = this.consumeItem(run, itemId);
     this.touch(run);
-    this.persistRun(run);
+    await this.persistRun(run);
     return { run, message };
   }
 
-  equipItem(slotId: string, itemId: string): RunEnvelope {
-    const run = this.readRun(slotId);
+  async equipItem(slotId: string, itemId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId);
     if (!run.player.inventory.includes(itemId)) {
       return { run, message: "That item is not in your pack." };
     }
@@ -267,14 +273,14 @@ export class GameService {
     const message = `You ${verb} ${item.name}.`;
     run.log = pushLog(run.log, message);
     this.touch(run);
-    this.persistRun(run);
+    await this.persistRun(run);
     return { run, message };
   }
 
-  saveRun(slotId: string): RunEnvelope {
-    const run = this.readRun(slotId);
+  async saveRun(slotId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId);
     this.touch(run);
-    this.persistRun(run);
+    await this.persistRun(run);
     return { run, message: "Run saved to the local archive." };
   }
 
@@ -361,43 +367,42 @@ export class GameService {
     return Math.floor(this.random() * (max - min + 1)) + min;
   }
 
-  private readRun(slotId: string): RunState {
-    const row = this.db.prepare("SELECT json FROM runs WHERE slot_id = ?").get(slotId) as { json: string } | undefined;
-    if (!row) {
+  private async readRun(slotId: string): Promise<RunState> {
+    const rows = await this.sql<Array<{ json: string }>>`SELECT json FROM runs WHERE slot_id = ${slotId}`;
+    if (rows.length === 0) {
       throw new Error(`Run '${slotId}' not found.`);
     }
-    return JSON.parse(row.json) as RunState;
+    return JSON.parse(rows[0].json) as RunState;
   }
 
-  private persistRun(run: RunState): void {
-    this.db.prepare(`
+  private async persistRun(run: RunState): Promise<void> {
+    await this.sql`
       INSERT INTO runs (slot_id, json, created_at, updated_at)
-      VALUES (@slot_id, @json, @created_at, @updated_at)
-      ON CONFLICT(slot_id) DO UPDATE SET
-        json = excluded.json,
-        updated_at = excluded.updated_at
-    `).run({
-      slot_id: run.slotId,
-      json: JSON.stringify(run),
-      created_at: run.createdAt,
-      updated_at: run.updatedAt
-    });
+      VALUES (${run.slotId}, ${JSON.stringify(run)}, ${run.createdAt}, ${run.updatedAt})
+      ON CONFLICT (slot_id) DO UPDATE SET
+        json = EXCLUDED.json,
+        updated_at = EXCLUDED.updated_at
+    `;
   }
 
   private touch(run: RunState): void {
     run.updatedAt = new Date().toISOString();
   }
 
-  private loadMeta(): MetaRow {
-    const row = this.db.prepare("SELECT json FROM world_data WHERE kind = 'meta' AND id = 'bootstrap'").get() as { json: string } | undefined;
-    if (!row) {
-      throw new Error("World seed has not been loaded into SQLite. Run `npm run db:seed`.");
+  private async loadMeta(): Promise<MetaRow> {
+    const rows = await this.sql<Array<{ json: string }>>`
+      SELECT json FROM world_data WHERE kind = 'meta' AND id = 'bootstrap'
+    `;
+    if (rows.length === 0) {
+      throw new Error("World seed has not been loaded. Run `npm run db:seed`.");
     }
-    return JSON.parse(row.json) as MetaRow;
+    return JSON.parse(rows[0].json) as MetaRow;
   }
 
-  private loadMap<T>(kind: string): Map<string, T> {
-    const rows = this.db.prepare("SELECT id, json FROM world_data WHERE kind = ?").all(kind) as Array<{ id: string; json: string }>;
+  private async loadMap<T>(kind: string): Promise<Map<string, T>> {
+    const rows = await this.sql<Array<{ id: string; json: string }>>`
+      SELECT id, json FROM world_data WHERE kind = ${kind}
+    `;
     return new Map(rows.map((row) => [row.id, JSON.parse(row.json) as T]));
   }
 
@@ -454,8 +459,3 @@ function oppositeDirection(direction: Direction): Direction {
       return "east";
   }
 }
-
-
-
-
-

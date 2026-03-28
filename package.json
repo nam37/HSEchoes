@@ -6,24 +6,23 @@
   "scripts": {
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite --config client/vite.config.ts",
-    "dev:server": "tsx watch server/src/index.ts",
+    "dev:server": "tsx watch --env-file=.env server/src/index.ts",
     "build": "npm run build:server && npm run build:client",
     "build:client": "vite build --config client/vite.config.ts",
     "build:server": "tsc -p server/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "tsx server/src/db/seed.ts",
+    "db:seed": "tsx --env-file=.env server/src/db/seed.ts",
     "start": "node dist/server/server/src/index.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.8.1",
     "fastify": "^5.2.1",
+    "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.174.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

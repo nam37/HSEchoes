@@ -10,10 +10,10 @@ const clientDistRoot = path.resolve(process.cwd(), "dist", "client");
 const clientAssetRoot = path.join(clientDistRoot, "assets");
 const clientIndexPath = path.join(clientDistRoot, "index.html");
 
-export function buildApp(dbFile?: string): FastifyInstance {
-  const db = createDatabase(dbFile);
+export async function buildApp(): Promise<FastifyInstance> {
+  const sql = createDatabase();
   const app = Fastify({ logger: false });
-  const game = new GameService(db);
+  const game = await GameService.create(sql);
 
   app.decorate("gameService", game);
   app.register(registerGameRoutes);
@@ -44,9 +44,11 @@ export function buildApp(dbFile?: string): FastifyInstance {
   app.setErrorHandler((error, _request, reply) => {
     reply.code(500).send({ ok: false, error: error instanceof Error ? error.message : "Unknown server error" });
   });
+
   app.addHook("onClose", async () => {
-    db.close();
+    await sql.end();
   });
+
   return app;
 }
 
@@ -138,4 +140,3 @@ declare module "fastify" {
     gameService: GameService;
   }
 }
-

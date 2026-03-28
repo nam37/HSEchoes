@@ -1,41 +1,42 @@
 import { pathToFileURL } from "node:url";
-import type Database from "better-sqlite3";
 import { worldSeed } from "../content/world.js";
 import { createDatabase } from "./database.js";
+import type { Sql } from "./database.js";
 
-export function seedDatabase(db: Database.Database): void {
-  const wipe = db.prepare("DELETE FROM world_data");
-  wipe.run();
+export async function seedDatabase(sql: Sql): Promise<void> {
+  await sql`DELETE FROM world_data`;
 
-  const insert = db.prepare("INSERT INTO world_data (kind, id, json) VALUES (?, ?, ?)");
-  const transaction = db.transaction(() => {
-    insert.run("meta", "bootstrap", JSON.stringify({
-      title: worldSeed.title,
-      intro: worldSeed.intro,
-      startCellId: worldSeed.startCellId,
-      assets: worldSeed.assets
-    }));
+  await sql.begin(async (tx) => {
+    await tx`
+      INSERT INTO world_data (kind, id, json)
+      VALUES ('meta', 'bootstrap', ${JSON.stringify({
+        title: worldSeed.title,
+        intro: worldSeed.intro,
+        startCellId: worldSeed.startCellId,
+        assets: worldSeed.assets
+      })})
+    `;
 
     for (const cell of worldSeed.cells) {
-      insert.run("cell", cell.id, JSON.stringify(cell));
+      await tx`INSERT INTO world_data (kind, id, json) VALUES ('cell', ${cell.id}, ${JSON.stringify(cell)})`;
     }
     for (const item of worldSeed.items) {
-      insert.run("item", item.id, JSON.stringify(item));
+      await tx`INSERT INTO world_data (kind, id, json) VALUES ('item', ${item.id}, ${JSON.stringify(item)})`;
     }
     for (const enemy of worldSeed.enemies) {
-      insert.run("enemy", enemy.id, JSON.stringify(enemy));
+      await tx`INSERT INTO world_data (kind, id, json) VALUES ('enemy', ${enemy.id}, ${JSON.stringify(enemy)})`;
     }
     for (const encounter of worldSeed.encounters) {
-      insert.run("encounter", encounter.id, JSON.stringify(encounter));
+      await tx`INSERT INTO world_data (kind, id, json) VALUES ('encounter', ${encounter.id}, ${JSON.stringify(encounter)})`;
     }
   });
-
-  transaction();
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const db = createDatabase();
-  seedDatabase(db);
-  db.close();
-  console.log("Seeded SQLite content at data/game.sqlite");
+  const { ensureSchema } = await import("./database.js");
+  const sql = createDatabase();
+  await ensureSchema(sql);
+  await seedDatabase(sql);
+  await sql.end();
+  console.log("Seeded world content into Neon DB.");
 }

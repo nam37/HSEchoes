@@ -1,12 +1,12 @@
-import { seedDatabase } from "./db/seed.js";
-import { buildApp } from "./app.js";
+import { ensureSchema } from "./db/database.js";
 import { createDatabase } from "./db/database.js";
+import { buildApp } from "./app.js";
 
-const db = createDatabase();
-seedDatabase(db);
-db.close();
+const sql = createDatabase();
+await ensureSchema(sql);
+await sql.end();
 
-const app = buildApp();
+const app = await buildApp();
 const port = Number(process.env.PORT ?? 8787);
 
 app.listen({ port, host: "0.0.0.0" }).then(() => {

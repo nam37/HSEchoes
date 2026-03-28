@@ -1,27 +1,35 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { buildApp } from "../server/src/app";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { FastifyInstance } from "fastify";
+import { createDatabase, ensureSchema } from "../server/src/db/database";
 import { seedDatabase } from "../server/src/db/seed";
-import { createDatabase } from "../server/src/db/database";
+import { buildApp } from "../server/src/app";
+import type { Sql } from "../server/src/db/database";
 
 describe("game routes", () => {
-  let root: string;
+  let sql: Sql;
+  let app: FastifyInstance;
 
-  beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "hollow-api-"));
-    const db = createDatabase(join(root, "game.sqlite"));
-    seedDatabase(db);
-    db.close();
+  beforeAll(async () => {
+    sql = createDatabase();
+    await ensureSchema(sql);
+    await seedDatabase(sql);
   });
 
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
+  beforeEach(async () => {
+    await sql`TRUNCATE TABLE runs`;
+    app = await buildApp();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  afterAll(async () => {
+    await sql`TRUNCATE TABLE runs`;
+    await sql.end();
   });
 
   it("boots, creates a run, and loads it back", async () => {
-    const app = buildApp(join(root, "game.sqlite"));
     const landing = await app.inject({ method: "GET", url: "/" });
     const bootstrap = await app.inject({ method: "GET", url: "/api/game/bootstrap" });
     const start = await app.inject({ method: "POST", url: "/api/game/new-run" });
@@ -33,6 +41,5 @@ describe("game routes", () => {
     expect(bootstrap.statusCode).toBe(200);
     expect(created.slotId).toBeTruthy();
     expect(loaded.json().data.run.cellId).toBe("gate");
-    await app.close();
   });
 });
