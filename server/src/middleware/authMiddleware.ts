@@ -39,7 +39,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   try {
     const token = authHeader.slice(7);
     const { payload } = await jose.jwtVerify(token, jwks, {
-      issuer: new URL(NEON_AUTH_URL).origin
+      issuer: NEON_AUTH_URL
     });
     if (!payload.sub) {
       throw new Error("Token missing subject claim.");
