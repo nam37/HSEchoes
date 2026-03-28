@@ -36,21 +36,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     reply.type(contentTypeFor(candidate)).send(content);
   });
 
-  // SPA catch-all: serve index.html for all non-API, non-asset routes
-  app.get<{ Params: { "*": string } }>("/*", async (request, reply) => {
-    const url = request.url;
-    // Let API and asset requests fall through to 404
-    if (url.startsWith("/api/") || url.startsWith("/assets/")) {
-      reply.code(404).send({ ok: false, error: "Not found." });
-      return;
-    }
+  // SPA shell — serve index.html for routes the React client handles
+  async function serveSpa(_req: unknown, reply: import("fastify").FastifyReply): Promise<void> {
     if (await fileExists(clientIndexPath)) {
       const html = await readFile(clientIndexPath, "utf8");
       reply.type("text/html; charset=utf-8").send(html);
       return;
     }
     reply.type("text/html; charset=utf-8").send(renderDevLanding());
-  });
+  }
+  app.get("/", serveSpa);
+  app.get("/admin", serveSpa);
 
   app.setErrorHandler((error, _request, reply) => {
     reply.code(500).send({ ok: false, error: error instanceof Error ? error.message : "Unknown server error" });
