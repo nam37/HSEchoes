@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { BootstrapData, CellFace, Direction, DungeonCell, RunState } from "../../../shared/src/index";
+import { getRenderableCells, isPassageBlocked } from "../lib/dungeonUtils";
 
 interface DungeonViewportProps {
   bootstrap: BootstrapData;
@@ -33,7 +34,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2("#07080d", 0.04);
+    scene.fog = new THREE.FogExp2("#000814", 0.055);
     const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 160);
     rendererRef.current = renderer;
     sceneRef.current = scene;
@@ -91,20 +92,22 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     const inventorySet = new Set(run.player.inventory);
     const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
     const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
-    const gateTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.gateTexture);
 
-    const ambient = new THREE.AmbientLight("#9f8c75", 1.05);
-    const torch = new THREE.PointLight("#fcb66d", 18, 30, 2);
-    torch.position.set(0, 3.7, 1.8);
-    scene.add(ambient, torch);
+    // Sci-fi lighting: cool blue ambient + overhead energy conduit + player proximity glow
+    const ambient = new THREE.AmbientLight("#0a1840", 0.75);
+    const overheadLight = new THREE.PointLight("#40ccff", 30, 42, 2.2);
+    overheadLight.position.set(0, 4.8, -1.5);
+    const playerLight = new THREE.PointLight("#0050d0", 10, 18, 2.5);
+    playerLight.position.set(0, 2.5, 1.8);
+    scene.add(ambient, overheadLight, playerLight);
 
-    scene.background = new THREE.Color(currentCell.ceilingColor);
+    scene.background = new THREE.Color("#000814");
 
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: "#5e5548",
+      color: "#050a18",
       map: floorTexture ?? undefined,
-      roughness: 0.95,
-      metalness: 0.05
+      roughness: 0.85,
+      metalness: 0.45,
     });
     if (floorMaterial.map) {
       floorMaterial.map.wrapS = THREE.RepeatWrapping;
@@ -113,10 +116,11 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     }
 
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: "#6c6357",
+      color: "#060c1c",
       map: wallTexture ?? undefined,
-      roughness: 0.9,
-      metalness: 0.1
+      roughness: 0.88,
+      metalness: 0.5,
+      emissive: "#020810",
     });
     if (wallMaterial.map) {
       wallMaterial.map.wrapS = THREE.RepeatWrapping;
@@ -124,16 +128,18 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       wallMaterial.map.repeat.set(2, 1.2);
     }
 
-    const gateMaterial = new THREE.MeshStandardMaterial({
-      color: "#7a766f",
-      map: gateTexture ?? undefined,
-      roughness: 0.8,
-      metalness: 0.35
-    });
     const doorMaterial = new THREE.MeshStandardMaterial({
-      color: "#6f5436",
-      roughness: 0.88,
-      metalness: 0.08
+      color: "#0c1e38",
+      roughness: 0.45,
+      metalness: 0.88,
+      emissive: "#040e1e",
+    });
+
+    const gateMaterial = new THREE.MeshStandardMaterial({
+      color: "#001e60",
+      roughness: 0.3,
+      metalness: 0.92,
+      emissive: "#000e30",
     });
 
     for (const cell of getRenderableCells(bootstrap.cells, currentCell)) {
@@ -157,8 +163,8 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       const enemy = bootstrap.enemies.find((entry) => entry.id === run.combat?.enemyId);
       const sprite = enemy ? tryTexture(textureLoaderRef.current, enemy.spritePath) : null;
       const material = new THREE.SpriteMaterial({
-        color: "#f2d3a2",
-        map: sprite ?? undefined
+        color: "#80ccff",
+        map: sprite ?? undefined,
       });
       const billboard = new THREE.Sprite(material);
       billboard.position.set(0, 2.25, -4.8);
@@ -173,10 +179,6 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
   return <div className="viewport-shell" ref={mountRef} aria-label="Dungeon viewport" />;
 }
 
-export function getRenderableCells(cells: DungeonCell[], currentCell: DungeonCell): DungeonCell[] {
-  return cells.filter((cell) => Math.abs(cell.x - currentCell.x) + Math.abs(cell.y - currentCell.y) <= 1);
-}
-
 function addCell(
   scene: THREE.Scene,
   cell: DungeonCell,
@@ -189,23 +191,36 @@ function addCell(
   gateMaterial: THREE.Material,
   relation: CellRelation
 ): void {
+  // Floor
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(offsetX, 0, offsetZ);
   scene.add(floor);
 
+  // Sci-fi grid overlay on floor
+  const grid = new THREE.GridHelper(roomSize, 10, "#003860", "#001530");
+  grid.position.set(offsetX, 0.015, offsetZ);
+  scene.add(grid);
+
+  // Ceiling
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({ color: cell.ceilingColor, roughness: 1 })
+    new THREE.MeshStandardMaterial({ color: "#020810", roughness: 1 })
   );
   ceiling.position.set(offsetX, wallHeight, offsetZ);
   ceiling.rotation.x = Math.PI / 2;
   scene.add(ceiling);
 
+  // Prop (tech console / pillar)
   if (relation === "current" && cell.prop) {
     const prop = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 2, 1.5),
-      new THREE.MeshStandardMaterial({ color: "#68573f", roughness: 0.9 })
+      new THREE.MeshStandardMaterial({
+        color: "#0a1530",
+        roughness: 0.6,
+        metalness: 0.8,
+        emissive: "#040c1c",
+      })
     );
     prop.position.set(offsetX, 1, offsetZ - 1);
     scene.add(prop);
@@ -215,7 +230,7 @@ function addCell(
     { direction: "north", position: [offsetX, wallHeight / 2, offsetZ - roomSize / 2], rotation: 0, face: cell.sides.north },
     { direction: "east", position: [offsetX + roomSize / 2, wallHeight / 2, offsetZ], rotation: -Math.PI / 2, face: cell.sides.east },
     { direction: "south", position: [offsetX, wallHeight / 2, offsetZ + roomSize / 2], rotation: Math.PI, face: cell.sides.south },
-    { direction: "west", position: [offsetX - roomSize / 2, wallHeight / 2, offsetZ], rotation: Math.PI / 2, face: cell.sides.west }
+    { direction: "west", position: [offsetX - roomSize / 2, wallHeight / 2, offsetZ], rotation: Math.PI / 2, face: cell.sides.west },
   ];
 
   for (const wall of walls) {
@@ -223,7 +238,6 @@ function addCell(
       if (wall.direction === oppositeDirection(relation)) {
         continue;
       }
-
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
       mesh.position.set(...wall.position);
       mesh.rotation.y = wall.rotation;
@@ -245,34 +259,26 @@ function addCell(
       wall.position,
       wall.rotation,
       wall.face === "gate" ? gateMaterial : wall.face === "door" ? doorMaterial : wallMaterial,
+      wallMaterial,
       wall.face,
       blocked
     );
   }
 }
 
-export function isPassageBlocked(cell: DungeonCell, direction: Direction, inventory: Set<string>): boolean {
-  const requirement = cell.passageRequirements?.[direction];
-  return Boolean(requirement && !inventory.has(requirement.itemId));
-}
-
 function getCellRelation(cell: DungeonCell, currentCell: DungeonCell): CellRelation {
   if (cell.id === currentCell.id) {
     return "current";
   }
-
   if (cell.x === currentCell.x && cell.y === currentCell.y - 1) {
     return "north";
   }
-
   if (cell.x === currentCell.x + 1 && cell.y === currentCell.y) {
     return "east";
   }
-
   if (cell.x === currentCell.x && cell.y === currentCell.y + 1) {
     return "south";
   }
-
   return "west";
 }
 
@@ -288,18 +294,35 @@ function addPassageFrame(
   scene: THREE.Scene,
   position: [number, number, number],
   rotation: number,
-  material: THREE.Material,
+  frameMaterial: THREE.Material,
+  wallMaterial: THREE.Material,
   face: CellFace,
   blocked: boolean
 ): void {
-  const left = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), material);
-  const right = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), material);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.38, 0.45), material);
   const group = new THREE.Group();
+
+  // Frame pillars and lintel
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), frameMaterial);
+  const right = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), frameMaterial);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.38, 0.45), frameMaterial);
   left.position.set(-1.8, 2.1, 0);
   right.position.set(1.8, 2.1, 0);
   top.position.set(0, 4.05, 0);
   group.add(left, right, top);
+
+  // Wall panels flanking the frame (fills x=[-5,-2] and [2,5] at full height)
+  const sideW = 3.0;
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
+  leftWall.position.set(-(roomSize / 2 - sideW / 2), wallHeight / 2, 0);
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
+  rightWall.position.set(roomSize / 2 - sideW / 2, wallHeight / 2, 0);
+
+  // Wall panel above the frame opening (y=4.2 to ceiling at y=5)
+  const aboveH = wallHeight - 4.2;
+  const aboveWall = new THREE.Mesh(new THREE.PlaneGeometry(4.0, aboveH), wallMaterial);
+  aboveWall.position.set(0, 4.2 + aboveH / 2, 0);
+
+  group.add(leftWall, rightWall, aboveWall);
 
   if (face === "gate") {
     group.add(buildGateBarrier(blocked));
@@ -307,23 +330,33 @@ function addPassageFrame(
     group.add(buildDoorBarrier());
   }
 
-  group.position.set(...position);
+  group.position.set(position[0], 0, position[2]);
   group.rotation.y = rotation;
   scene.add(group);
 }
 
 function buildDoorBarrier(): THREE.Group {
   const group = new THREE.Group();
-  const panelMaterial = new THREE.MeshStandardMaterial({ color: "#73502d", roughness: 0.86, metalness: 0.08 });
-  const bandMaterial = new THREE.MeshStandardMaterial({ color: "#8d7247", roughness: 0.72, metalness: 0.22 });
+  const panelMaterial = new THREE.MeshStandardMaterial({
+    color: "#0a1428",
+    roughness: 0.5,
+    metalness: 0.9,
+    emissive: "#040810",
+  });
+  const bandMaterial = new THREE.MeshStandardMaterial({
+    color: "#004080",
+    roughness: 0.3,
+    metalness: 0.95,
+    emissive: "#002040",
+  });
 
   const leftDoor = new THREE.Mesh(new THREE.BoxGeometry(1.45, 3.55, 0.2), panelMaterial);
   const rightDoor = new THREE.Mesh(new THREE.BoxGeometry(1.45, 3.55, 0.2), panelMaterial);
   const band = new THREE.Mesh(new THREE.BoxGeometry(2.95, 0.22, 0.24), bandMaterial);
 
-  leftDoor.position.set(-0.78, 2.02, -0.06);
-  rightDoor.position.set(0.78, 2.02, -0.06);
-  band.position.set(0, 2.02, -0.08);
+  leftDoor.position.set(-0.78, 1.775, -0.06);
+  rightDoor.position.set(0.78, 1.775, -0.06);
+  band.position.set(0, 1.775, -0.08);
 
   group.add(leftDoor, rightDoor, band);
   return group;
@@ -331,28 +364,40 @@ function buildDoorBarrier(): THREE.Group {
 
 function buildGateBarrier(blocked: boolean): THREE.Group {
   const group = new THREE.Group();
-  const barMaterial = new THREE.MeshStandardMaterial({ color: "#8a7f70", roughness: 0.62, metalness: 0.5 });
-  const braceMaterial = new THREE.MeshStandardMaterial({ color: "#615749", roughness: 0.72, metalness: 0.35 });
+  const barMaterial = new THREE.MeshStandardMaterial({
+    color: "#0060ff",
+    roughness: 0.2,
+    metalness: 0.85,
+    emissive: "#003090",
+    emissiveIntensity: 0.8,
+  });
+  const braceMaterial = new THREE.MeshStandardMaterial({
+    color: "#0040a0",
+    roughness: 0.3,
+    metalness: 0.9,
+    emissive: "#002060",
+  });
 
   const opacity = blocked ? 0.92 : 0.28;
   const backing = new THREE.Mesh(
     new THREE.PlaneGeometry(3.1, 3.5),
     new THREE.MeshStandardMaterial({
-      color: blocked ? "#7f776b" : "#8a7f70",
-      roughness: 0.65,
-      metalness: 0.45,
+      color: blocked ? "#002860" : "#0040a0",
+      roughness: 0.3,
+      metalness: 0.8,
+      emissive: blocked ? "#001030" : "#002050",
       transparent: true,
       opacity,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     })
   );
-  backing.position.set(0, 2.1, -0.03);
+  backing.position.set(0, 1.75, -0.03);
   group.add(backing);
 
   if (blocked) {
     for (const x of [-1.15, -0.38, 0.38, 1.15]) {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(0.14, 3.5, 0.14), barMaterial);
-      bar.position.set(x, 2.05, -0.02);
+      bar.position.set(x, 1.75, -0.02);
       group.add(bar);
     }
     const brace = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.18, 0.16), braceMaterial);
@@ -363,8 +408,9 @@ function buildGateBarrier(blocked: boolean): THREE.Group {
   return group;
 }
 
+// Camera centered at room origin — symmetric view in all four directions
 function placeCamera(camera: THREE.PerspectiveCamera, facing: Direction): void {
-  camera.position.set(0, 2.15, 1.9);
+  camera.position.set(0, 2.15, 0);
   switch (facing) {
     case "north":
       camera.lookAt(0, 2.1, -12);

@@ -80,6 +80,7 @@ export class GameService {
       mode: "explore",
       status: "active",
       cellId: this.meta.startCellId,
+      previousCellId: null,
       facing: "north",
       discoveredCellIds: [this.meta.startCellId],
       visitedCellIds: [this.meta.startCellId],
@@ -145,6 +146,7 @@ export class GameService {
           if (!next) {
             message = "The passage ends in darkness.";
           } else {
+            run.previousCellId = run.cellId;
             run.cellId = next.id;
             run.visitedCellIds = unique([...run.visitedCellIds, next.id]);
             run.discoveredCellIds = unique([...run.discoveredCellIds, next.id]);
@@ -190,6 +192,10 @@ export class GameService {
       } else if (this.random() >= 0.4) {
         run.mode = "explore";
         run.combat = null;
+        if (run.previousCellId) {
+          run.cellId = run.previousCellId;
+          run.previousCellId = null;
+        }
         parts.push("You break away and stagger back into the corridor.");
         run.log = pushLog(run.log, parts.join(" "));
         this.touch(run);

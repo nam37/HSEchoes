@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, startTransition } from "react";
-import type { BootstrapData, Direction, DungeonCell, Item, RunState } from "../../shared/src/index";
+import React, { useEffect, useMemo, useState, startTransition } from "react";
+import type { BootstrapData, CellFace, Direction, DungeonCell, Item, RunState } from "../../shared/src/index";
 import { formatFaceLabel } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
@@ -232,6 +232,16 @@ function App(): JSX.Element {
         </main>
       ) : (
         <main className="game-grid">
+          {run.status === "defeat" && (
+            <div className="death-overlay" role="dialog" aria-modal="true" aria-label="Game over">
+              <div className="death-modal">
+                <p className="death-eyebrow">Signal lost</p>
+                <h2 className="death-heading">You are dead.</h2>
+                <p className="death-sub">{run.log.at(-1) ?? "The darkness claims you."}</p>
+                <button onClick={() => void createRun()} disabled={busy}>Restart</button>
+              </div>
+            </div>
+          )}
           {error && <p className="error-banner inline-error">{error}</p>}
 
           <section className="stage-panel">
@@ -304,7 +314,11 @@ function App(): JSX.Element {
                 {inventory?.map((item) => (
                   <button
                     key={item.id}
-                    className={selectedItemId === item.id ? "inventory-item selected" : "inventory-item"}
+                    className={[
+                      "inventory-item",
+                      selectedItemId === item.id ? "selected" : "",
+                      Object.values(run.player.equipped).includes(item.id) ? "equipped" : ""
+                    ].filter(Boolean).join(" ")}
                     onClick={() => setSelectedItemId(item.id)}
                   >
                     <img src={item.iconPath} alt="" />
@@ -323,7 +337,7 @@ function App(): JSX.Element {
 
             <section className="hud-card map-card">
               <h2>Map</h2>
-              {bootstrap && currentCell ? <MapPanel bootstrap={bootstrap} run={run} currentCell={currentCell} currentCellTitle={currentCell.title} /> : <p>Map unavailable.</p>}
+              {bootstrap && currentCell ? <MapPanel bootstrap={bootstrap} run={run} currentCell={currentCell} /> : <p>Map unavailable.</p>}
             </section>
 
             <section className="hud-card log-card">
@@ -368,29 +382,50 @@ function toTitle(direction: Direction): string {
   return direction.charAt(0).toUpperCase() + direction.slice(1);
 }
 
+const FACING_CHAR: Record<Direction, string> = { north: "▲", east: "▶", south: "▼", west: "◀" };
+
+function faceBorder(face: CellFace): string {
+  switch (face) {
+    case "wall": return "1px solid rgba(0, 200, 240, 0.75)";
+    case "door": return "1px solid rgba(255, 170, 0, 0.65)";
+    case "gate": return "1px solid rgba(0, 100, 255, 0.65)";
+    case "open": return "1px solid rgba(0, 120, 160, 0.18)";
+  }
+}
+
 function MapPanel({
   bootstrap,
   run,
   currentCell,
-  currentCellTitle
 }: {
   bootstrap: BootstrapData;
   run: RunState;
   currentCell: DungeonCell;
-  currentCellTitle: string;
 }): JSX.Element {
   const radius = 2;
-  const rows: JSX.Element[] = [];
   const cellsByCoordinate = new Map(bootstrap.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]));
+  const rows: JSX.Element[] = [];
 
   for (let y = currentCell.y - radius; y <= currentCell.y + radius; y += 1) {
     for (let x = currentCell.x - radius; x <= currentCell.x + radius; x += 1) {
       const cell = cellsByCoordinate.get(`${x}:${y}`);
       const discovered = cell ? run.discoveredCellIds.includes(cell.id) : false;
       const current = cell?.id === run.cellId;
+
+      const style: React.CSSProperties = discovered && cell ? {
+        borderTop: faceBorder(cell.sides.north),
+        borderRight: faceBorder(cell.sides.east),
+        borderBottom: faceBorder(cell.sides.south),
+        borderLeft: faceBorder(cell.sides.west),
+      } : {};
+
       rows.push(
-        <div key={`${x}-${y}`} className={current ? "map-cell current" : discovered ? "map-cell discovered" : "map-cell hidden"}>
-          {current ? "@" : discovered ? "•" : ""}
+        <div
+          key={`${x}-${y}`}
+          className={current ? "map-cell current" : discovered ? "map-cell discovered" : "map-cell hidden"}
+          style={style}
+        >
+          {current ? FACING_CHAR[run.facing] : ""}
         </div>
       );
     }
@@ -398,10 +433,10 @@ function MapPanel({
 
   return (
     <>
-      <div className="map-grid map-grid-window" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
+      <div className="map-grid" style={{ gridTemplateColumns: "repeat(5, 16px)" }}>
         {rows}
       </div>
-      <p className="room-copy">Current room: {currentCellTitle}</p>
+      <p className="room-copy">{currentCell.title}</p>
     </>
   );
 }

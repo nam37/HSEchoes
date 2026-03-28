@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRenderableCells, isPassageBlocked } from "../client/src/components/DungeonViewport";
+import { getRenderableCells, isPassageBlocked } from "../client/src/lib/dungeonUtils";
 import { cells } from "../server/src/content/world";
 
 describe("DungeonViewport passage locks", () => {

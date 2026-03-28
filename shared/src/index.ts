@@ -111,6 +111,7 @@ export interface RunState {
   mode: GameMode;
   status: RunStatus;
   cellId: string;
+  previousCellId: string | null;
   facing: Direction;
   discoveredCellIds: string[];
   visitedCellIds: string[];
