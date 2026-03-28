@@ -56,7 +56,7 @@ export function Root(): JSX.Element {
   if (path === "/admin") {
     return <AdminPage userEmail={userEmail} onSignOut={handleSignOut} />;
   }
-  return <App />;
+  return <App onSignOut={handleSignOut} />;
 }
 
 async function handleSignOut(): Promise<void> {

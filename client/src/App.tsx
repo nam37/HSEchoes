@@ -4,7 +4,7 @@ import { formatFaceLabel } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
 
-function App(): JSX.Element {
+function App({ onSignOut }: { onSignOut?: () => void }): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -225,6 +225,9 @@ function App(): JSX.Element {
               <button onClick={() => void createRun()} disabled={busy}>New Run</button>
               {bootstrap?.saves?.[0] && (
                 <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
+              )}
+              {onSignOut && (
+                <button className="btn-secondary" onClick={onSignOut}>Sign Out</button>
               )}
             </div>
           </header>

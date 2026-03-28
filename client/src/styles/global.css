@@ -1001,3 +1001,14 @@ button:disabled {
   background: rgba(255, 48, 64, 0.1);
   color: #ff6070;
 }
+
+.btn-secondary {
+  color: var(--muted);
+  border-color: rgba(255,255,255,0.1);
+  font-size: 0.6rem;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  color: var(--text);
+  border-color: rgba(255,255,255,0.3);
+}
