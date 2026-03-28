@@ -12,7 +12,8 @@
     "build:server": "tsc -p server/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "tsx server/src/db/seed.ts"
+    "db:seed": "tsx server/src/db/seed.ts",
+    "start": "node dist/server/server/src/index.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
