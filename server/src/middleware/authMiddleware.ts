@@ -1,32 +1,19 @@
-import * as jose from "jose";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 const NEON_AUTH_URL = process.env.NEON_AUTH_URL;
-
-let JWKS: ReturnType<typeof jose.createRemoteJWKSet> | null = null;
-
-function getJWKS(): ReturnType<typeof jose.createRemoteJWKSet> | null {
-  if (!JWKS && NEON_AUTH_URL) {
-    JWKS = jose.createRemoteJWKSet(
-      new URL(`${NEON_AUTH_URL}/.well-known/jwks.json`)
-    );
-  }
-  return JWKS;
-}
 
 export interface AuthenticatedRequest extends FastifyRequest {
   userId: string;
 }
 
+interface SessionResponse {
+  session?: { userId?: string };
+  user?: { id?: string };
+}
+
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   // If Neon Auth is not configured, allow all requests (dev mode)
   if (!NEON_AUTH_URL) {
-    return;
-  }
-
-  const jwks = getJWKS();
-  if (!jwks) {
-    reply.code(503).send({ ok: false, error: "Auth service not configured." });
     return;
   }
 
@@ -38,13 +25,14 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
 
   try {
     const token = authHeader.slice(7);
-    const { payload } = await jose.jwtVerify(token, jwks, {
-      issuer: NEON_AUTH_URL
+    const response = await fetch(`${NEON_AUTH_URL}/get-session`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (!payload.sub) {
-      throw new Error("Token missing subject claim.");
-    }
-    (request as unknown as AuthenticatedRequest).userId = payload.sub;
+    if (!response.ok) throw new Error("Session verification failed.");
+    const data = (await response.json()) as SessionResponse | null;
+    const userId = data?.user?.id ?? data?.session?.userId;
+    if (!userId) throw new Error("No user ID in session.");
+    (request as unknown as AuthenticatedRequest).userId = userId;
   } catch {
     reply.code(401).send({ ok: false, error: "Invalid or expired token." });
   }
