@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { authClient } from "../lib/auth";
 import { setAuthToken } from "../lib/api";
 import App from "../App";
@@ -22,7 +22,6 @@ export function Root(): JSX.Element {
       try {
         const result = await authClient.getSession();
         if (result.data?.session && result.data?.user) {
-          // Use session token as Bearer for API requests
           setAuthToken(result.data.session.token ?? null);
           setUserEmail(result.data.user.email ?? null);
           setAuthState("authed");
@@ -35,6 +34,12 @@ export function Root(): JSX.Element {
     })();
   }, []);
 
+  const handleAuthed = useCallback((token: string, email: string): void => {
+    setAuthToken(token);
+    setUserEmail(email);
+    setAuthState("authed");
+  }, []);
+
   if (authState === "loading") {
     return (
       <div className="auth-loading">
@@ -44,7 +49,7 @@ export function Root(): JSX.Element {
   }
 
   if (authState === "unauthed") {
-    return <LandingPage />;
+    return <LandingPage onAuthed={handleAuthed} />;
   }
 
   const path = window.location.pathname;
