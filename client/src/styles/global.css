@@ -1,0 +1,423 @@
+:root {
+  font-family: "Lucida Console", "Courier New", monospace;
+  color: #efe5cf;
+  background:
+    radial-gradient(circle at top, rgba(208, 146, 82, 0.18), transparent 28%),
+    linear-gradient(180deg, #120d11 0%, #09070a 100%);
+  --panel: rgba(25, 19, 23, 0.92);
+  --panel-strong: rgba(36, 28, 32, 0.97);
+  --line: rgba(212, 163, 102, 0.36);
+  --accent: #d4a366;
+  --accent-strong: #f0c27d;
+  --danger: #cf6d57;
+  --shadow: rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(72, 48, 29, 0.95), rgba(44, 29, 20, 0.95));
+  color: #f5e7cf;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.app-shell.has-run {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hero-panel,
+.hud-card,
+.stage-panel,
+.combat-banner {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 45px var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.landing-stage {
+  min-height: calc(100vh - 2rem);
+  display: grid;
+  place-items: start center;
+  align-content: center;
+}
+
+.hero-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  padding: 1.25rem 1.5rem;
+  background-image: linear-gradient(135deg, rgba(102, 58, 39, 0.2), rgba(20, 22, 30, 0.05));
+}
+
+.hero-panel-landing {
+  width: min(72rem, 100%);
+}
+
+.eyebrow,
+.combat-kicker {
+  margin: 0;
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.hero-panel h1 {
+  margin: 0.35rem 0;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+}
+
+.intro-copy,
+.room-copy,
+.item-copy,
+.status-ribbon,
+.log-list p,
+.hud-card p,
+.combat-banner p {
+  line-height: 1.45;
+}
+
+.hero-actions,
+.inventory-actions,
+.button-grid,
+.panel-actions,
+.combat-banner-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.game-grid {
+  height: calc(100vh - 2rem);
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(19rem, 0.95fr);
+  grid-template-rows: minmax(22rem, 1.4fr) minmax(14rem, 0.9fr);
+  gap: 1rem;
+}
+
+.inline-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.stage-panel,
+.hud-card,
+.sidebar,
+.bottom-row {
+  min-height: 0;
+}
+
+.stage-panel {
+  min-height: 22rem;
+  padding: 1rem;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.viewport-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 18rem;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at center, rgba(104, 95, 72, 0.28), transparent 40%),
+    linear-gradient(180deg, #19151a 0%, #08080c 100%);
+}
+
+.viewport-shell canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.viewport-shell.loading {
+  display: grid;
+  place-items: center;
+}
+
+.status-ribbon {
+  padding: 0.85rem 1rem;
+  background: var(--panel-strong);
+  border-left: 3px solid var(--accent);
+}
+
+.combat-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.95fr);
+  gap: 1rem;
+  padding: 1rem;
+  border-color: rgba(207, 109, 87, 0.7);
+  background:
+    linear-gradient(135deg, rgba(110, 32, 22, 0.45), rgba(28, 18, 24, 0.92));
+}
+
+.combat-banner h2 {
+  margin: 0.35rem 0 0.2rem;
+  color: #f6d1a7;
+}
+
+.combat-banner-copy,
+.combat-banner-actions {
+  min-width: 0;
+}
+
+.combat-banner-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.combat-banner-actions {
+  align-content: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.combat-banner-actions button {
+  flex: 1 1 calc(50% - 0.75rem);
+}
+
+.combat-hint {
+  color: rgba(245, 231, 207, 0.82);
+}
+
+.sidebar,
+.bottom-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.bottom-row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: 1.25fr 0.9fr 1fr;
+}
+
+.hud-card {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hud-card h2 {
+  margin: 0;
+  color: var(--accent-strong);
+}
+
+.panel-heading-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.panel-actions button,
+.button-grid-compact button {
+  flex: 1 1 0;
+}
+
+.movement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.movement-grid button {
+  width: 100%;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 1rem;
+}
+
+.stat-grid p,
+.exit-list p,
+.log-list p,
+.room-copy,
+.item-copy,
+.hud-card p,
+.combat-banner p {
+  margin: 0;
+}
+
+.inventory-actions {
+  margin-top: 0.75rem;
+}
+
+.exit-list {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(212, 163, 102, 0.18);
+}
+
+.exit-list p {
+  color: rgba(239, 229, 207, 0.82);
+}
+
+.inventory-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.inventory-item img {
+  width: 2rem;
+  height: 2rem;
+  image-rendering: pixelated;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.inventory-item.selected {
+  outline: 2px solid var(--accent);
+}
+
+.map-grid {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  flex: 1;
+}
+
+.map-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.map-cell.hidden {
+  background: rgba(15, 12, 16, 0.95);
+}
+
+.map-cell.discovered {
+  background: rgba(74, 68, 79, 0.9);
+}
+
+.map-cell.current {
+  background: rgba(212, 163, 102, 0.85);
+  color: #1d130d;
+  font-weight: 700;
+}
+
+.scroll-panel,
+.log-list {
+  min-height: 0;
+  overflow: auto;
+}
+
+.log-list {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.error-banner {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--danger);
+  background: rgba(87, 34, 29, 0.65);
+}
+
+.landing-stage .error-banner {
+  width: min(72rem, 100%);
+  margin-top: 1rem;
+}
+
+@media (max-width: 1180px) {
+  .app-shell.has-run {
+    height: auto;
+    overflow: visible;
+  }
+
+  .game-grid {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .sidebar,
+  .bottom-row,
+  .inline-error {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .combat-banner,
+  .bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .viewport-shell {
+    min-height: 24rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 0.75rem;
+  }
+
+  .landing-stage {
+    min-height: calc(100vh - 1.5rem);
+  }
+
+  .hero-panel,
+  .panel-heading-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stat-grid,
+  .combat-banner-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
