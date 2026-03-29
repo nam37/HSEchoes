@@ -1,3 +1,20 @@
+/* ── Kensmark-03 custom font ──────────────────────────────────── */
+@font-face {
+  font-family: 'Kensmark';
+  src: url('/Kensmark-03-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kensmark';
+  src: url('/Kensmark-03-BoldSlant.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   color: #a8d8f0;
@@ -56,7 +73,7 @@ body::after {
 }
 
 button {
-  font-family: 'Orbitron', 'Share Tech Mono', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -89,6 +106,14 @@ button:disabled {
 .app-shell {
   min-height: 100vh;
   padding: 1rem;
+  position: relative;
+}
+
+/* Landing pages get the space BG as a fixed darkened backdrop */
+.app-shell.landing-shell {
+  background:
+    linear-gradient(rgba(0, 4, 16, 0.72), rgba(0, 4, 16, 0.82)),
+    url('/splash-bg.jpg') center center / cover no-repeat fixed;
 }
 
 .app-shell.has-run {
@@ -147,7 +172,7 @@ button:disabled {
 .eyebrow,
 .combat-kicker {
   margin: 0;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.62rem;
   font-weight: 600;
   color: var(--accent);
@@ -157,7 +182,7 @@ button:disabled {
 
 .hero-panel h1 {
   margin: 0.5rem 0;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: clamp(1.8rem, 4.5vw, 3.2rem);
   font-weight: 900;
   color: #e4f4ff;
@@ -251,7 +276,7 @@ button:disabled {
   display: grid;
   place-items: center;
   color: var(--accent);
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   letter-spacing: 0.2em;
   font-size: 0.75rem;
 }
@@ -278,7 +303,7 @@ button:disabled {
 
 .combat-banner h2 {
   margin: 0.3rem 0 0.2rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 1rem;
   color: #ff8090;
   letter-spacing: 0.05em;
@@ -336,7 +361,7 @@ button:disabled {
 
 .hud-card h2 {
   margin: 0 0 0.55rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.24em;
@@ -458,7 +483,7 @@ button:disabled {
 
 .inventory-item.equipped::after {
   content: "EQ";
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -580,7 +605,7 @@ button:disabled {
 
 .death-eyebrow {
   margin: 0;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.3em;
@@ -590,7 +615,7 @@ button:disabled {
 
 .death-heading {
   margin: 0;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 900;
   letter-spacing: 0.06em;
@@ -680,7 +705,7 @@ button:disabled {
 }
 
 .auth-loading-text {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.85rem;
   letter-spacing: 0.2em;
   color: var(--accent);
@@ -812,7 +837,7 @@ button:disabled {
 }
 
 .admin-nav-title {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.3em;
@@ -873,7 +898,7 @@ button:disabled {
 }
 
 .admin-section-title {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -907,7 +932,7 @@ button:disabled {
 
 .stat-value {
   margin: 0 0 0.25rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 2rem;
   font-weight: 900;
   color: #e4f4ff;
@@ -935,7 +960,7 @@ button:disabled {
 }
 
 .admin-table th {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -963,7 +988,7 @@ button:disabled {
 }
 
 .run-slot {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   font-size: 0.75rem;
   color: var(--accent);
   letter-spacing: 0.12em;
@@ -978,7 +1003,7 @@ button:disabled {
   display: inline-block;
   padding: 0.18rem 0.55rem;
   font-size: 0.65rem;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   border: 1px solid;

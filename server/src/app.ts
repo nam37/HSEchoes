@@ -38,6 +38,21 @@ export async function buildApp(): Promise<FastifyInstance> {
     reply.type(contentTypeFor(candidate)).send(content);
   });
 
+  // Serve root-level public files (fonts, images copied from client/public/)
+  const STATIC_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".svg", ".ico", ".ttf", ".otf", ".woff", ".woff2"]);
+  app.get<{ Params: { file: string } }>("/:file", async (request, reply) => {
+    const file = request.params.file;
+    const ext = path.extname(file).toLowerCase();
+    if (!STATIC_EXTS.has(ext)) { return; } // not a static file — let other routes handle
+    const candidate = path.resolve(clientDistRoot, file);
+    if (!candidate.startsWith(clientDistRoot) || !(await isFile(candidate))) {
+      reply.code(404).send({ ok: false, error: "Not found." });
+      return;
+    }
+    reply.header("Cache-Control", "public, max-age=31536000, immutable");
+    reply.type(contentTypeFor(candidate)).send(await readFile(candidate));
+  });
+
   // SPA shell — serve index.html for routes the React client handles
   async function serveSpa(_req: unknown, reply: import("fastify").FastifyReply): Promise<void> {
     if (await fileExists(clientIndexPath)) {
@@ -96,6 +111,16 @@ function contentTypeFor(filePath: string): string {
       return "image/svg+xml";
     case ".webp":
       return "image/webp";
+    case ".ttf":
+      return "font/ttf";
+    case ".otf":
+      return "font/otf";
+    case ".woff":
+      return "font/woff";
+    case ".woff2":
+      return "font/woff2";
+    case ".ico":
+      return "image/x-icon";
     default:
       return "application/octet-stream";
   }
