@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run:*)",
+      "Bash(xargs grep:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebSearch",
+      "WebFetch(domain:www.betterauth.dev)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"require\\(''@neondatabase/neon-js''\\); console.log\\(''neon-js ok''\\)\")",
+      "Bash(node -e \"require\\(''jose''\\); console.log\\(''jose ok''\\)\")",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/postgres/package.json''\\).version\\)\")",
+      "Bash(node -e \"const p = require\\(''''./node_modules/postgres/types/index.d.ts''''\\); console.log\\(''''loaded''''\\)\")",
+      "Bash(node -e \"const p = require\\(''./node_modules/@neondatabase/neon-js/package.json''\\); console.log\\(JSON.stringify\\({exports: p.exports, main: p.main, module: p.module, version: p.version}, null, 2\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:8787/api/game/new-run)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d.get\\(''''data'''',{}\\).get\\(''''run'''',{}\\); print\\(''''ok:'''', d.get\\(''''ok''''\\), ''''slot:'''', r.get\\(''''slotId''''\\), ''''cell:'''', r.get\\(''''cellId''''\\)\\)\")",
+      "Bash(pkill -f \"tsx watch\")",
+      "WebFetch(domain:hsechoes-production.up.railway.app)",
+      "Bash(npx kill-port:*)",
+      "Bash(curl -s http://localhost:8787/api/game/bootstrap)",
+      "Bash(curl -s -o /dev/null -w \"Vite: %{http_code}\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"API: %{http_code}\\\\n\" http://localhost:8787/api/game/bootstrap)",
+      "Bash(curl -s -o /dev/null -w \"Vite: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(node -e \":*)",
+      "Bash(node --input-type=module -e \":*)",
+      "Bash(npm uninstall:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8787\")",
+      "Bash(curl -s -X POST \"$NEON_AUTH_URL/sign-in/email\" -H \"Content-Type: application/json\" -H \"Origin: http://localhost:5173\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"nam037@gmail.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"k25gpfTpVLG4TEP\"\"\"\"}' --env-file .env)",
+      "Bash(TOKEN=\"bTrfqsjJCVrvEof80vgDe3JAuNMFGQxG.8%2Ba50EOh5eRV0NHfBymt3cVioL4WA81t7jKZ4fWEk%2Fk%3D\")",
+      "Bash(curl -s http://localhost:8787/api/auth/session -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(curl -s http://localhost:8787/api/game/bootstrap -H \"Authorization: Bearer $TOKEN\")"
+    ]
+  }
+}

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { authClient } from "../lib/auth";
+import { signIn, signUp } from "../lib/auth";
+import type { AuthUser } from "../lib/auth";
 
 interface LandingPageProps {
-  onAuthed: (token: string, email: string) => void;
+  onAuthed: (token: string, user: AuthUser) => void;
 }
 
 type Mode = "signin" | "signup";
@@ -24,7 +25,6 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (!authClient) return;
     setError(null);
 
     if (mode === "signup" && password !== confirm) {
@@ -38,24 +38,11 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
 
     setBusy(true);
     try {
-      if (mode === "signin") {
-        const result = await authClient.signIn.email({ email, password });
-        if (result.error) throw new Error(result.error.message ?? "Sign-in failed.");
-        const token = result.data?.token ?? null;
-        const userEmail = result.data?.user?.email ?? email;
-        if (!token) throw new Error("No session token returned.");
-        onAuthed(token, userEmail);
-      } else {
-        const result = await authClient.signUp.email({ email, password, name: email });
-        if (result.error) throw new Error(result.error.message ?? "Sign-up failed.");
-        // After sign-up, sign in immediately to get a token
-        const signIn = await authClient.signIn.email({ email, password });
-        if (signIn.error) throw new Error(signIn.error.message ?? "Sign-in after sign-up failed.");
-        const token = signIn.data?.token ?? null;
-        const userEmail = signIn.data?.user?.email ?? email;
-        if (!token) throw new Error("No session token returned.");
-        onAuthed(token, userEmail);
+      if (mode === "signup") {
+        await signUp(email, password);
       }
+      const { token, user } = await signIn(email, password);
+      onAuthed(token, user);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {

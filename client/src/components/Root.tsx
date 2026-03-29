@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { authClient } from "../lib/auth";
+import { authEnabled, getSession, signOut, getStoredToken } from "../lib/auth";
+import type { AuthUser } from "../lib/auth";
 import { setAuthToken } from "../lib/api";
 import App from "../App";
 import LandingPage from "../pages/LandingPage";
@@ -12,18 +13,17 @@ export function Root(): JSX.Element {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // If Neon Auth is not configured, skip auth and go straight to the game
-    if (!authClient) {
+    if (!authEnabled) {
       setAuthState("authed");
       return;
     }
 
     void (async () => {
       try {
-        const result = await authClient.getSession();
-        if (result.data?.session && result.data?.user) {
-          setAuthToken(result.data.session.token ?? null);
-          setUserEmail(result.data.user.email ?? null);
+        const session = await getSession();
+        if (session?.user) {
+          setAuthToken(getStoredToken());
+          setUserEmail(session.user.email ?? null);
           setAuthState("authed");
         } else {
           setAuthState("unauthed");
@@ -34,9 +34,9 @@ export function Root(): JSX.Element {
     })();
   }, []);
 
-  const handleAuthed = useCallback((token: string, email: string): void => {
+  const handleAuthed = useCallback((token: string, user: AuthUser): void => {
     setAuthToken(token);
-    setUserEmail(email);
+    setUserEmail(user.email ?? null);
     setAuthState("authed");
   }, []);
 
@@ -54,15 +54,13 @@ export function Root(): JSX.Element {
 
   const path = window.location.pathname;
   if (path === "/admin") {
-    return <AdminPage userEmail={userEmail} onSignOut={handleSignOut} />;
+    return <AdminPage userEmail={userEmail} onSignOut={() => void handleSignOut()} />;
   }
-  return <App onSignOut={handleSignOut} />;
+  return <App onSignOut={() => void handleSignOut()} />;
 }
 
 async function handleSignOut(): Promise<void> {
-  if (authClient) {
-    await authClient.signOut();
-  }
+  await signOut();
   setAuthToken(null);
   window.location.href = "/";
 }

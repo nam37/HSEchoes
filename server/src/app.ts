@@ -7,6 +7,7 @@ import type { Sql } from "./db/database.js";
 import { GameService } from "./services/gameService.js";
 import { registerGameRoutes } from "./routes/gameRoutes.js";
 import { registerAdminRoutes } from "./routes/adminRoutes.js";
+import { registerAuthProxy } from "./routes/authProxy.js";
 
 const clientDistRoot = path.resolve(process.cwd(), "dist", "client");
 const clientAssetRoot = path.join(clientDistRoot, "assets");
@@ -19,6 +20,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.decorate("gameService", game);
   app.decorate("sql", sql);
+  app.register(registerAuthProxy);
   app.register(registerGameRoutes);
   app.register(registerAdminRoutes);
 

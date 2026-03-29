@@ -1,14 +1,10 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
+import { COOKIE_NAME } from "../routes/authProxy.js";
 
 const NEON_AUTH_URL = process.env.NEON_AUTH_URL;
 
 export interface AuthenticatedRequest extends FastifyRequest {
   userId: string;
-}
-
-interface SessionResponse {
-  session?: { userId?: string };
-  user?: { id?: string };
 }
 
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -26,11 +22,10 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   try {
     const token = authHeader.slice(7);
     const response = await fetch(`${NEON_AUTH_URL}/get-session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: `${COOKIE_NAME}=${token}` },
     });
-    if (!response.ok) throw new Error("Session verification failed.");
-    const data = (await response.json()) as SessionResponse | null;
-    const userId = data?.user?.id ?? data?.session?.userId;
+    const data = (await response.json()) as { user?: { id?: string } } | null;
+    const userId = data?.user?.id;
     if (!userId) throw new Error("No user ID in session.");
     (request as unknown as AuthenticatedRequest).userId = userId;
   } catch {
