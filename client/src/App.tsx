@@ -4,7 +4,7 @@ import { formatFaceLabel } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
 
-function App({ onSignOut }: { onSignOut?: () => void }): JSX.Element {
+function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean }): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -222,9 +222,12 @@ function App({ onSignOut }: { onSignOut?: () => void }): JSX.Element {
               <p className="intro-copy">{bootstrap?.intro ?? "A short descent into a cursed ruin."}</p>
             </div>
             <div className="hero-actions">
-              <button onClick={() => void createRun()} disabled={busy}>New Run</button>
+              <button onClick={() => void createRun()} disabled={busy}>Begin!</button>
               {bootstrap?.saves?.[0] && (
                 <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
+              )}
+              {isAdmin && (
+                <button className="btn-secondary" onClick={() => { window.location.href = "/admin"; }}>Admin</button>
               )}
               {onSignOut && (
                 <button className="btn-secondary" onClick={onSignOut}>Sign Out</button>

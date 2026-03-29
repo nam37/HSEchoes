@@ -2,7 +2,11 @@ import type {
   ApiResult,
   BootstrapData,
   CombatPayload,
+  DungeonCell,
+  Encounter,
+  Enemy,
   InventoryPayload,
+  Item,
   MovePayload,
   RunEnvelope,
   SaveSummary
@@ -50,6 +54,13 @@ export interface AdminStats {
   victoryRuns: number;
 }
 
+export interface WorldContent {
+  cells: DungeonCell[];
+  enemies: Enemy[];
+  encounters: Encounter[];
+  items: Item[];
+}
+
 export const api = {
   bootstrap: () => request<BootstrapData>("/api/game/bootstrap"),
   newRun: () => request<RunEnvelope>("/api/game/new-run", { method: "POST" }),
@@ -72,8 +83,32 @@ export const api = {
   }),
   saveRun: (slotId: string) => request<RunEnvelope>(`/api/game/save/${slotId}`, { method: "POST" }),
 
-  // Admin
+  // Admin — runs
   adminStats: () => request<AdminStats>("/api/admin/stats"),
   adminRuns: () => request<SaveSummary[]>("/api/admin/runs"),
-  adminDeleteRun: (slotId: string) => request<{ deleted: string }>(`/api/admin/runs/${slotId}`, { method: "DELETE" })
+  adminDeleteRun: (slotId: string) => request<{ deleted: string }>(`/api/admin/runs/${slotId}`, { method: "DELETE" }),
+
+  // Admin — world content
+  adminWorld: () => request<WorldContent>("/api/admin/world"),
+  adminUpsertCell: (id: string, cell: DungeonCell) => request<DungeonCell>(`/api/admin/world/cells/${id}`, { method: "PUT", body: JSON.stringify(cell) }),
+  adminDeleteCell: (id: string) => request<{ deleted: string }>(`/api/admin/world/cells/${id}`, { method: "DELETE" }),
+  adminUpsertEnemy: (id: string, enemy: Enemy) => request<Enemy>(`/api/admin/world/enemies/${id}`, { method: "PUT", body: JSON.stringify(enemy) }),
+  adminDeleteEnemy: (id: string) => request<{ deleted: string }>(`/api/admin/world/enemies/${id}`, { method: "DELETE" }),
+  adminUpsertItem: (id: string, item: Item) => request<Item>(`/api/admin/world/items/${id}`, { method: "PUT", body: JSON.stringify(item) }),
+  adminDeleteItem: (id: string) => request<{ deleted: string }>(`/api/admin/world/items/${id}`, { method: "DELETE" }),
+  adminUpsertEncounter: (id: string, enc: Encounter) => request<Encounter>(`/api/admin/world/encounters/${id}`, { method: "PUT", body: JSON.stringify(enc) }),
+  adminDeleteEncounter: (id: string) => request<{ deleted: string }>(`/api/admin/world/encounters/${id}`, { method: "DELETE" }),
+  adminReload: () => request<{ reloaded: boolean }>("/api/admin/reload", { method: "POST" }),
+
+  // Admin — users
+  adminUsers: () => request<UserProfile[]>("/api/admin/users"),
+  adminSetRole: (userId: string, role: string) => request<{ userId: string; role: string }>(`/api/admin/users/${userId}/role`, { method: "PUT", body: JSON.stringify({ role }) })
 };
+
+export interface UserProfile {
+  userId: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}

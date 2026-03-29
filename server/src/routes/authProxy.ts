@@ -1,7 +1,21 @@
 import type { FastifyInstance } from "fastify";
+import type { Sql } from "../db/database.js";
 
 const NEON_AUTH_URL = process.env.NEON_AUTH_URL;
 export const COOKIE_NAME = "__Secure-neon-auth.session_token";
+
+async function upsertProfile(sql: Sql, userId: string, email: string): Promise<string> {
+  const now = new Date().toISOString();
+  await sql`
+    INSERT INTO user_profiles (user_id, email, role, created_at, updated_at)
+    VALUES (${userId}, ${email}, 'player', ${now}, ${now})
+    ON CONFLICT (user_id) DO UPDATE SET
+      email      = EXCLUDED.email,
+      updated_at = EXCLUDED.updated_at
+  `;
+  const rows = await sql<Array<{ role: string }>>`SELECT role FROM user_profiles WHERE user_id = ${userId}`;
+  return rows[0]?.role ?? "player";
+}
 
 // Extracts the signed cookie value from a Set-Cookie header string
 function extractSignedToken(setCookieHeader: string | null): string | null {
@@ -21,13 +35,18 @@ export async function registerAuthProxy(app: FastifyInstance): Promise<void> {
       body: JSON.stringify({ email: request.body.email, password: request.body.password }),
     });
     const text = await res.text();
-    const data = JSON.parse(text) as { token?: string; user?: unknown; message?: string } | null;
+    const data = JSON.parse(text) as { token?: string; user?: { id?: string; email?: string; name?: string }; message?: string } | null;
     if (!res.ok) {
       reply.code(res.status).send({ ok: false, error: data?.message ?? "Sign-in failed." });
       return;
     }
     const signedToken = extractSignedToken(res.headers.get("set-cookie")) ?? data?.token ?? null;
-    reply.send({ ok: true, data: { token: signedToken, user: data?.user } });
+    // Upsert profile and return role
+    let role = "player";
+    if (data?.user?.id && data.user.email) {
+      role = await upsertProfile(app.sql, data.user.id, data.user.email);
+    }
+    reply.send({ ok: true, data: { token: signedToken, user: { ...data?.user, role } } });
   });
 
   app.post<{ Body: { email: string; password: string; name?: string } }>("/api/auth/sign-up", async (request, reply) => {
@@ -60,12 +79,17 @@ export async function registerAuthProxy(app: FastifyInstance): Promise<void> {
     const res = await fetch(`${NEON_AUTH_URL}/get-session`, {
       headers: { Cookie: `${COOKIE_NAME}=${token}` },
     });
-    const data = (await res.json()) as { user?: { id?: string; email?: string }; session?: unknown } | null;
+    const data = (await res.json()) as { user?: { id?: string; email?: string; name?: string }; session?: unknown } | null;
     if (!data?.user?.id) {
       reply.send({ ok: true, data: null });
       return;
     }
-    reply.send({ ok: true, data: { user: data.user } });
+    // Look up role from our own DB
+    const rows = await app.sql<Array<{ role: string }>>`
+      SELECT role FROM user_profiles WHERE user_id = ${data.user.id}
+    `;
+    const role = rows[0]?.role ?? "player";
+    reply.send({ ok: true, data: { user: { ...data.user, role } } });
   });
 
   app.post("/api/auth/sign-out", async (request, reply) => {

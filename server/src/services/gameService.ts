@@ -49,6 +49,36 @@ export class GameService {
     return instance;
   }
 
+  async reload(): Promise<void> {
+    this.meta = await this.loadMeta();
+    this.cells = await this.loadMap<DungeonCell>("cell");
+    this.enemies = await this.loadMap<Enemy>("enemy");
+    this.encounters = await this.loadMap<Encounter>("encounter");
+    this.items = await this.loadMap<Item>("item");
+  }
+
+  // World data read/write for admin
+  async getWorldData(): Promise<{ cells: DungeonCell[]; enemies: Enemy[]; encounters: Encounter[]; items: Item[] }> {
+    return {
+      cells: [...this.cells.values()],
+      enemies: [...this.enemies.values()],
+      encounters: [...this.encounters.values()],
+      items: [...this.items.values()]
+    };
+  }
+
+  async upsertWorldEntity(kind: string, id: string, data: unknown): Promise<void> {
+    await this.sql`
+      INSERT INTO world_data (kind, id, json)
+      VALUES (${kind}, ${id}, ${JSON.stringify(data)})
+      ON CONFLICT (kind, id) DO UPDATE SET json = EXCLUDED.json
+    `;
+  }
+
+  async deleteWorldEntity(kind: string, id: string): Promise<void> {
+    await this.sql`DELETE FROM world_data WHERE kind = ${kind} AND id = ${id}`;
+  }
+
   async getBootstrap(): Promise<BootstrapData> {
     return {
       title: this.meta.title,

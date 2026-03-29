@@ -27,4 +27,13 @@ export async function ensureSchema(sql: Sql): Promise<void> {
       updated_at TEXT NOT NULL
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      user_id    TEXT PRIMARY KEY,
+      email      TEXT UNIQUE NOT NULL,
+      role       TEXT NOT NULL DEFAULT 'player',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `;
 }

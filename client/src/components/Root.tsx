@@ -13,6 +13,7 @@ export function Root(): JSX.Element {
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [splashDone, setSplashDone] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!authEnabled) {
@@ -26,6 +27,7 @@ export function Root(): JSX.Element {
         if (session?.user) {
           setAuthToken(getStoredToken());
           setUserEmail(session.user.email ?? null);
+          setIsAdmin(session.user.role === "admin");
           setAuthState("authed");
         } else {
           setAuthState("unauthed");
@@ -39,6 +41,7 @@ export function Root(): JSX.Element {
   const handleAuthed = useCallback((token: string, user: AuthUser): void => {
     setAuthToken(token);
     setUserEmail(user.email ?? null);
+    setIsAdmin(user.role === "admin");
     setAuthState("authed");
   }, []);
 
@@ -55,7 +58,7 @@ export function Root(): JSX.Element {
   if (path === "/admin") {
     return <AdminPage userEmail={userEmail} onSignOut={handleSignOut} />;
   }
-  return <App onSignOut={() => void handleSignOut()} />;
+  return <App onSignOut={() => void handleSignOut()} isAdmin={isAdmin} />;
 }
 
 async function handleSignOut(): Promise<void> {

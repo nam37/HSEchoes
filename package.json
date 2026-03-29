@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed": "tsx --env-file=.env server/src/db/seed.ts",
+    "db:grant-admin": "tsx --env-file=.env server/src/scripts/grant-admin.ts",
     "start": "node dist/server/server/src/index.js"
   },
   "dependencies": {

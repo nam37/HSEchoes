@@ -1198,3 +1198,464 @@ button:disabled {
 @keyframes curtainClose {
   to { opacity: 1; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   ADMIN CONSOLE
+   ════════════════════════════════════════════════════════════════ */
+
+.admin-shell {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Nav bar ─────────────────────────────────────────────────── */
+.admin-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem;
+  background: var(--panel-strong);
+  border-bottom: 1px solid var(--line);
+  gap: 1rem;
+}
+
+.admin-nav-left,
+.admin-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-nav-title {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+}
+
+.admin-nav-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+.admin-nav-link:hover { color: var(--accent); }
+
+.admin-user-badge {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.5rem;
+}
+
+.admin-signout {
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+.admin-signout:hover { border-color: var(--danger); color: var(--danger); }
+
+.btn-accent {
+  font-family: 'Kensmark', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+.btn-accent:hover { filter: brightness(1.15); }
+.btn-accent:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-reload-toast {
+  background: rgba(0, 200, 120, 0.15);
+  border: 1px solid rgba(0, 200, 120, 0.5);
+  color: #00dc96;
+  padding: 0.4rem 1.25rem;
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  padding: 0.6rem 1rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.admin-tab-btn:hover { color: var(--text); }
+.admin-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Main content ────────────────────────────────────────────── */
+.admin-main {
+  flex: 1;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.admin-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 1rem 1.25rem;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-section-title {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+.admin-section-header .admin-section-title { margin-bottom: 0; }
+
+.admin-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.admin-empty {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+/* ── Stats grid ──────────────────────────────────────────────── */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-stat-card {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+.admin-stat-card .stat-value {
+  font-family: 'Kensmark', monospace;
+  font-size: 1.6rem;
+  color: var(--accent);
+  margin: 0;
+}
+.admin-stat-card .stat-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0.2rem 0 0;
+}
+.stat-active .stat-value { color: #00dc96; }
+.stat-defeat .stat-value { color: var(--danger); }
+.stat-victory .stat-value { color: var(--warn); }
+
+/* ── Tables ──────────────────────────────────────────────────── */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.admin-table th {
+  text-align: left;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0.4rem 0.6rem;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+.admin-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.admin-table tbody tr:hover { background: rgba(0, 180, 240, 0.05); }
+
+.run-slot { font-family: 'Share Tech Mono', monospace; color: var(--accent); }
+.run-time { font-size: 0.72rem; color: var(--text-dim); }
+
+.status-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.status-active  { background: rgba(0, 220, 150, 0.15); color: #00dc96; border: 1px solid rgba(0, 220, 150, 0.4); }
+.status-defeat  { background: rgba(255, 48, 64, 0.15);  color: var(--danger); border: 1px solid rgba(255, 48, 64, 0.4); }
+.status-victory { background: rgba(255, 170, 0, 0.15);  color: var(--warn);   border: 1px solid rgba(255, 170, 0, 0.4); }
+
+.btn-danger {
+  font-size: 0.72rem;
+  background: transparent;
+  border: 1px solid rgba(255, 48, 64, 0.5);
+  color: var(--danger);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+.btn-danger:hover { background: rgba(255, 48, 64, 0.15); }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.admin-row-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+/* ── Map grid (admin) ────────────────────────────────────────── */
+.map-admin-wrap {
+  overflow: auto;
+  padding-bottom: 1rem;
+}
+
+.map-admin-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  padding-bottom: 0.5rem;
+}
+
+.map-admin-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.map-admin-cell {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  cursor: pointer;
+  position: relative;
+  gap: 2px;
+}
+.map-admin-cell.occupied {
+  background: rgba(0, 20, 40, 0.8);
+  color: var(--text-dim);
+}
+.map-admin-cell.occupied:hover { background: rgba(0, 30, 60, 0.95); }
+.map-admin-cell.empty {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(0, 180, 240, 0.12);
+  color: rgba(0, 180, 240, 0.2);
+}
+.map-admin-cell.empty:hover {
+  background: rgba(0, 180, 240, 0.05);
+  border-color: rgba(0, 180, 240, 0.35);
+  color: rgba(0, 180, 240, 0.6);
+}
+.map-admin-cell-label {
+  font-size: 0.58rem;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 52px;
+  text-align: center;
+  line-height: 1.2;
+}
+.map-admin-add { font-size: 1.1rem; line-height: 1; }
+
+.map-admin-badge {
+  font-size: 0.55rem;
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 2px;
+  line-height: 1.3;
+}
+.enemy-badge   { color: var(--danger); }
+.loot-badge    { color: var(--warn); }
+.victory-badge { color: #00dc96; }
+
+/* ── Modal ───────────────────────────────────────────────────── */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 4, 16, 0.82);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 200;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.admin-modal {
+  background: var(--panel-strong);
+  border: 1px solid var(--line-strong);
+  width: min(680px, 100%);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-modal-title {
+  font-family: 'Kensmark', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.admin-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+}
+.admin-modal-close:hover { color: var(--danger); }
+
+.admin-modal-body {
+  padding: 1.25rem;
+}
+
+.admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+}
+
+/* ── Admin forms ─────────────────────────────────────────────── */
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-form input[type="text"],
+.admin-form input[type="number"],
+.admin-form input[type="email"],
+.admin-form input[type="password"],
+.admin-form select,
+.admin-form textarea {
+  background: rgba(0, 8, 22, 0.9);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  outline: none;
+  width: 100%;
+}
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  border-color: var(--accent);
+}
+.admin-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+.admin-form input[type="checkbox"] {
+  width: auto;
+  margin-top: 0.25rem;
+}
+.admin-form select option { background: #000c20; }
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.admin-form-grid .span-2 { grid-column: span 2; }
+
+.admin-form-sides {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.admin-checkbox-label {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 0.78rem !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
