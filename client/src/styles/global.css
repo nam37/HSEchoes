@@ -25,14 +25,14 @@
   --line-strong: rgba(0, 210, 255, 0.55);
   --accent: #00d4ff;
   --accent-strong: #40eaff;
-  --accent2: #0055ff;
+  --accent2: #df5e33;
   --danger: #ff3040;
   --warn: #ffaa00;
   --shadow: rgba(0, 8, 25, 0.75);
   --text: #a8d8f0;
   --text-dim: rgba(168, 216, 240, 0.6);
   --glow-cyan: 0 0 8px rgba(0, 212, 255, 0.55), 0 0 20px rgba(0, 212, 255, 0.25);
-  --glow-blue: 0 0 8px rgba(0, 85, 255, 0.5);
+  --glow-blue: 0 0 8px rgba(223, 94, 51, 0.5);
 }
 
 * {
@@ -478,7 +478,7 @@ button:disabled {
 
 .inventory-item.equipped {
   border-color: var(--accent2);
-  box-shadow: inset 0 0 6px rgba(0, 85, 255, 0.2);
+  box-shadow: inset 0 0 6px rgba(223, 94, 51, 0.2);
 }
 
 .inventory-item.equipped::after {
@@ -490,7 +490,7 @@ button:disabled {
   color: var(--accent2);
   margin-left: auto;
   padding: 0.1rem 0.28rem;
-  border: 1px solid rgba(0, 85, 255, 0.5);
+  border: 1px solid rgba(223, 94, 51, 0.5);
   line-height: 1.4;
 }
 
@@ -796,7 +796,7 @@ button:disabled {
 .lore-card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-left: 3px solid rgba(0, 85, 255, 0.6);
+  border-left: 3px solid rgba(223, 94, 51, 0.6);
   padding: 1.2rem 1.8rem;
   display: flex;
   flex-direction: column;
