@@ -5,11 +5,13 @@ import { setAuthToken } from "../lib/api";
 import App from "../App";
 import LandingPage from "../pages/LandingPage";
 import AdminPage from "../pages/AdminPage";
+import { SplashScreen } from "./SplashScreen";
 
 type AuthState = "loading" | "unauthed" | "authed";
 
 export function Root(): JSX.Element {
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [splashDone, setSplashDone] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,12 +42,9 @@ export function Root(): JSX.Element {
     setAuthState("authed");
   }, []);
 
-  if (authState === "loading") {
-    return (
-      <div className="auth-loading">
-        <p className="auth-loading-text">Initializing secure link<span className="blink">_</span></p>
-      </div>
-    );
+  // Show splash until both conditions met: auth resolved AND splash animation done
+  if (!splashDone || authState === "loading") {
+    return <SplashScreen onComplete={() => setSplashDone(true)} />;
   }
 
   if (authState === "unauthed") {
@@ -54,7 +53,7 @@ export function Root(): JSX.Element {
 
   const path = window.location.pathname;
   if (path === "/admin") {
-    return <AdminPage userEmail={userEmail} onSignOut={() => void handleSignOut()} />;
+    return <AdminPage userEmail={userEmail} onSignOut={handleSignOut} />;
   }
   return <App onSignOut={() => void handleSignOut()} />;
 }
