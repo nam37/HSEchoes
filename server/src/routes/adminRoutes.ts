@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { requireAdmin } from "../middleware/authMiddleware.js";
-import type { DungeonCell, Enemy, Encounter, Item } from "../../../shared/src/index.js";
+import type { Zone, Enemy, Encounter, Item } from "../../../shared/src/index.js";
 
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireAdmin);
@@ -36,16 +36,16 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true, data };
   });
 
-  // Cells
-  app.put<{ Params: { id: string }; Body: DungeonCell }>("/api/admin/world/cells/:id", async (request) => {
+  // Zones
+  app.put<{ Params: { id: string }; Body: Zone }>("/api/admin/world/zones/:id", async (request) => {
     const { id } = request.params;
-    const cell = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("cell", id, cell);
-    return { ok: true, data: cell };
+    const zone = { ...request.body, id };
+    await app.gameService.upsertWorldEntity("zone", id, zone);
+    return { ok: true, data: zone };
   });
 
-  app.delete<{ Params: { id: string } }>("/api/admin/world/cells/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("cell", request.params.id);
+  app.delete<{ Params: { id: string } }>("/api/admin/world/zones/:id", async (request) => {
+    await app.gameService.deleteWorldEntity("zone", request.params.id);
     return { ok: true, data: { deleted: request.params.id } };
   });
 

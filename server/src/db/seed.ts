@@ -4,7 +4,6 @@ import { createDatabase } from "./database.js";
 import type { Sql } from "./database.js";
 
 export async function seedDatabase(sql: Sql): Promise<void> {
-  // Wipe and re-seed all world data
   await sql`DELETE FROM world_data`;
 
   await sql`
@@ -12,14 +11,14 @@ export async function seedDatabase(sql: Sql): Promise<void> {
     VALUES ('meta', 'bootstrap', ${JSON.stringify({
       title: worldSeed.title,
       intro: worldSeed.intro,
-      startCellId: worldSeed.startCellId,
+      startX: worldSeed.startX,
+      startY: worldSeed.startY,
       assets: worldSeed.assets
     })})
   `;
 
-  for (const cell of worldSeed.cells) {
-    await sql`INSERT INTO world_data (kind, id, json) VALUES ('cell', ${cell.id}, ${JSON.stringify(cell)})`;
-  }
+  await sql`INSERT INTO world_data (kind, id, json) VALUES ('zone', ${worldSeed.zone.id}, ${JSON.stringify(worldSeed.zone)})`;
+
   for (const item of worldSeed.items) {
     await sql`INSERT INTO world_data (kind, id, json) VALUES ('item', ${item.id}, ${JSON.stringify(item)})`;
   }
@@ -37,5 +36,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   await ensureSchema(sql);
   await seedDatabase(sql);
   await sql.end();
-  console.log("Seeded world content into Neon DB.");
+  console.log("Seeded zone world content into Neon DB.");
 }

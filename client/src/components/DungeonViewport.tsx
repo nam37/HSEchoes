@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { BootstrapData, CellFace, Direction, DungeonCell, RunState } from "../../../shared/src/index";
-import { getRenderableCells, isPassageBlocked } from "../lib/dungeonUtils";
+import type { BootstrapData, CellFace, Direction, RunState, Zone } from "../../../shared/src/index";
+import { findRoomContaining, findZoneEdge, resolveEdgeType } from "../../../shared/src/index";
+import { isPassageBlocked } from "../lib/dungeonUtils";
 
 interface DungeonViewportProps {
   bootstrap: BootstrapData;
@@ -11,7 +12,7 @@ interface DungeonViewportProps {
 const roomSize = 10;
 const wallHeight = 5;
 
-type CellRelation = "current" | Direction;
+type SquareRelation = "current" | Direction;
 
 export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.Element {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -84,16 +85,17 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 
     clearScene(scene);
 
-    const currentCell = bootstrap.cells.find((cell) => cell.id === run.cellId);
-    if (!currentCell) {
+    const zone: Zone | undefined = bootstrap.zones[0];
+    if (!zone) {
       return;
     }
 
+    const px = run.posX;
+    const py = run.posY;
     const inventorySet = new Set(run.player.inventory);
     const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
     const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
 
-    // Sci-fi lighting: cool blue ambient + overhead energy conduit + player proximity glow
     const ambient = new THREE.AmbientLight("#0a1840", 0.75);
     const overheadLight = new THREE.PointLight("#40ccff", 30, 42, 2.2);
     overheadLight.position.set(0, 4.8, -1.5);
@@ -142,12 +144,27 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       emissive: "#000e30",
     });
 
-    for (const cell of getRenderableCells(bootstrap.cells, currentCell)) {
-      const offsetX = (cell.x - currentCell.x) * roomSize;
-      const offsetZ = (cell.y - currentCell.y) * roomSize;
-      addCell(
+    // Render current square + 4 adjacent squares
+    const renderSquares: Array<{ sx: number; sy: number; relation: SquareRelation }> = [
+      { sx: px,     sy: py,     relation: "current" },
+      { sx: px,     sy: py - 1, relation: "north"   },
+      { sx: px + 1, sy: py,     relation: "east"    },
+      { sx: px,     sy: py + 1, relation: "south"   },
+      { sx: px - 1, sy: py,     relation: "west"    },
+    ];
+
+    for (const { sx, sy, relation } of renderSquares) {
+      // Only render squares that are in a known room
+      if (!findRoomContaining(zone, sx, sy)) {
+        continue;
+      }
+      const offsetX = (sx - px) * roomSize;
+      const offsetZ = (sy - py) * roomSize;
+      addSquare(
         scene,
-        cell,
+        zone,
+        sx,
+        sy,
         inventorySet,
         offsetX,
         offsetZ,
@@ -155,7 +172,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
         wallMaterial,
         doorMaterial,
         gateMaterial,
-        getCellRelation(cell, currentCell)
+        relation
       );
     }
 
@@ -179,9 +196,11 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
   return <div className="viewport-shell" ref={mountRef} aria-label="Dungeon viewport" />;
 }
 
-function addCell(
+function addSquare(
   scene: THREE.Scene,
-  cell: DungeonCell,
+  zone: Zone,
+  sx: number,
+  sy: number,
   inventory: Set<string>,
   offsetX: number,
   offsetZ: number,
@@ -189,7 +208,7 @@ function addCell(
   wallMaterial: THREE.Material,
   doorMaterial: THREE.Material,
   gateMaterial: THREE.Material,
-  relation: CellRelation
+  relation: SquareRelation
 ): void {
   // Floor
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMaterial);
@@ -197,22 +216,24 @@ function addCell(
   floor.position.set(offsetX, 0, offsetZ);
   scene.add(floor);
 
-  // Sci-fi grid overlay on floor
+  // Grid overlay
   const grid = new THREE.GridHelper(roomSize, 10, "#003860", "#001530");
   grid.position.set(offsetX, 0.015, offsetZ);
   scene.add(grid);
 
   // Ceiling
+  const room = findRoomContaining(zone, sx, sy);
+  const ceilingColor = room?.ceilingColor ?? "#020810";
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({ color: "#020810", roughness: 1 })
+    new THREE.MeshStandardMaterial({ color: ceilingColor, roughness: 1 })
   );
   ceiling.position.set(offsetX, wallHeight, offsetZ);
   ceiling.rotation.x = Math.PI / 2;
   scene.add(ceiling);
 
-  // Prop (tech console / pillar)
-  if (relation === "current" && cell.prop) {
+  // Prop
+  if (relation === "current" && room?.prop) {
     const prop = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 2, 1.5),
       new THREE.MeshStandardMaterial({
@@ -226,16 +247,17 @@ function addCell(
     scene.add(prop);
   }
 
-  const walls: Array<{ direction: Direction; position: [number, number, number]; rotation: number; face: CellFace }> = [
-    { direction: "north", position: [offsetX, wallHeight / 2, offsetZ - roomSize / 2], rotation: 0, face: cell.sides.north },
-    { direction: "east", position: [offsetX + roomSize / 2, wallHeight / 2, offsetZ], rotation: -Math.PI / 2, face: cell.sides.east },
-    { direction: "south", position: [offsetX, wallHeight / 2, offsetZ + roomSize / 2], rotation: Math.PI, face: cell.sides.south },
-    { direction: "west", position: [offsetX - roomSize / 2, wallHeight / 2, offsetZ], rotation: Math.PI / 2, face: cell.sides.west },
+  const wallDefs: Array<{ direction: Direction; position: [number, number, number]; rotation: number }> = [
+    { direction: "north", position: [offsetX, wallHeight / 2, offsetZ - roomSize / 2], rotation: 0 },
+    { direction: "east",  position: [offsetX + roomSize / 2, wallHeight / 2, offsetZ], rotation: -Math.PI / 2 },
+    { direction: "south", position: [offsetX, wallHeight / 2, offsetZ + roomSize / 2], rotation: Math.PI },
+    { direction: "west",  position: [offsetX - roomSize / 2, wallHeight / 2, offsetZ], rotation: Math.PI / 2 },
   ];
 
-  for (const wall of walls) {
+  for (const wall of wallDefs) {
     if (relation !== "current") {
-      if (wall.direction === oppositeDirection(relation)) {
+      // For neighbor squares, skip the face that looks back toward the player
+      if (wall.direction === oppositeDirection(relation as Direction)) {
         continue;
       }
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
@@ -245,7 +267,9 @@ function addCell(
       continue;
     }
 
-    if (wall.face === "wall") {
+    const face: CellFace = resolveEdgeType(zone, sx, sy, wall.direction);
+
+    if (face === "wall") {
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
       mesh.position.set(...wall.position);
       mesh.rotation.y = wall.rotation;
@@ -253,33 +277,18 @@ function addCell(
       continue;
     }
 
-    const blocked = isPassageBlocked(cell, wall.direction, inventory);
+    const edgeReq = findZoneEdge(zone, sx, sy, wall.direction)?.requirement;
+    const blocked = edgeReq ? !inventory.has(edgeReq.itemId) : false;
     addPassageFrame(
       scene,
       wall.position,
       wall.rotation,
-      wall.face === "gate" ? gateMaterial : wall.face === "door" ? doorMaterial : wallMaterial,
+      face === "gate" ? gateMaterial : face === "door" ? doorMaterial : wallMaterial,
       wallMaterial,
-      wall.face,
+      face,
       blocked
     );
   }
-}
-
-function getCellRelation(cell: DungeonCell, currentCell: DungeonCell): CellRelation {
-  if (cell.id === currentCell.id) {
-    return "current";
-  }
-  if (cell.x === currentCell.x && cell.y === currentCell.y - 1) {
-    return "north";
-  }
-  if (cell.x === currentCell.x + 1 && cell.y === currentCell.y) {
-    return "east";
-  }
-  if (cell.x === currentCell.x && cell.y === currentCell.y + 1) {
-    return "south";
-  }
-  return "west";
 }
 
 function tryTexture(loader: THREE.TextureLoader, src: string): THREE.Texture | null {
@@ -301,7 +310,6 @@ function addPassageFrame(
 ): void {
   const group = new THREE.Group();
 
-  // Frame pillars and lintel
   const left = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), frameMaterial);
   const right = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 0.45), frameMaterial);
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.38, 0.45), frameMaterial);
@@ -310,14 +318,12 @@ function addPassageFrame(
   top.position.set(0, 4.05, 0);
   group.add(left, right, top);
 
-  // Wall panels flanking the frame (fills x=[-5,-2] and [2,5] at full height)
   const sideW = 3.0;
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
   leftWall.position.set(-(roomSize / 2 - sideW / 2), wallHeight / 2, 0);
   const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
   rightWall.position.set(roomSize / 2 - sideW / 2, wallHeight / 2, 0);
 
-  // Wall panel above the frame opening (y=4.2 to ceiling at y=5)
   const aboveH = wallHeight - 4.2;
   const aboveWall = new THREE.Mesh(new THREE.PlaneGeometry(4.0, aboveH), wallMaterial);
   aboveWall.position.set(0, 4.2 + aboveH / 2, 0);
@@ -408,7 +414,6 @@ function buildGateBarrier(blocked: boolean): THREE.Group {
   return group;
 }
 
-// Camera centered at room origin — symmetric view in all four directions
 function placeCamera(camera: THREE.PerspectiveCamera, facing: Direction): void {
   camera.position.set(0, 2.15, 0);
   switch (facing) {
@@ -429,14 +434,10 @@ function placeCamera(camera: THREE.PerspectiveCamera, facing: Direction): void {
 
 function oppositeDirection(direction: Direction): Direction {
   switch (direction) {
-    case "north":
-      return "south";
-    case "east":
-      return "west";
-    case "south":
-      return "north";
-    case "west":
-      return "east";
+    case "north": return "south";
+    case "east":  return "west";
+    case "south": return "north";
+    case "west":  return "east";
   }
 }
 

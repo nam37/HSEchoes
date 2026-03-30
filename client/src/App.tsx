@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState, startTransition } from "react";
-import type { BootstrapData, CellFace, Direction, DungeonCell, Item, RunState } from "../../shared/src/index";
-import { formatFaceLabel } from "../../shared/src/index";
+import { useEffect, useMemo, useState, startTransition } from "react";
+import type { BootstrapData, Direction, Item, RunState, Zone, ZoneRoom } from "../../shared/src/index";
+import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
+import { MapPanel } from "./components/MapPanel";
 
 function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean }): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
@@ -16,7 +17,11 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     void refreshBootstrap();
   }, []);
 
-  const currentCell = useMemo(() => bootstrap?.cells.find((cell) => cell.id === run?.cellId) ?? null, [bootstrap, run]);
+  const zone: Zone | null = bootstrap?.zones[0] ?? null;
+  const currentRoom: ZoneRoom | null = useMemo(
+    () => (zone && run ? findRoomContaining(zone, run.posX, run.posY) ?? null : null),
+    [zone, run]
+  );
   const itemMap = useMemo(() => new Map((bootstrap?.items ?? []).map((item) => [item.id, item])), [bootstrap]);
   const selectedItem = selectedItemId ? itemMap.get(selectedItemId) ?? null : null;
 
@@ -209,7 +214,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   }
 
   const inventory = run?.player.inventory.map((itemId) => itemMap.get(itemId)).filter(Boolean) as Item[] | undefined;
-  const currentExits = currentCell && run ? describeExits(currentCell, run, itemMap) : [];
+  const currentExits = zone && run ? describeExits(zone, run.posX, run.posY, run, itemMap) : [];
 
   return (
     <div className={run ? "app-shell has-run" : "app-shell landing-shell"}>
@@ -302,9 +307,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <button onClick={() => void handleMove("back")} disabled={busy || run.mode === "combat"}>Back</button>
                 <button onClick={() => void handleMove("turn-right")} disabled={busy || run.mode === "combat"}>Turn Right</button>
               </div>
-              {currentCell && (
+              {currentRoom && (
                 <>
-                  <p className="room-copy">{currentCell.title}: {currentCell.description}</p>
+                  <p className="room-copy">{currentRoom.title}: {currentRoom.description}</p>
                   <div className="exit-list">
                     {currentExits.map((entry) => <p key={entry}>{entry}</p>)}
                   </div>
@@ -343,7 +348,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
 
             <section className="hud-card map-card">
               <h2>Map</h2>
-              {bootstrap && currentCell ? <MapPanel bootstrap={bootstrap} run={run} currentCell={currentCell} /> : <p>Map unavailable.</p>}
+              {bootstrap && zone && run ? <MapPanel zone={zone} run={run} /> : <p>Map unavailable.</p>}
             </section>
 
             <section className="hud-card log-card">
@@ -363,17 +368,15 @@ function labelFor(itemMap: Map<string, Item>, itemId: string | null): string {
   return itemId ? itemMap.get(itemId)?.name ?? itemId : "None";
 }
 
-function describeExits(cell: DungeonCell, run: RunState, itemMap: Map<string, Item>): string[] {
-  const directions: Direction[] = ["north", "east", "south", "west"];
-
-  return directions.flatMap((direction) => {
-    const face = cell.sides[direction];
+function describeExits(zone: Zone, px: number, py: number, run: RunState, itemMap: Map<string, Item>): string[] {
+  return DIRECTIONS.flatMap((direction) => {
+    const face = resolveEdgeType(zone, px, py, direction);
     if (face === "wall") {
       return [];
     }
 
     const label = `${toTitle(direction)}: ${formatFaceLabel(face)}`;
-    const requirement = cell.passageRequirements?.[direction];
+    const requirement = findZoneEdge(zone, px, py, direction)?.requirement;
     if (!requirement) {
       return [label];
     }
@@ -388,64 +391,4 @@ function toTitle(direction: Direction): string {
   return direction.charAt(0).toUpperCase() + direction.slice(1);
 }
 
-const FACING_CHAR: Record<Direction, string> = { north: "▲", east: "▶", south: "▼", west: "◀" };
-
-function faceBorder(face: CellFace): string {
-  switch (face) {
-    case "wall": return "1px solid rgba(0, 200, 240, 0.75)";
-    case "door": return "1px solid rgba(255, 170, 0, 0.65)";
-    case "gate": return "1px solid rgba(0, 100, 255, 0.65)";
-    case "open": return "1px solid rgba(0, 120, 160, 0.18)";
-  }
-}
-
-function MapPanel({
-  bootstrap,
-  run,
-  currentCell,
-}: {
-  bootstrap: BootstrapData;
-  run: RunState;
-  currentCell: DungeonCell;
-}): JSX.Element {
-  const radius = 2;
-  const cellsByCoordinate = new Map(bootstrap.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]));
-  const rows: JSX.Element[] = [];
-
-  for (let y = currentCell.y - radius; y <= currentCell.y + radius; y += 1) {
-    for (let x = currentCell.x - radius; x <= currentCell.x + radius; x += 1) {
-      const cell = cellsByCoordinate.get(`${x}:${y}`);
-      const discovered = cell ? run.discoveredCellIds.includes(cell.id) : false;
-      const current = cell?.id === run.cellId;
-
-      const style: React.CSSProperties = discovered && cell ? {
-        borderTop: faceBorder(cell.sides.north),
-        borderRight: faceBorder(cell.sides.east),
-        borderBottom: faceBorder(cell.sides.south),
-        borderLeft: faceBorder(cell.sides.west),
-      } : {};
-
-      rows.push(
-        <div
-          key={`${x}-${y}`}
-          className={current ? "map-cell current" : discovered ? "map-cell discovered" : "map-cell hidden"}
-          style={style}
-        >
-          {current ? FACING_CHAR[run.facing] : ""}
-        </div>
-      );
-    }
-  }
-
-  return (
-    <>
-      <div className="map-grid" style={{ gridTemplateColumns: "repeat(5, 16px)" }}>
-        {rows}
-      </div>
-      <p className="room-copy">{currentCell.title}</p>
-    </>
-  );
-}
-
 export default App;
-

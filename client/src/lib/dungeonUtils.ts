@@ -1,10 +1,7 @@
-import type { DungeonCell, Direction } from "../../../shared/src/index";
+import type { Zone, Direction } from "../../../shared/src/index";
+import { findZoneEdge } from "../../../shared/src/index";
 
-export function getRenderableCells(cells: DungeonCell[], currentCell: DungeonCell): DungeonCell[] {
-  return cells.filter((cell) => Math.abs(cell.x - currentCell.x) + Math.abs(cell.y - currentCell.y) <= 1);
-}
-
-export function isPassageBlocked(cell: DungeonCell, direction: Direction, inventory: Set<string>): boolean {
-  const requirement = cell.passageRequirements?.[direction];
-  return Boolean(requirement && !inventory.has(requirement.itemId));
+export function isPassageBlocked(zone: Zone, px: number, py: number, direction: Direction, inventory: Set<string>): boolean {
+  const edge = findZoneEdge(zone, px, py, direction);
+  return Boolean(edge?.requirement && !inventory.has(edge.requirement.itemId));
 }

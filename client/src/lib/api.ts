@@ -2,14 +2,14 @@ import type {
   ApiResult,
   BootstrapData,
   CombatPayload,
-  DungeonCell,
   Encounter,
   Enemy,
   InventoryPayload,
   Item,
   MovePayload,
   RunEnvelope,
-  SaveSummary
+  SaveSummary,
+  Zone
 } from "../../shared/src/index";
 
 // Module-level auth token, set by Root on session load
@@ -55,7 +55,7 @@ export interface AdminStats {
 }
 
 export interface WorldContent {
-  cells: DungeonCell[];
+  zones: Zone[];
   enemies: Enemy[];
   encounters: Encounter[];
   items: Item[];
@@ -90,8 +90,8 @@ export const api = {
 
   // Admin — world content
   adminWorld: () => request<WorldContent>("/api/admin/world"),
-  adminUpsertCell: (id: string, cell: DungeonCell) => request<DungeonCell>(`/api/admin/world/cells/${id}`, { method: "PUT", body: JSON.stringify(cell) }),
-  adminDeleteCell: (id: string) => request<{ deleted: string }>(`/api/admin/world/cells/${id}`, { method: "DELETE" }),
+  adminUpsertZone: (id: string, zone: Zone) => request<Zone>(`/api/admin/world/zones/${id}`, { method: "PUT", body: JSON.stringify(zone) }),
+  adminDeleteZone: (id: string) => request<{ deleted: string }>(`/api/admin/world/zones/${id}`, { method: "DELETE" }),
   adminUpsertEnemy: (id: string, enemy: Enemy) => request<Enemy>(`/api/admin/world/enemies/${id}`, { method: "PUT", body: JSON.stringify(enemy) }),
   adminDeleteEnemy: (id: string) => request<{ deleted: string }>(`/api/admin/world/enemies/${id}`, { method: "DELETE" }),
   adminUpsertItem: (id: string, item: Item) => request<Item>(`/api/admin/world/items/${id}`, { method: "PUT", body: JSON.stringify(item) }),
