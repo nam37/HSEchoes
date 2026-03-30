@@ -95,43 +95,43 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
     const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
 
-    // Sci-fi corridor lighting: cool overhead strip + faint forward fill
-    const ambient = new THREE.AmbientLight("#8ab4d4", 0.7);
-    const overhead = new THREE.PointLight("#aaccff", 80, 32, 1.6);
+    // Sci-fi corridor lighting: bright overhead strips + forward fill
+    const ambient = new THREE.AmbientLight("#c8d8e0", 1.1);
+    const overhead = new THREE.PointLight("#d8eaf8", 120, 38, 1.4);
     overhead.position.set(0, 4.5, 0);
-    const fill = new THREE.PointLight("#6699cc", 30, 20, 2.0);
+    const fill = new THREE.PointLight("#b0ccd8", 50, 24, 1.8);
     fill.position.set(0, 2.0, 3);
     scene.add(ambient, overhead, fill);
 
-    scene.background = new THREE.Color("#080c12");
-    scene.fog = new THREE.FogExp2("#0a1020", 0.022);
+    scene.background = new THREE.Color("#10141a");
+    scene.fog = new THREE.FogExp2("#14181e", 0.018);
 
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: "#1c2535",
-      roughness: 0.6,
-      metalness: 0.55,
-      emissive: "#060b14",
+      color: "#2a2e34",
+      roughness: 0.55,
+      metalness: 0.6,
+      emissive: "#0a0c10",
     });
 
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: "#2a3545",
-      roughness: 0.55,
-      metalness: 0.6,
-      emissive: "#0a1020",
+      color: "#68747e",
+      roughness: 0.5,
+      metalness: 0.45,
+      emissive: "#141820",
     });
 
     const doorMaterial = new THREE.MeshStandardMaterial({
-      color: "#3a5070",
-      roughness: 0.4,
-      metalness: 0.75,
-      emissive: "#0d1e30",
+      color: "#6888a0",
+      roughness: 0.35,
+      metalness: 0.65,
+      emissive: "#10202e",
     });
 
     const gateMaterial = new THREE.MeshStandardMaterial({
-      color: "#1a4080",
+      color: "#4a6888",
       roughness: 0.2,
-      metalness: 0.9,
-      emissive: "#0a2040",
+      metalness: 0.85,
+      emissive: "#0e1e30",
     });
 
     // Render current square + 4 adjacent squares
@@ -213,7 +213,7 @@ function addSquare(
 
   // Ceiling
   const room = findRoomContaining(zone, sx, sy);
-  const ceilingColor = room?.ceilingColor ?? "#020810";
+  const ceilingColor = room?.ceilingColor ?? "#3a4048";
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
     new THREE.MeshStandardMaterial({ color: ceilingColor, roughness: 1 })
@@ -227,10 +227,10 @@ function addSquare(
     const prop = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 2, 1.5),
       new THREE.MeshStandardMaterial({
-        color: "#0a1530",
-        roughness: 0.6,
-        metalness: 0.8,
-        emissive: "#040c1c",
+        color: "#485060",
+        roughness: 0.55,
+        metalness: 0.7,
+        emissive: "#141820",
       })
     );
     prop.position.set(offsetX, 1, offsetZ - 1);
@@ -334,16 +334,16 @@ function addPassageFrame(
 function buildDoorBarrier(): THREE.Group {
   const group = new THREE.Group();
   const panelMaterial = new THREE.MeshStandardMaterial({
-    color: "#0a1428",
-    roughness: 0.5,
-    metalness: 0.9,
-    emissive: "#040810",
+    color: "#505860",
+    roughness: 0.45,
+    metalness: 0.75,
+    emissive: "#181e24",
   });
   const bandMaterial = new THREE.MeshStandardMaterial({
-    color: "#004080",
+    color: "#3a7aaa",
     roughness: 0.3,
-    metalness: 0.95,
-    emissive: "#002040",
+    metalness: 0.85,
+    emissive: "#0e2840",
   });
 
   const leftDoor = new THREE.Mesh(new THREE.BoxGeometry(1.45, 3.55, 0.2), panelMaterial);
@@ -361,27 +361,27 @@ function buildDoorBarrier(): THREE.Group {
 function buildGateBarrier(blocked: boolean): THREE.Group {
   const group = new THREE.Group();
   const barMaterial = new THREE.MeshStandardMaterial({
-    color: "#0060ff",
+    color: "#40aaff",
     roughness: 0.2,
-    metalness: 0.85,
-    emissive: "#003090",
-    emissiveIntensity: 0.8,
+    metalness: 0.8,
+    emissive: "#1050a0",
+    emissiveIntensity: 0.6,
   });
   const braceMaterial = new THREE.MeshStandardMaterial({
-    color: "#0040a0",
+    color: "#3a6888",
     roughness: 0.3,
-    metalness: 0.9,
-    emissive: "#002060",
+    metalness: 0.85,
+    emissive: "#0e2030",
   });
 
   const opacity = blocked ? 0.92 : 0.28;
   const backing = new THREE.Mesh(
     new THREE.PlaneGeometry(3.1, 3.5),
     new THREE.MeshStandardMaterial({
-      color: blocked ? "#002860" : "#0040a0",
+      color: blocked ? "#204060" : "#3878a8",
       roughness: 0.3,
-      metalness: 0.8,
-      emissive: blocked ? "#001030" : "#002050",
+      metalness: 0.75,
+      emissive: blocked ? "#081828" : "#102840",
       transparent: true,
       opacity,
       side: THREE.DoubleSide,
