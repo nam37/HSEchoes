@@ -95,54 +95,43 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
     const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
 
-    // Warm torchlight ambient + lantern point lights
-    const ambient = new THREE.AmbientLight("#c8884a", 0.55);
-    const lantern = new THREE.PointLight("#ffaa44", 60, 28, 1.8);
-    lantern.position.set(0, 3.5, 0);
-    const fill = new THREE.PointLight("#ff8822", 20, 22, 2.0);
-    fill.position.set(0, 1.6, 2.5);
-    scene.add(ambient, lantern, fill);
+    // Sci-fi corridor lighting: cool overhead strip + faint forward fill
+    const ambient = new THREE.AmbientLight("#8ab4d4", 0.7);
+    const overhead = new THREE.PointLight("#aaccff", 80, 32, 1.6);
+    overhead.position.set(0, 4.5, 0);
+    const fill = new THREE.PointLight("#6699cc", 30, 20, 2.0);
+    fill.position.set(0, 2.0, 3);
+    scene.add(ambient, overhead, fill);
 
-    scene.background = new THREE.Color("#1a0e06");
-    scene.fog = new THREE.FogExp2("#1a0e06", 0.025);
+    scene.background = new THREE.Color("#080c12");
+    scene.fog = new THREE.FogExp2("#0a1020", 0.022);
 
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: "#4a3c2a",
-      map: floorTexture ?? undefined,
-      roughness: 0.92,
-      metalness: 0.05,
+      color: "#1c2535",
+      roughness: 0.6,
+      metalness: 0.55,
+      emissive: "#060b14",
     });
-    if (floorMaterial.map) {
-      floorMaterial.map.wrapS = THREE.RepeatWrapping;
-      floorMaterial.map.wrapT = THREE.RepeatWrapping;
-      floorMaterial.map.repeat.set(2, 2);
-    }
 
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: "#5a4e3c",
-      map: wallTexture ?? undefined,
-      roughness: 0.95,
-      metalness: 0.05,
-      emissive: "#1a1008",
+      color: "#2a3545",
+      roughness: 0.55,
+      metalness: 0.6,
+      emissive: "#0a1020",
     });
-    if (wallMaterial.map) {
-      wallMaterial.map.wrapS = THREE.RepeatWrapping;
-      wallMaterial.map.wrapT = THREE.RepeatWrapping;
-      wallMaterial.map.repeat.set(2, 1.2);
-    }
 
     const doorMaterial = new THREE.MeshStandardMaterial({
-      color: "#5c3a1a",
-      roughness: 0.6,
-      metalness: 0.4,
-      emissive: "#200e04",
+      color: "#3a5070",
+      roughness: 0.4,
+      metalness: 0.75,
+      emissive: "#0d1e30",
     });
 
     const gateMaterial = new THREE.MeshStandardMaterial({
-      color: "#3a4a6a",
-      roughness: 0.3,
-      metalness: 0.85,
-      emissive: "#101830",
+      color: "#1a4080",
+      roughness: 0.2,
+      metalness: 0.9,
+      emissive: "#0a2040",
     });
 
     // Render current square + 4 adjacent squares
