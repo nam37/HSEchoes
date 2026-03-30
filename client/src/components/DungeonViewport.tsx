@@ -35,7 +35,6 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2("#000814", 0.055);
     const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 160);
     rendererRef.current = renderer;
     sceneRef.current = scene;
@@ -96,20 +95,22 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
     const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
 
-    const ambient = new THREE.AmbientLight("#0a1840", 0.75);
-    const overheadLight = new THREE.PointLight("#40ccff", 30, 42, 2.2);
-    overheadLight.position.set(0, 4.8, -1.5);
-    const playerLight = new THREE.PointLight("#0050d0", 10, 18, 2.5);
-    playerLight.position.set(0, 2.5, 1.8);
-    scene.add(ambient, overheadLight, playerLight);
+    // Warm torchlight ambient + lantern point lights
+    const ambient = new THREE.AmbientLight("#c8884a", 0.55);
+    const lantern = new THREE.PointLight("#ffaa44", 60, 28, 1.8);
+    lantern.position.set(0, 3.5, 0);
+    const fill = new THREE.PointLight("#ff8822", 20, 22, 2.0);
+    fill.position.set(0, 1.6, 2.5);
+    scene.add(ambient, lantern, fill);
 
-    scene.background = new THREE.Color("#000814");
+    scene.background = new THREE.Color("#1a0e06");
+    scene.fog = new THREE.FogExp2("#1a0e06", 0.025);
 
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: "#050a18",
+      color: "#4a3c2a",
       map: floorTexture ?? undefined,
-      roughness: 0.85,
-      metalness: 0.45,
+      roughness: 0.92,
+      metalness: 0.05,
     });
     if (floorMaterial.map) {
       floorMaterial.map.wrapS = THREE.RepeatWrapping;
@@ -118,11 +119,11 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     }
 
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: "#060c1c",
+      color: "#5a4e3c",
       map: wallTexture ?? undefined,
-      roughness: 0.88,
-      metalness: 0.5,
-      emissive: "#020810",
+      roughness: 0.95,
+      metalness: 0.05,
+      emissive: "#1a1008",
     });
     if (wallMaterial.map) {
       wallMaterial.map.wrapS = THREE.RepeatWrapping;
@@ -131,17 +132,17 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     }
 
     const doorMaterial = new THREE.MeshStandardMaterial({
-      color: "#0c1e38",
-      roughness: 0.45,
-      metalness: 0.88,
-      emissive: "#040e1e",
+      color: "#5c3a1a",
+      roughness: 0.6,
+      metalness: 0.4,
+      emissive: "#200e04",
     });
 
     const gateMaterial = new THREE.MeshStandardMaterial({
-      color: "#001e60",
+      color: "#3a4a6a",
       roughness: 0.3,
-      metalness: 0.92,
-      emissive: "#000e30",
+      metalness: 0.85,
+      emissive: "#101830",
     });
 
     // Render current square + 4 adjacent squares
