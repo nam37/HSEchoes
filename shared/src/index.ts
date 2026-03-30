@@ -14,6 +14,15 @@ export interface PassageRequirement {
   failureText: string;
 }
 
+export interface ZoneLink {
+  toZoneId: string;
+  toRoomId: string;
+  entryX: number;
+  entryY: number;
+  facing?: Direction;
+  transitionText?: string;
+}
+
 /** A named, rectangular region of grid squares. Rooms can be any width/height. */
 export interface ZoneRoom {
   id: string;
@@ -31,6 +40,7 @@ export interface ZoneRoom {
   encounterId?: string;
   loot?: string[];
   victory?: boolean;
+  zoneLink?: ZoneLink;
 }
 
 /**

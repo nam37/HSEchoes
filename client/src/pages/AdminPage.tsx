@@ -1,12 +1,11 @@
 import React, { useEffect, useReducer, useState } from "react";
 import { api, type AdminStats, type WorldContent, type UserProfile } from "../lib/api";
-import type { Encounter, Enemy, Item, Zone, ZoneRoom } from "../../../shared/src/index";
+import type { Encounter, Enemy, Item, Zone } from "../../../shared/src/index";
 import type { SaveSummary } from "../../../shared/src/index";
 import { EnemyEditor } from "../components/admin/EnemyEditor";
 import { ItemEditor } from "../components/admin/ItemEditor";
 import { EncounterEditor } from "../components/admin/EncounterEditor";
-import { RoomDetail } from "../components/admin/RoomDetail";
-import { ZoneMapGrid } from "../components/admin/ZoneMapGrid";
+import { ZoneEditor } from "../components/admin/ZoneEditor";
 
 interface AdminPageProps {
   userEmail: string | null;
@@ -16,7 +15,6 @@ interface AdminPageProps {
 type Tab = "overview" | "map" | "zones" | "enemies" | "items" | "encounters" | "users";
 
 type AdminModal =
-  | { kind: "room"; room: ZoneRoom; zone: Zone }
   | { kind: "enemy"; enemy: Enemy }
   | { kind: "item"; item: Item }
   | { kind: "encounter"; encounter: Encounter }
@@ -141,6 +139,12 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
     setModal(null);
   }
 
+  async function saveZone(zone: Zone): Promise<void> {
+    await api.adminUpsertZone(zone.id, zone);
+    setWorld((prev) => prev ? { ...prev, zones: prev.zones.map((z) => z.id === zone.id ? zone : z) } : prev);
+    await api.adminReload();
+  }
+
   async function saveEncounter(enc: Encounter): Promise<void> {
     await api.adminUpsertEncounter(enc.id, enc);
     setWorld((prev) => prev ? { ...prev, encounters: [...prev.encounters.filter((e) => e.id !== enc.id), enc] } : prev);
@@ -240,11 +244,8 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
 
             {tab === "map" && (firstZone ? (
               <section className="admin-section">
-                <div className="admin-section-header">
-                  <h2 className="admin-section-title">Map: {firstZone.title}</h2>
-                  <p className="admin-hint">Click a room to view its details.</p>
-                </div>
-                <ZoneMapGrid zone={firstZone} onClickRoom={(room) => setModal({ kind: "room", room, zone: firstZone })} />
+                <h2 className="admin-section-title">Zone Editor: {firstZone.title}</h2>
+                <ZoneEditor zone={firstZone} onSave={saveZone} />
               </section>
             ) : <p className="admin-empty">No zones found.</p>)}
 
@@ -392,11 +393,6 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
         )}
       </main>
 
-      {modal?.kind === "room" && (
-        <Modal title={`Room: ${modal.room.id}`} onClose={() => setModal(null)}>
-          <RoomDetail room={modal.room} zone={modal.zone} onClose={() => setModal(null)} />
-        </Modal>
-      )}
       {modal?.kind === "enemy" && (
         <Modal title={modal.enemy.id ? `Edit Enemy: ${modal.enemy.id}` : "New Enemy"} onClose={() => setModal(null)}>
           <EnemyEditor initial={modal.enemy} onSave={saveEnemy} onClose={() => setModal(null)} />

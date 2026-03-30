@@ -1659,3 +1659,162 @@ button:disabled {
   color: var(--text) !important;
   cursor: pointer;
 }
+
+/* ── Zone Editor ─────────────────────────────────────────────── */
+.zone-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zone-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.zone-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.zone-tool-btn {
+  padding: 0.35rem 0.85rem;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 0.8rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.zone-tool-btn:hover { border-color: var(--accent); color: var(--text); }
+.zone-tool-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 180, 240, 0.08);
+}
+
+.zone-editor-hint {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 0.25rem 0;
+  min-height: 1.2rem;
+}
+
+.zone-editor-body {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.zone-canvas-wrap {
+  overflow: auto;
+  flex: 1;
+  background: #06101a;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1rem;
+  max-height: 70vh;
+}
+
+.zone-canvas {
+  display: block;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+.zone-editor-legend {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  padding-top: 0.25rem;
+}
+
+.zone-editor-msg {
+  font-size: 0.8rem;
+  color: var(--accent);
+  padding: 0 0.5rem;
+}
+
+.zone-editor-sep { flex: 1; }
+
+/* ── Room Sidebar ────────────────────────────────────────────── */
+.zone-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--panel-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.zone-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.zone-sidebar-header h3 {
+  font-family: 'Kensmark', monospace;
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin: 0;
+  letter-spacing: 0.06em;
+}
+
+.zone-sidebar-body {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zone-sidebar-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.zone-sidebar-body input,
+.zone-sidebar-body textarea {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.zone-sidebar-body textarea {
+  resize: vertical;
+  min-height: 3rem;
+}
+
+.zone-sidebar-section-label {
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  margin-top: 0.25rem;
+}

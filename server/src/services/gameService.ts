@@ -33,7 +33,7 @@ interface MetaRow {
 }
 
 export class GameService {
-  private zone!: Zone;
+  private zones!: Map<string, Zone>;
   private enemies!: Map<string, Enemy>;
   private encounters!: Map<string, Encounter>;
   private items!: Map<string, Item>;
@@ -46,27 +46,33 @@ export class GameService {
 
   static async create(sql: Sql, random: () => number = Math.random): Promise<GameService> {
     const instance = new GameService(sql, random);
-    instance.meta      = await instance.loadMeta();
-    instance.zone      = await instance.loadZone();
-    instance.enemies   = await instance.loadMap<Enemy>("enemy");
+    instance.meta       = await instance.loadMeta();
+    instance.zones      = await instance.loadZones();
+    instance.enemies    = await instance.loadMap<Enemy>("enemy");
     instance.encounters = await instance.loadMap<Encounter>("encounter");
-    instance.items     = await instance.loadMap<Item>("item");
+    instance.items      = await instance.loadMap<Item>("item");
     return instance;
   }
 
   async reload(): Promise<void> {
-    this.meta      = await this.loadMeta();
-    this.zone      = await this.loadZone();
-    this.enemies   = await this.loadMap<Enemy>("enemy");
+    this.meta       = await this.loadMeta();
+    this.zones      = await this.loadZones();
+    this.enemies    = await this.loadMap<Enemy>("enemy");
     this.encounters = await this.loadMap<Encounter>("encounter");
-    this.items     = await this.loadMap<Item>("item");
+    this.items      = await this.loadMap<Item>("item");
+  }
+
+  private getZone(zoneId: string): Zone {
+    const z = this.zones.get(zoneId);
+    if (!z) throw new Error(`Unknown zone '${zoneId}'.`);
+    return z;
   }
 
   // ── World data access for admin ──────────────────────────────────────────
 
   async getWorldData(): Promise<{ zones: Zone[]; enemies: Enemy[]; encounters: Encounter[]; items: Item[] }> {
     return {
-      zones:      [this.zone],
+      zones:      [...this.zones.values()],
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()]
@@ -93,7 +99,7 @@ export class GameService {
       intro:   this.meta.intro,
       startX:  this.meta.startX,
       startY:  this.meta.startY,
-      zones:   [this.zone],
+      zones:   [...this.zones.values()],
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()],
@@ -122,13 +128,14 @@ export class GameService {
 
   async createNewRun(): Promise<RunState> {
     const now  = new Date().toISOString();
-    const startRoom = findRoomContaining(this.zone, this.meta.startX, this.meta.startY);
+    const startZone = [...this.zones.values()][0];
+    const startRoom = findRoomContaining(startZone, this.meta.startX, this.meta.startY);
 
     const run: RunState = {
       slotId:             randomUUID().slice(0, 8),
       mode:               "explore",
       status:             "active",
-      zoneId:             this.zone.id,
+      zoneId:             startZone.id,
       roomId:             startRoom?.id ?? "",
       posX:               this.meta.startX,
       posY:               this.meta.startY,
@@ -186,14 +193,15 @@ export class GameService {
       const nextX = run.posX + delta.x;
       const nextY = run.posY + delta.y;
 
-      const currentRoom = findRoomContaining(this.zone, run.posX, run.posY);
-      const nextRoom    = findRoomContaining(this.zone, nextX, nextY);
+      const zone = this.getZone(run.zoneId);
+      const currentRoom = findRoomContaining(zone, run.posX, run.posY);
+      const nextRoom    = findRoomContaining(zone, nextX, nextY);
 
       if (!nextRoom) {
         message = "Darkness offers no passage here.";
       } else {
-        const edge = findZoneEdge(this.zone, run.posX, run.posY, travelDir);
-        const edgeType = resolveEdgeType(this.zone, run.posX, run.posY, travelDir);
+        const edge = findZoneEdge(zone, run.posX, run.posY, travelDir);
+        const edgeType = resolveEdgeType(zone, run.posX, run.posY, travelDir);
 
         if (edgeType === "wall") {
           message = "Stone blocks your path.";
@@ -259,7 +267,7 @@ export class GameService {
         run.mode   = "explore";
         run.combat = null;
         if (run.previousRoomId) {
-          const prevRoom = this.zone.rooms.find(r => r.id === run.previousRoomId);
+          const prevRoom = this.getZone(run.zoneId).rooms.find(r => r.id === run.previousRoomId);
           if (prevRoom) {
             run.roomId = prevRoom.id;
             run.posX   = prevRoom.x;
@@ -285,7 +293,7 @@ export class GameService {
       for (const rewardItemId of encounter.rewardItemIds) {
         this.addItem(run, rewardItemId, `You claim ${this.getItem(rewardItemId).name}.`);
       }
-      const currentRoom = findRoomContaining(this.zone, run.posX, run.posY);
+      const currentRoom = findRoomContaining(this.getZone(run.zoneId), run.posX, run.posY);
       if (currentRoom) this.applyRoomEffects(run, currentRoom);
       run.log = pushLog(run.log, parts.join(" "));
       this.touch(run);
@@ -378,6 +386,27 @@ export class GameService {
       return;
     }
 
+    if (room.zoneLink) {
+      const link = room.zoneLink;
+      const targetZone = this.zones.get(link.toZoneId);
+      if (targetZone) {
+        run.zoneId         = link.toZoneId;
+        run.posX           = link.entryX;
+        run.posY           = link.entryY;
+        run.roomId         = link.toRoomId;
+        run.previousRoomId = null;
+        if (link.facing) run.facing = link.facing;
+        if (!run.discoveredRoomIds.includes(link.toRoomId)) {
+          run.discoveredRoomIds = [...run.discoveredRoomIds, link.toRoomId];
+        }
+        const msg = link.transitionText ?? `You pass through to ${targetZone.title}.`;
+        run.log = pushLog(run.log, msg);
+        const entryRoom = findRoomContaining(targetZone, link.entryX, link.entryY);
+        if (entryRoom) this.applyRoomEffects(run, entryRoom);
+        return;
+      }
+    }
+
     if (room.victory) {
       if (run.player.inventory.includes("star_sigil")) {
         run.status = "victory";
@@ -454,12 +483,17 @@ export class GameService {
     return JSON.parse(rows[0].json) as MetaRow;
   }
 
-  private async loadZone(): Promise<Zone> {
+  private async loadZones(): Promise<Map<string, Zone>> {
     const rows = await this.sql<Array<{ json: string }>>`
-      SELECT json FROM world_data WHERE kind = 'zone' LIMIT 1
+      SELECT json FROM world_data WHERE kind = 'zone'
     `;
     if (rows.length === 0) throw new Error("No zone found. Run `npm run db:seed`.");
-    return JSON.parse(rows[0].json) as Zone;
+    const map = new Map<string, Zone>();
+    for (const row of rows) {
+      const z = JSON.parse(row.json) as Zone;
+      map.set(z.id, z);
+    }
+    return map;
   }
 
   private async loadMap<T>(kind: string): Promise<Map<string, T>> {
