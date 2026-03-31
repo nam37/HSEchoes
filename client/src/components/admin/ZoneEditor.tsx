@@ -120,8 +120,11 @@ function isOnRoomBoundary(edge: ZoneEdge, room: ZoneRoom): boolean {
 
 /**
  * Move a room and translate all edges that were on its boundary by the same delta.
- * Edges between the moved room and a present neighbor at the new position are kept.
- * Edges that end up invalid (one side void, or interior) are pruned.
+ * Uses a lenient prune after translation: keeps edges where one side is the moved room
+ * and the other side is void (preserves passage markers on the room's sides so they
+ * reconnect automatically if a neighbour is placed there later).
+ * Only removes edges where both sides are void, or the edge is interior to one room.
+ * Strict pruning (remove any void-side edge) is reserved for resize and erase.
  */
 function moveRoomWithEdges(zone: Zone, oldRoom: ZoneRoom, newRoom: ZoneRoom): Zone {
   const dx = newRoom.x - oldRoom.x;
@@ -140,7 +143,19 @@ function moveRoomWithEdges(zone: Zone, oldRoom: ZoneRoom, newRoom: ZoneRoom): Zo
   const edgeMap = new Map<string, ZoneEdge>();
   for (const edge of translated) edgeMap.set(`${edge.x},${edge.y},${edge.dir}`, edge);
 
-  return pruneEdges({ ...zone, rooms: newRooms, edges: [...edgeMap.values()] });
+  // Lenient prune: remove only if both sides void, or interior to same room
+  const validEdges = [...edgeMap.values()].filter((edge) => {
+    const [cx1, cy1, cx2, cy2] = edge.dir === "v"
+      ? [edge.x, edge.y, edge.x + 1, edge.y]
+      : [edge.x, edge.y, edge.x, edge.y + 1];
+    const r1 = newRooms.find((r) => cx1 >= r.x && cx1 < r.x + r.w && cy1 >= r.y && cy1 < r.y + r.h);
+    const r2 = newRooms.find((r) => cx2 >= r.x && cx2 < r.x + r.w && cy2 >= r.y && cy2 < r.y + r.h);
+    if (!r1 && !r2) return false;                   // both void — pointless
+    if (r1 && r2 && r1.id === r2.id) return false;  // interior of same room
+    return true;                                     // room↔void or room↔room — keep
+  });
+
+  return { ...zone, rooms: newRooms, edges: validEdges };
 }
 
 /** True if candidate geometry doesn't overlap any other room and stays in bounds. */
@@ -306,6 +321,28 @@ function drawCanvas(
       }
     }
   }
+
+  // Overlay dangling (invalid) passage edges in orange — one side has no room.
+  // These are kept in zone.edges so they auto-reconnect if a room is placed next to them.
+  zone.edges.forEach((edge) => {
+    const [cx1, cy1, cx2, cy2] = edge.dir === "v"
+      ? [edge.x, edge.y, edge.x + 1, edge.y]
+      : [edge.x, edge.y, edge.x, edge.y + 1];
+    const r1 = zone.rooms.find((r) => cx1 >= r.x && cx1 < r.x + r.w && cy1 >= r.y && cy1 < r.y + r.h);
+    const r2 = zone.rooms.find((r) => cx2 >= r.x && cx2 < r.x + r.w && cy2 >= r.y && cy2 < r.y + r.h);
+    if (r1 && r2 && r1.id !== r2.id) return; // valid — already rendered correctly
+    if (!r1 && !r2) return;                   // fully void — would have been pruned
+    // One side has a room, other is void → dangling passage
+    const [x1, y1, x2, y2] = edgeCoords(edge);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = "#ff8800";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
 
   zone.rooms.forEach((room) => {
     if (selectedId === room.id) {
