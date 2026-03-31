@@ -18,6 +18,9 @@ const runEnvelope = {
       baseAttack: 2,
       baseDefense: 0,
       credits: 0,
+      level: 1,
+      xp: 0,
+      xpToNextLevel: 50,
       inventory: [],
       equipped: { weapon: null, armor: null, accessory: null }
     },

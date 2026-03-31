@@ -131,9 +131,30 @@ export interface PlayerState {
   baseAttack: number;
   baseDefense: number;
   credits: number;
+  level: number;
+  xp: number;
+  xpToNextLevel: number; // 0 = max level
   inventory: string[];
   equipped: EquippedItems;
 }
+
+export const MAX_LEVEL = 5;
+
+/** XP needed to advance FROM each level. No entry at index 5 = max level. */
+export const XP_TABLE: Readonly<Record<number, number>> = {
+  1: 50,
+  2: 100,
+  3: 200,
+  4: 300,
+};
+
+/** Stat gains applied when leveling UP from each level. */
+export const ADVANCEMENT_TABLE: Readonly<Record<number, { maxHp: number; baseAttack: number; baseDefense: number }>> = {
+  1: { maxHp: 5, baseAttack: 1, baseDefense: 0 },
+  2: { maxHp: 5, baseAttack: 0, baseDefense: 1 },
+  3: { maxHp: 5, baseAttack: 1, baseDefense: 0 },
+  4: { maxHp: 5, baseAttack: 1, baseDefense: 1 },
+};
 
 export interface CombatState {
   encounterId: string;

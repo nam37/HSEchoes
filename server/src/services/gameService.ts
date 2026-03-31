@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 import type { Sql } from "../db/database.js";
 import {
+  ADVANCEMENT_TABLE,
   findRoomContaining,
   findZoneEdge,
   forwardDelta,
+  MAX_LEVEL,
   pushLog,
   resolveEdgeType,
   turnLeft,
   turnRight,
+  XP_TABLE,
   type BootstrapData,
   type CombatAction,
   type CombatState,
@@ -164,6 +167,9 @@ export class GameService {
         hp: 20, maxHp: 20,
         baseAttack: 2, baseDefense: 0,
         credits: 7,
+        level: 1,
+        xp: 0,
+        xpToNextLevel: XP_TABLE[1],
         inventory: ["maintenance_tool"],
         equipped: { weapon: "maintenance_tool", armor: null, accessory: null }
       },
@@ -238,7 +244,8 @@ export class GameService {
           run.previousRoomId = prevRoomId;
           run.roomId = nextRoom.id;
 
-          if (!run.discoveredRoomIds.includes(nextRoom.id)) {
+          const firstTimeInRoom = !run.discoveredRoomIds.includes(nextRoom.id);
+          if (firstTimeInRoom) {
             run.discoveredRoomIds = [...run.discoveredRoomIds, nextRoom.id];
           }
 
@@ -247,6 +254,9 @@ export class GameService {
             : `You move ${travelDir}.`;
 
           if (enteredNewRoom) {
+            if (firstTimeInRoom) {
+              this.awardXp(run, 5);
+            }
             const transitionMsg = this.applyRoomEffects(run, nextRoom);
             if (transitionMsg !== undefined) {
               // Zone boundary crossed — transition message already pushed to log inside applyRoomEffects.
@@ -323,6 +333,7 @@ export class GameService {
       for (const rewardItemId of encounter.rewardItemIds) {
         this.addItem(run, rewardItemId, `You claim ${this.getItem(rewardItemId).name}.`);
       }
+      this.awardXp(run, enemy.maxHp * 2);
       const currentRoom = findRoomContaining(this.getZone(run.zoneId), run.posX, run.posY);
       if (currentRoom) this.applyRoomEffects(run, currentRoom);
       run.log = pushLog(run.log, parts.join(" "));
@@ -429,6 +440,7 @@ export class GameService {
       const link = room.zoneLink;
       const targetZone = this.zones.get(link.toZoneId);
       if (targetZone) {
+        const firstTimeInZone = run.zoneId !== link.toZoneId;
         run.zoneId         = link.toZoneId;
         run.posX           = link.entryX;
         run.posY           = link.entryY;
@@ -440,6 +452,9 @@ export class GameService {
         }
         const msg = link.transitionText ?? `You pass through the bulkhead into ${targetZone.title}.`;
         run.log = pushLog(run.log, msg);
+        if (firstTimeInZone) {
+          this.awardXp(run, 25);
+        }
         const entryRoom = findRoomContaining(targetZone, link.entryX, link.entryY);
         if (entryRoom) this.applyRoomEffects(run, entryRoom);
         return msg;
@@ -457,6 +472,32 @@ export class GameService {
     }
 
     return undefined;
+  }
+
+  /**
+   * Award XP and apply any level-ups that result.
+   * Level-ups are deferred while in combat — applied when mode returns to explore.
+   */
+  private awardXp(run: RunState, amount: number): void {
+    if (run.player.level >= MAX_LEVEL) return;
+    run.player.xp += amount;
+    run.log = pushLog(run.log, `+${amount} XP.`);
+
+    while (run.player.level < MAX_LEVEL && run.player.xp >= XP_TABLE[run.player.level]) {
+      const gains = ADVANCEMENT_TABLE[run.player.level];
+      run.player.xp -= XP_TABLE[run.player.level];
+      run.player.level += 1;
+
+      const prevMaxHp = run.player.maxHp;
+      run.player.maxHp        += gains.maxHp;
+      run.player.baseAttack   += gains.baseAttack;
+      run.player.baseDefense  += gains.baseDefense;
+      // Scale current HP proportionally
+      run.player.hp = Math.round((run.player.hp / prevMaxHp) * run.player.maxHp);
+      run.player.xpToNextLevel = XP_TABLE[run.player.level] ?? 0;
+
+      run.log = pushLog(run.log, `LEVEL UP — you are now Level ${run.player.level}. Max HP +${gains.maxHp}, ATK +${gains.baseAttack}, DEF +${gains.baseDefense}.`);
+    }
   }
 
   private consumeItem(run: RunState, itemId: string): string {

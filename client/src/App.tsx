@@ -317,6 +317,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               <div className="stat-grid">
                 <p><strong>HP</strong> {run.player.hp}/{run.player.maxHp}</p>
                 <p><strong>Credits</strong> {run.player.credits}</p>
+                <p><strong>Level</strong> {run.player.level}</p>
+                <p><strong>XP</strong> {run.player.xpToNextLevel > 0 ? `${run.player.xp} / ${run.player.xpToNextLevel}` : "MAX"}</p>
                 <p><strong>Facing</strong> {run.facing}</p>
                 <p><strong>Mode</strong> {run.mode}</p>
                 <p><strong>Weapon</strong> {labelFor(itemMap, run.player.equipped.weapon)}</p>
