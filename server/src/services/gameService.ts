@@ -161,7 +161,7 @@ export class GameService {
       clearedEncounterIds:[],
       collectedItemIds:   ["rusted_blade"],
       player: {
-        hp: 12, maxHp: 12,
+        hp: 20, maxHp: 20,
         baseAttack: 2, baseDefense: 0,
         gold: 7,
         inventory: ["rusted_blade"],
