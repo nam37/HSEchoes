@@ -223,10 +223,12 @@ showing the player, or zone transitions with narrative weight.
 | 5 | NPCs and dialogue | Medium | Medium |
 | 6 | Zone content and story | High | High |
 | 7 | Polish and slice completion | Medium | Final |
+| 8 | Save slot system | Medium | Post-slice |
 
 Phases 1–4 are purely systemic and can be built before any new content exists.
 Phases 5–6 require both systems and authored content in parallel.
 Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
+Phase 8 is post-slice production readiness and does not block the vertical slice.
 
 Next Steps:
 - Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in
@@ -234,6 +236,54 @@ Next Steps:
 - Additional Zones
 - Further the story using the added game mechanics above.
 
+
+---
+
+---
+
+## Phase 8 — Save Slot System
+
+*Goal: Replace the unlimited PoC "runs" model with a proper 3-slot save system appropriate for a
+shipped game.*
+
+### Context
+
+The current system uses a `runs` table with no slot cap. Each new game creates a new UUID-keyed row,
+which accumulates indefinitely. The "Load Latest" flow only surfaces one save. This is acceptable
+for development but not for players. The dual `json` / `checkpoint_json` auto-save/checkpoint design
+is good and should be preserved exactly as-is.
+
+Internal code names (`RunState`, `RunEnvelope`, `newRun()`, etc.) can stay — only the player-facing
+language and UX need to change.
+
+### 8.1 Slot cap (server)
+
+- Enforce a maximum of 3 save slots per user in `newRun()`.
+- If the user already has 3 slots, return an error requiring them to overwrite an existing slot.
+- Add a `deleteRun()` endpoint (or confirm the existing admin one is accessible to users) to allow
+  slot overwrite from the UI.
+- Clean up orphaned/stale runs (migration script to cap existing users at 3 most-recent slots).
+
+### 8.2 SaveSummary extension (shared types)
+
+- Add `level: number` and `roomTitle: string` to `SaveSummary` so the slot picker can display
+  meaningful context without cross-referencing zone data.
+- Server populates `roomTitle` by looking up the room in zone data at summary time.
+
+### 8.3 Slot picker UI (client)
+
+- Replace the landing page "Begin / Load Latest" buttons with a proper **3-slot save picker**.
+- Each slot card shows: slot number, last known room title, player level, save timestamp, and
+  run status (active / victory / defeat).
+- Empty slots show a "New Game" prompt.
+- Occupied slots show "Continue" and an overwrite/delete affordance.
+- The current "Begin!" flow becomes the empty-slot new game path.
+
+### 8.4 Admin panel
+
+- Keep the "All Runs" admin view as internal superuser tooling — it is useful for debugging and
+  moderation and should not be removed.
+- No player-facing equivalent is needed.
 
 ---
 
