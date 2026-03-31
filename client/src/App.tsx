@@ -285,7 +285,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               <div className="panel-heading-row">
                 <h2>Explorer</h2>
                 <div className="panel-actions">
-                  <button onClick={() => void saveRun()} disabled={busy}>Save</button>
+                  <button onClick={() => void saveRun()} disabled={busy || run.mode === "combat"}>Save</button>
                 </div>
               </div>
               <div className="stat-grid">

@@ -378,11 +378,14 @@ export class GameService {
   }
 
   async saveRun(slotId: string, userId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId, userId);
+    if (run.mode === "combat") {
+      return { run, message: "Cannot save during combat." };
+    }
     // Copy the current auto-save state into checkpoint_json
     await this.sql`
       UPDATE runs SET checkpoint_json = json WHERE slot_id = ${slotId} AND user_id = ${userId}
     `;
-    const run = await this.readRun(slotId, userId);
     return { run, message: "Progress saved." };
   }
 
