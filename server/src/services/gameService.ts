@@ -181,13 +181,13 @@ export class GameService {
   }
 
   async loadRun(slotId: string, userId: string): Promise<RunState> {
-    // Load from checkpoint (last manual save), falling back to auto-save if never manually saved
-    const rows = await this.sql<Array<{ json: string }>>`
-      SELECT COALESCE(checkpoint_json, json) AS json
-      FROM runs WHERE slot_id = ${slotId} AND user_id = ${userId}
+    // Load from checkpoint (last manual save), falling back to auto-save if never manually saved.
+    // Also reset json to the checkpoint so subsequent moves start from the correct position.
+    await this.sql`
+      UPDATE runs SET json = COALESCE(checkpoint_json, json), updated_at = ${new Date().toISOString()}
+      WHERE slot_id = ${slotId} AND user_id = ${userId}
     `;
-    if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
-    return JSON.parse(rows[0].json) as RunState;
+    return this.readRun(slotId, userId);
   }
 
   // ── Movement ─────────────────────────────────────────────────────────────
