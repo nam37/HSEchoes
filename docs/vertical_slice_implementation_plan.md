@@ -298,9 +298,42 @@ and UI to a shippable standard.*
 ### Context
 
 The current build uses flat colored planes in the 3D viewport, missing enemy sprites in combat,
-placeholder item icons, a functional-but-bare mini-map, and text-only death/victory screens. The
-data model already carries the right hooks (`spritePath`, `iconPath`, `wallTexture`, `floorTexture`,
-`prop`, etc.) — this phase fills them.
+placeholder item icons, a functional-but-bare mini-map, and text-only death/victory screens. While
+the data model carries the right field names (`spritePath`, `iconPath`, `wallTexture`, `floorTexture`,
+`prop`, etc.), those fields are currently raw path strings hardcoded in `world.ts` and seeded as
+opaque JSON blobs. Phase 9 is not just an art drop — it requires schema and data structure work
+before any art can be properly assigned or swapped.
+
+### 9.0 Asset data infrastructure (prerequisite)
+
+This must be completed before any art production work begins.
+
+**Asset registry**
+- Add `kind: 'asset'` rows to `world_data`: each row has an `id`, `path`, `type`
+  (`texture` | `sprite` | `portrait` | `icon` | `mesh`), and metadata (dimensions, format).
+- Entity JSON (`Item`, `Enemy`, `ZoneRoom`, `NPC`, etc.) references asset ids rather than raw
+  paths. This makes swapping art a data operation with no code changes required.
+- Server resolves asset ids to paths at bootstrap time and returns a flat path map to the client.
+- Deprecate the current hardcoded `AssetManifest` in favour of this dynamic registry.
+
+**Prop definitions**
+- `ZoneRoom.prop` is currently a freeform magic string (`"brazier"`, etc.) with no backing data.
+- Add `kind: 'prop'` to `world_data`: each `PropDef` has `id`, `displayName`, `description`,
+  `assetId` (references asset registry), and `renderHint` (`billboard` | `mesh`).
+- `ZoneRoom.prop` becomes a `propId` referencing a `PropDef` row.
+- Seed initial prop definitions alongside zone data in `seed.ts`.
+
+**Texture sets**
+- Rooms currently hardcode individual texture paths per room instance, leading to repetition.
+- Define a `TextureSet` type: `{ id, wallAssetId, floorAssetId, ceilingColor }`.
+- Add `kind: 'textureset'` to `world_data`.
+- `ZoneRoom` references a `textureSetId` rather than individual paths. Per-room overrides remain
+  possible but are the exception, not the rule.
+
+**NPC portrait field**
+- When NPCs are introduced in Phase 5, their `portraitAssetId` should resolve through the asset
+  registry. Flag this now so Phase 5 implementation uses the registry from the start rather than
+  adding another raw path field.
 
 ### 9.1 Room textures
 
