@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Echoes of the Hollow Star - Zone Editor</title>
+  <style>
+    :root {
+      --bg: #d9d9d9;
+      --panel: #efefef;
+      --line: #bfbfbf;
+      --wall: #111;
+      --door: #000;
+      --door-outline: #fff;
+      --text: #111;
+      --accent: #1f5f8b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #cfcfcf;
+      color: var(--text);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid #bbb;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 8px;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin: 18px 0 8px;
+    }
+
+    p, label, button, input, select, textarea {
+      font-size: 14px;
+    }
+
+    .hint {
+      color: #444;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .tool-row, .field-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    button {
+      border: 1px solid #777;
+      background: white;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button:hover { filter: brightness(0.98); }
+
+    input[type="number"], input[type="text"], textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #999;
+      background: white;
+      border-radius: 4px;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+    }
+
+    .canvas-wrap {
+      padding: 16px;
+      overflow: auto;
+      background: #d4d4d4;
+    }
+
+    canvas {
+      background: var(--bg);
+      display: block;
+      box-shadow: 0 0 0 1px #bbb;
+      image-rendering: crisp-edges;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #555;
+    }
+
+    .status {
+      margin-top: 8px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      min-height: 40px;
+      white-space: pre-wrap;
+    }
+
+    .selected-box {
+      border: 1px dashed #666;
+      padding: 8px;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1>Zone Editor</h1>
+      <div class="hint">Draw large room blocks, then add individual wall segments inside them to subdivide spaces. Select now finds the connected open space around the clicked point, not just the original rectangle.</div>
+
+      <h2>Tools</h2>
+      <div class="tool-row">
+        <button id="tool-room" class="active">Draw Rooms</button>
+        <button id="tool-wall">Add Walls</button>
+        <button id="tool-door">Doors</button>
+        <button id="tool-select">Select</button>
+        <button id="tool-erase">Erase</button>
+      </div>
+
+      <h2>Grid</h2>
+      <div class="field-row">
+        <div style="flex:1">
+          <label>Cols</label>
+          <input id="cols" type="number" min="8" max="100" value="28" />
+        </div>
+        <div style="flex:1">
+          <label>Rows</label>
+          <input id="rows" type="number" min="8" max="100" value="24" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div style="flex:1">
+          <label>Cell Size</label>
+          <input id="cellSize" type="number" min="16" max="48" value="26" />
+        </div>
+      </div>
+      <div class="tool-row">
+        <button id="resizeGrid">Apply Grid</button>
+      </div>
+
+      <h2>Wall Mode</h2>
+      <div class="field-row">
+        <div style="flex:1">
+          <label>Orientation</label>
+          <select id="wallOrientation">
+            <option value="auto">Auto</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+          </select>
+        </div>
+      </div>
+      <div class="small">In Add Walls mode, drag to create a run of wall segments. Auto picks the dominant drag direction.</div>
+
+      <h2>Selected Space</h2>
+      <div class="selected-box small" id="selectedInfo">No space selected.</div>
+      <div class="tool-row" style="margin-top:8px;">
+        <button id="deleteSelected">Delete Containing Base Room</button>
+      </div>
+
+      <h2>Actions</h2>
+      <div class="tool-row">
+        <button id="undoBtn">Undo</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+      <div class="tool-row">
+        <button id="exportJson">Export JSON</button>
+        <button id="loadJson">Load JSON</button>
+      </div>
+      <div class="tool-row">
+        <button id="downloadPng">Download PNG</button>
+      </div>
+
+      <h2>Data</h2>
+      <textarea id="jsonBox" placeholder="JSON export/import appears here"></textarea>
+      <div class="small">Export includes rooms, manual wall segments, and doors.</div>
+
+      <div class="status" id="status">Ready.</div>
+    </aside>
+
+    <main class="canvas-wrap">
+      <canvas id="mapCanvas" width="728" height="624"></canvas>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      cols: 28,
+      rows: 24,
+      cellSize: 26,
+      tool: 'room',
+      rooms: [],
+      walls: [],
+      doors: [],
+      selectedRegion: null,
+      dragStart: null,
+      dragCurrent: null,
+      hoverWall: null,
+      history: []
+    };
+
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const jsonBox = document.getElementById('jsonBox');
+    const selectedInfo = document.getElementById('selectedInfo');
+    const wallOrientationEl = document.getElementById('wallOrientation');
+
+    const toolButtons = {
+      room: document.getElementById('tool-room'),
+      wall: document.getElementById('tool-wall'),
+      door: document.getElementById('tool-door'),
+      select: document.getElementById('tool-select'),
+      erase: document.getElementById('tool-erase')
+    };
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function cloneStateSnapshot() {
+      return JSON.parse(JSON.stringify({
+        rooms: state.rooms,
+        walls: state.walls,
+        doors: state.doors,
+        selectedRegion: state.selectedRegion
+      }));
+    }
+
+    function pushHistory() {
+      state.history.push(cloneStateSnapshot());
+      if (state.history.length > 50) state.history.shift();
+    }
+
+    function undo() {
+      const snap = state.history.pop();
+      if (!snap) {
+        setStatus('Nothing to undo.');
+        return;
+      }
+      state.rooms = snap.rooms;
+      state.walls = snap.walls;
+      state.doors = snap.doors;
+      state.selectedRegion = snap.selectedRegion;
+      render();
+      setStatus('Undid last action.');
+    }
+
+    function roomAtCell(x, y) {
+      for (let i = state.rooms.length - 1; i >= 0; i--) {
+        const r = state.rooms[i];
+        if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) return r;
+      }
+      return null;
+    }
+
+    function roomById(id) {
+      return state.rooms.find(r => r.id === id) || null;
+    }
+
+    function normalizeRect(a, b) {
+      const x1 = Math.min(a.x, b.x);
+      const y1 = Math.min(a.y, b.y);
+      const x2 = Math.max(a.x, b.x);
+      const y2 = Math.max(a.y, b.y);
+      return { x: x1, y: y1, w: x2 - x1 + 1, h: y2 - y1 + 1 };
+    }
+
+    function nextRoomId() {
+      return 'room_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function deleteRoom(roomId) {
+      state.rooms = state.rooms.filter(r => r.id !== roomId);
+      state.doors = state.doors.filter(d => d.kind !== 'outer' || d.roomId !== roomId);
+      if (state.selectedRegion && state.selectedRegion.baseRoomId === roomId) state.selectedRegion = null;
+    }
+
+    function setTool(tool) {
+      state.tool = tool;
+      Object.entries(toolButtons).forEach(([key, btn]) => btn.classList.toggle('active', key === tool));
+      state.dragStart = null;
+      state.dragCurrent = null;
+      state.hoverWall = null;
+      render();
+    }
+
+    function applyGrid() {
+      const cols = Math.max(8, Math.min(100, parseInt(document.getElementById('cols').value, 10) || 28));
+      const rows = Math.max(8, Math.min(100, parseInt(document.getElementById('rows').value, 10) || 24));
+      const cellSize = Math.max(16, Math.min(48, parseInt(document.getElementById('cellSize').value, 10) || 26));
+      state.cols = cols;
+      state.rows = rows;
+      state.cellSize = cellSize;
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
+      render();
+      setStatus(`Grid resized to ${cols} × ${rows}.`);
+    }
+
+    function toCell(px, py) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((px - rect.left) / state.cellSize);
+      const y = Math.floor((py - rect.top) / state.cellSize);
+      return {
+        x: Math.max(0, Math.min(state.cols - 1, x)),
+        y: Math.max(0, Math.min(state.rows - 1, y))
+      };
+    }
+
+    function toCanvasLocal(px, py) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: px - rect.left, y: py - rect.top };
+    }
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#d9d9d9';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#bebebe';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= state.cols; x++) {
+        const px = x * state.cellSize + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= state.rows; y++) {
+        const py = y * state.cellSize + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(canvas.width, py);
+        ctx.stroke();
+      }
+    }
+
+    function isCellInsideAnyRoom(x, y) {
+      return !!roomAtCell(x, y);
+    }
+
+    function edgeExposed(room, side, index) {
+      if (side === 'top') {
+        const x = room.x + index;
+        const y = room.y;
+        return !isCellInsideAnyRoom(x, y - 1);
+      }
+      if (side === 'bottom') {
+        const x = room.x + index;
+        const y = room.y + room.h - 1;
+        return !isCellInsideAnyRoom(x, y + 1);
+      }
+      if (side === 'left') {
+        const x = room.x;
+        const y = room.y + index;
+        return !isCellInsideAnyRoom(x - 1, y);
+      }
+      if (side === 'right') {
+        const x = room.x + room.w - 1;
+        const y = room.y + index;
+        return !isCellInsideAnyRoom(x + 1, y);
+      }
+      return false;
+    }
+
+    function hasManualWallAt(orientation, x, y) {
+      return state.walls.some(w => w.orientation === orientation && w.x === x && w.y === y);
+    }
+
+    function addManualWall(orientation, x, y) {
+      if (!hasManualWallAt(orientation, x, y)) {
+        state.walls.push({ orientation, x, y });
+      }
+    }
+
+    function doorBlocksOuterEdge(roomId, side, index) {
+      return state.doors.some(d => d.kind === 'outer' && d.roomId === roomId && d.side === side && d.index === index);
+    }
+
+    function doorBlocksManualWall(orientation, x, y) {
+      return state.doors.some(d => d.kind === 'inner' && d.orientation === orientation && d.x === x && d.y === y);
+    }
+
+    function hasClosedOuterBoundary(room, direction, x, y) {
+      if (direction === 'up') {
+        if (y !== room.y) return false;
+        const index = x - room.x;
+        return edgeExposed(room, 'top', index) && !doorBlocksOuterEdge(room.id, 'top', index);
+      }
+      if (direction === 'down') {
+        if (y !== room.y + room.h - 1) return false;
+        const index = x - room.x;
+        return edgeExposed(room, 'bottom', index) && !doorBlocksOuterEdge(room.id, 'bottom', index);
+      }
+      if (direction === 'left') {
+        if (x !== room.x) return false;
+        const index = y - room.y;
+        return edgeExposed(room, 'left', index) && !doorBlocksOuterEdge(room.id, 'left', index);
+      }
+      if (direction === 'right') {
+        if (x !== room.x + room.w - 1) return false;
+        const index = y - room.y;
+        return edgeExposed(room, 'right', index) && !doorBlocksOuterEdge(room.id, 'right', index);
+      }
+      return false;
+    }
+
+    function isPassageBlockedBetween(x, y, nx, ny) {
+      const room = roomAtCell(x, y);
+      if (!room) return true;
+      const nextRoom = roomAtCell(nx, ny);
+      if (nextRoom !== room) {
+        return true;
+      }
+
+      if (ny === y - 1) {
+        if (hasClosedOuterBoundary(room, 'up', x, y)) return true;
+        return hasManualWallAt('horizontal', x, y) && !doorBlocksManualWall('horizontal', x, y);
+      }
+      if (ny === y + 1) {
+        if (hasClosedOuterBoundary(room, 'down', x, y)) return true;
+        return hasManualWallAt('horizontal', x, y + 1) && !doorBlocksManualWall('horizontal', x, y + 1);
+      }
+      if (nx === x - 1) {
+        if (hasClosedOuterBoundary(room, 'left', x, y)) return true;
+        return hasManualWallAt('vertical', x, y) && !doorBlocksManualWall('vertical', x, y);
+      }
+      if (nx === x + 1) {
+        if (hasClosedOuterBoundary(room, 'right', x, y)) return true;
+        return hasManualWallAt('vertical', x + 1, y) && !doorBlocksManualWall('vertical', x + 1, y);
+      }
+      return true;
+    }
+
+    function computeRegionFromCell(startX, startY) {
+      const baseRoom = roomAtCell(startX, startY);
+      if (!baseRoom) return null;
+
+      const queue = [{ x: startX, y: startY }];
+      const visited = new Set([`${startX},${startY}`]);
+      const cells = [];
+      let minX = startX;
+      let maxX = startX;
+      let minY = startY;
+      let maxY = startY;
+
+      while (queue.length) {
+        const current = queue.shift();
+        cells.push(current);
+        minX = Math.min(minX, current.x);
+        maxX = Math.max(maxX, current.x);
+        minY = Math.min(minY, current.y);
+        maxY = Math.max(maxY, current.y);
+
+        const neighbors = [
+          { x: current.x, y: current.y - 1 },
+          { x: current.x + 1, y: current.y },
+          { x: current.x, y: current.y + 1 },
+          { x: current.x - 1, y: current.y }
+        ];
+
+        for (const n of neighbors) {
+          const key = `${n.x},${n.y}`;
+          if (visited.has(key)) continue;
+          if (isPassageBlockedBetween(current.x, current.y, n.x, n.y)) continue;
+          visited.add(key);
+          queue.push(n);
+        }
+      }
+
+      return {
+        baseRoomId: baseRoom.id,
+        cells,
+        cellSet: Array.from(visited),
+        minX,
+        maxX,
+        minY,
+        maxY,
+        area: cells.length
+      };
+    }
+
+    function drawSelectedRegion() {
+      if (!state.selectedRegion) return;
+      ctx.save();
+      ctx.fillStyle = 'rgba(31,95,139,0.14)';
+      for (const cell of state.selectedRegion.cells) {
+        ctx.fillRect(cell.x * state.cellSize, cell.y * state.cellSize, state.cellSize, state.cellSize);
+      }
+      ctx.strokeStyle = '#1f5f8b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        state.selectedRegion.minX * state.cellSize + 1,
+        state.selectedRegion.minY * state.cellSize + 1,
+        (state.selectedRegion.maxX - state.selectedRegion.minX + 1) * state.cellSize - 2,
+        (state.selectedRegion.maxY - state.selectedRegion.minY + 1) * state.cellSize - 2
+      );
+      ctx.restore();
+    }
+
+    function drawRoomsAndOuterWalls() {
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2;
+
+      for (const room of state.rooms) {
+        for (let i = 0; i < room.w; i++) {
+          if (edgeExposed(room, 'top', i) && !doorBlocksOuterEdge(room.id, 'top', i)) {
+            const x = (room.x + i) * state.cellSize;
+            const y = room.y * state.cellSize + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + state.cellSize, y);
+            ctx.stroke();
+          }
+          if (edgeExposed(room, 'bottom', i) && !doorBlocksOuterEdge(room.id, 'bottom', i)) {
+            const x = (room.x + i) * state.cellSize;
+            const y = (room.y + room.h) * state.cellSize + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + state.cellSize, y);
+            ctx.stroke();
+          }
+        }
+
+        for (let i = 0; i < room.h; i++) {
+          if (edgeExposed(room, 'left', i) && !doorBlocksOuterEdge(room.id, 'left', i)) {
+            const x = room.x * state.cellSize + 0.5;
+            const y = (room.y + i) * state.cellSize;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + state.cellSize);
+            ctx.stroke();
+          }
+          if (edgeExposed(room, 'right', i) && !doorBlocksOuterEdge(room.id, 'right', i)) {
+            const x = (room.x + room.w) * state.cellSize + 0.5;
+            const y = (room.y + i) * state.cellSize;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + state.cellSize);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    function drawManualWalls() {
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2;
+      for (const wall of state.walls) {
+        if (doorBlocksManualWall(wall.orientation, wall.x, wall.y)) continue;
+        if (wall.orientation === 'horizontal') {
+          const x = wall.x * state.cellSize;
+          const y = wall.y * state.cellSize + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + state.cellSize, y);
+          ctx.stroke();
+        } else {
+          const x = wall.x * state.cellSize + 0.5;
+          const y = wall.y * state.cellSize;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + state.cellSize);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawDoors() {
+      for (const door of state.doors) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.fillStyle = '#000';
+
+        if (door.kind === 'outer') {
+          const room = roomById(door.roomId);
+          if (!room) continue;
+
+          if (door.side === 'top' || door.side === 'bottom') {
+            const y = (door.side === 'top' ? room.y : room.y + room.h) * state.cellSize;
+            const x = (room.x + door.index) * state.cellSize + state.cellSize * 0.2;
+            const w = state.cellSize * 0.6;
+            const h = Math.max(6, state.cellSize * 0.22);
+            const yy = y - h / 2;
+            ctx.strokeRect(x, yy, w, h);
+            ctx.fillRect(x, yy, w, h);
+          } else {
+            const x = (door.side === 'left' ? room.x : room.x + room.w) * state.cellSize;
+            const y = (room.y + door.index) * state.cellSize + state.cellSize * 0.2;
+            const w = Math.max(6, state.cellSize * 0.22);
+            const h = state.cellSize * 0.6;
+            const xx = x - w / 2;
+            ctx.strokeRect(xx, y, w, h);
+            ctx.fillRect(xx, y, w, h);
+          }
+        } else {
+          if (door.orientation === 'horizontal') {
+            const y = door.y * state.cellSize;
+            const x = door.x * state.cellSize + state.cellSize * 0.2;
+            const w = state.cellSize * 0.6;
+            const h = Math.max(6, state.cellSize * 0.22);
+            const yy = y - h / 2;
+            ctx.strokeRect(x, yy, w, h);
+            ctx.fillRect(x, yy, w, h);
+          } else {
+            const x = door.x * state.cellSize;
+            const y = door.y * state.cellSize + state.cellSize * 0.2;
+            const w = Math.max(6, state.cellSize * 0.22);
+            const h = state.cellSize * 0.6;
+            const xx = x - w / 2;
+            ctx.strokeRect(xx, y, w, h);
+            ctx.fillRect(xx, y, w, h);
+          }
+        }
+      }
+    }
+
+    function drawPreviewRect() {
+      if (state.tool !== 'room' || !state.dragStart || !state.dragCurrent) return;
+      const rect = normalizeRect(state.dragStart, state.dragCurrent);
+      ctx.fillStyle = 'rgba(31,95,139,0.14)';
+      ctx.fillRect(rect.x * state.cellSize, rect.y * state.cellSize, rect.w * state.cellSize, rect.h * state.cellSize);
+      ctx.strokeStyle = '#1f5f8b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.x * state.cellSize + 0.5, rect.y * state.cellSize + 0.5, rect.w * state.cellSize, rect.h * state.cellSize);
+    }
+
+    function getWallDragSegments(start, current) {
+      if (!start || !current) return [];
+      const pref = wallOrientationEl.value;
+      const dx = current.x - start.x;
+      const dy = current.y - start.y;
+      let orientation = pref;
+      if (orientation === 'auto') {
+        orientation = Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
+      }
+
+      const segs = [];
+      if (orientation === 'horizontal') {
+        const y = start.y;
+        const x1 = Math.min(start.x, current.x);
+        const x2 = Math.max(start.x, current.x);
+        for (let x = x1; x <= x2; x++) segs.push({ orientation, x, y });
+      } else {
+        const x = start.x;
+        const y1 = Math.min(start.y, current.y);
+        const y2 = Math.max(start.y, current.y);
+        for (let y = y1; y <= y2; y++) segs.push({ orientation, x, y });
+      }
+      return segs;
+    }
+
+    function drawWallPreview() {
+      if (state.tool !== 'wall' || !state.dragStart || !state.dragCurrent) return;
+      const segs = getWallDragSegments(state.dragStart, state.dragCurrent);
+      ctx.save();
+      ctx.strokeStyle = '#1f5f8b';
+      ctx.lineWidth = 3;
+      for (const seg of segs) {
+        if (seg.orientation === 'horizontal') {
+          const x = seg.x * state.cellSize;
+          const y = seg.y * state.cellSize + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + state.cellSize, y);
+          ctx.stroke();
+        } else {
+          const x = seg.x * state.cellSize + 0.5;
+          const y = seg.y * state.cellSize;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + state.cellSize);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawHoverWall() {
+      if ((state.tool !== 'door' && state.tool !== 'erase') || !state.hoverWall) return;
+      const h = state.hoverWall;
+      ctx.save();
+      ctx.strokeStyle = '#1f5f8b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(h.x1, h.y1);
+      ctx.lineTo(h.x2, h.y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function render() {
+      drawGrid();
+      drawSelectedRegion();
+      drawRoomsAndOuterWalls();
+      drawManualWalls();
+      drawDoors();
+      drawPreviewRect();
+      drawWallPreview();
+      drawHoverWall();
+      refreshSelectedInfo();
+    }
+
+    function refreshSelectedInfo() {
+      const region = state.selectedRegion;
+      if (!region) {
+        selectedInfo.textContent = 'No space selected.';
+        return;
+      }
+      selectedInfo.textContent = `Base room: ${region.baseRoomId}\nArea: ${region.area} cells\nBounds: (${region.minX}, ${region.minY}) to (${region.maxX}, ${region.maxY})`;
+    }
+
+    function makeOuterWallHighlight(room, side, index) {
+      if (side === 'top') {
+        const y = room.y * state.cellSize + 0.5;
+        const x1 = (room.x + index) * state.cellSize;
+        return { kind: 'outer', roomId: room.id, side, index, x1, y1: y, x2: x1 + state.cellSize, y2: y };
+      }
+      if (side === 'bottom') {
+        const y = (room.y + room.h) * state.cellSize + 0.5;
+        const x1 = (room.x + index) * state.cellSize;
+        return { kind: 'outer', roomId: room.id, side, index, x1, y1: y, x2: x1 + state.cellSize, y2: y };
+      }
+      if (side === 'left') {
+        const x = room.x * state.cellSize + 0.5;
+        const y1 = (room.y + index) * state.cellSize;
+        return { kind: 'outer', roomId: room.id, side, index, x1: x, y1, x2: x, y2: y1 + state.cellSize };
+      }
+      const x = (room.x + room.w) * state.cellSize + 0.5;
+      const y1 = (room.y + index) * state.cellSize;
+      return { kind: 'outer', roomId: room.id, side, index, x1: x, y1, x2: x, y2: y1 + state.cellSize };
+    }
+
+    function getClosestOuterWall(cellX, cellY, px, py) {
+      const room = roomAtCell(cellX, cellY);
+      if (!room) return null;
+
+      const rect = canvas.getBoundingClientRect();
+      const lx = px - rect.left - cellX * state.cellSize;
+      const ly = py - rect.top - cellY * state.cellSize;
+      const distTop = ly;
+      const distBottom = state.cellSize - ly;
+      const distLeft = lx;
+      const distRight = state.cellSize - lx;
+      const candidates = [
+        { side: 'top', dist: distTop, index: cellX - room.x },
+        { side: 'bottom', dist: distBottom, index: cellX - room.x },
+        { side: 'left', dist: distLeft, index: cellY - room.y },
+        { side: 'right', dist: distRight, index: cellY - room.y }
+      ].sort((a, b) => a.dist - b.dist);
+
+      for (const c of candidates) {
+        if (!edgeExposed(room, c.side, c.index)) continue;
+        return makeOuterWallHighlight(room, c.side, c.index);
+      }
+      return null;
+    }
+
+    function getNearbyManualWall(localX, localY) {
+      const threshold = Math.max(6, state.cellSize * 0.22);
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const wall of state.walls) {
+        if (wall.orientation === 'horizontal') {
+          const x1 = wall.x * state.cellSize;
+          const x2 = x1 + state.cellSize;
+          const y = wall.y * state.cellSize;
+          if (localX >= x1 - threshold && localX <= x2 + threshold) {
+            const dist = Math.abs(localY - y);
+            if (dist < threshold && dist < bestDist) {
+              bestDist = dist;
+              best = { kind: 'inner', orientation: 'horizontal', x: wall.x, y: wall.y, x1, y1: y + 0.5, x2, y2: y + 0.5 };
+            }
+          }
+        } else {
+          const x = wall.x * state.cellSize;
+          const y1 = wall.y * state.cellSize;
+          const y2 = y1 + state.cellSize;
+          if (localY >= y1 - threshold && localY <= y2 + threshold) {
+            const dist = Math.abs(localX - x);
+            if (dist < threshold && dist < bestDist) {
+              bestDist = dist;
+              best = { kind: 'inner', orientation: 'vertical', x: wall.x, y: wall.y, x1: x + 0.5, y1, x2: x + 0.5, y2 };
+            }
+          }
+        }
+      }
+      return best;
+    }
+
+    function getDoorTarget(clientX, clientY) {
+      const cell = toCell(clientX, clientY);
+      const local = toCanvasLocal(clientX, clientY);
+      const inner = getNearbyManualWall(local.x, local.y);
+      if (inner) return inner;
+      return getClosestOuterWall(cell.x, cell.y, clientX, clientY);
+    }
+
+    function removeThingAt(clientX, clientY) {
+      const cell = toCell(clientX, clientY);
+      const room = roomAtCell(cell.x, cell.y);
+      if (room) {
+        pushHistory();
+        deleteRoom(room.id);
+        render();
+        setStatus('Base room deleted.');
+        return true;
+      }
+
+      const local = toCanvasLocal(clientX, clientY);
+      const innerWall = getNearbyManualWall(local.x, local.y);
+      if (innerWall) {
+        const hadDoor = state.doors.some(d => d.kind === 'inner' && d.orientation === innerWall.orientation && d.x === innerWall.x && d.y === innerWall.y);
+        const hadWall = hasManualWallAt(innerWall.orientation, innerWall.x, innerWall.y);
+        if (hadWall || hadDoor) {
+          pushHistory();
+          state.walls = state.walls.filter(w => !(w.orientation === innerWall.orientation && w.x === innerWall.x && w.y === innerWall.y));
+          state.doors = state.doors.filter(d => !(d.kind === 'inner' && d.orientation === innerWall.orientation && d.x === innerWall.x && d.y === innerWall.y));
+          render();
+          setStatus('Interior wall deleted.');
+          return true;
+        }
+      }
+
+      const outer = getClosestOuterWall(cell.x, cell.y, clientX, clientY);
+      if (outer) {
+        const before = state.doors.length;
+        state.doors = state.doors.filter(d => !(d.kind === 'outer' && d.roomId === outer.roomId && d.side === outer.side && d.index === outer.index));
+        if (before !== state.doors.length) {
+          pushHistory();
+          render();
+          setStatus('Door deleted.');
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      const cell = toCell(e.clientX, e.clientY);
+
+      if (state.tool === 'room' || state.tool === 'wall') {
+        state.dragStart = cell;
+        state.dragCurrent = cell;
+        render();
+        return;
+      }
+
+      if (state.tool === 'select') {
+        const region = computeRegionFromCell(cell.x, cell.y);
+        state.selectedRegion = region;
+        render();
+        setStatus(region ? `Selected connected space of ${region.area} cells.` : 'Selection cleared.');
+        return;
+      }
+
+      if (state.tool === 'erase') {
+        if (!removeThingAt(e.clientX, e.clientY)) {
+          setStatus('Nothing found to erase there.');
+        }
+        return;
+      }
+
+      if (state.tool === 'door') {
+        const target = getDoorTarget(e.clientX, e.clientY);
+        if (!target) {
+          setStatus('Click near an outside wall or interior wall to place a door.');
+          return;
+        }
+        pushHistory();
+        if (target.kind === 'outer') {
+          state.doors = state.doors.filter(d => !(d.kind === 'outer' && d.roomId === target.roomId && d.side === target.side && d.index === target.index));
+          state.doors.push({ kind: 'outer', roomId: target.roomId, side: target.side, index: target.index });
+        } else {
+          state.doors = state.doors.filter(d => !(d.kind === 'inner' && d.orientation === target.orientation && d.x === target.x && d.y === target.y));
+          state.doors.push({ kind: 'inner', orientation: target.orientation, x: target.x, y: target.y });
+        }
+        render();
+        setStatus('Door added.');
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const cell = toCell(e.clientX, e.clientY);
+      if ((state.tool === 'room' || state.tool === 'wall') && state.dragStart) {
+        state.dragCurrent = cell;
+        render();
+        return;
+      }
+      if (state.tool === 'door' || state.tool === 'erase') {
+        state.hoverWall = getDoorTarget(e.clientX, e.clientY);
+        render();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      if (state.tool === 'room' && state.dragStart && state.dragCurrent) {
+        const rect = normalizeRect(state.dragStart, state.dragCurrent);
+        pushHistory();
+        state.rooms.push({ id: nextRoomId(), ...rect });
+        state.dragStart = null;
+        state.dragCurrent = null;
+        render();
+        setStatus(`Room added: ${rect.w} × ${rect.h}.`);
+        return;
+      }
+
+      if (state.tool === 'wall' && state.dragStart && state.dragCurrent) {
+        const segs = getWallDragSegments(state.dragStart, state.dragCurrent);
+        pushHistory();
+        for (const seg of segs) addManualWall(seg.orientation, seg.x, seg.y);
+        state.dragStart = null;
+        state.dragCurrent = null;
+        render();
+        setStatus(`Added ${segs.length} wall segment${segs.length === 1 ? '' : 's'}.`);
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (state.tool === 'door' || state.tool === 'erase') {
+        state.hoverWall = null;
+        render();
+      }
+    });
+
+    document.getElementById('resizeGrid').addEventListener('click', applyGrid);
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      pushHistory();
+      state.rooms = [];
+      state.walls = [];
+      state.doors = [];
+      state.selectedRegion = null;
+      render();
+      setStatus('Map cleared.');
+    });
+    document.getElementById('deleteSelected').addEventListener('click', () => {
+      const region = state.selectedRegion;
+      if (!region) {
+        setStatus('No selected space.');
+        return;
+      }
+      pushHistory();
+      deleteRoom(region.baseRoomId);
+      render();
+      setStatus('Containing base room deleted.');
+    });
+
+    document.getElementById('exportJson').addEventListener('click', () => {
+      jsonBox.value = JSON.stringify({
+        cols: state.cols,
+        rows: state.rows,
+        cellSize: state.cellSize,
+        rooms: state.rooms,
+        walls: state.walls,
+        doors: state.doors
+      }, null, 2);
+      setStatus('JSON exported to the text box.');
+    });
+
+    document.getElementById('loadJson').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(jsonBox.value);
+        pushHistory();
+        state.cols = parsed.cols || state.cols;
+        state.rows = parsed.rows || state.rows;
+        state.cellSize = parsed.cellSize || state.cellSize;
+        state.rooms = Array.isArray(parsed.rooms) ? parsed.rooms : [];
+        state.walls = Array.isArray(parsed.walls) ? parsed.walls : [];
+        state.doors = Array.isArray(parsed.doors) ? parsed.doors : [];
+        state.selectedRegion = null;
+        document.getElementById('cols').value = state.cols;
+        document.getElementById('rows').value = state.rows;
+        document.getElementById('cellSize').value = state.cellSize;
+        canvas.width = state.cols * state.cellSize;
+        canvas.height = state.rows * state.cellSize;
+        render();
+        setStatus('JSON loaded.');
+      } catch (err) {
+        setStatus('Invalid JSON.');
+      }
+    });
+
+    document.getElementById('downloadPng').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'zone-map.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      setStatus('PNG downloaded.');
+    });
+
+    Object.entries(toolButtons).forEach(([tool, btn]) => btn.addEventListener('click', () => setTool(tool)));
+
+    function seedDemo() {
+      state.rooms = [
+        { id: nextRoomId(), x: 1, y: 1, w: 12, h: 8 },
+        { id: nextRoomId(), x: 13, y: 1, w: 8, h: 5 },
+        { id: nextRoomId(), x: 13, y: 6, w: 8, h: 8 }
+      ];
+      state.walls = [
+        { orientation: 'vertical', x: 5, y: 1 },
+        { orientation: 'vertical', x: 5, y: 2 },
+        { orientation: 'vertical', x: 5, y: 3 },
+        { orientation: 'vertical', x: 5, y: 4 },
+        { orientation: 'vertical', x: 5, y: 5 },
+        { orientation: 'vertical', x: 5, y: 6 },
+        { orientation: 'horizontal', x: 5, y: 4 },
+        { orientation: 'horizontal', x: 6, y: 4 },
+        { orientation: 'horizontal', x: 7, y: 4 },
+        { orientation: 'horizontal', x: 8, y: 4 }
+      ];
+      state.doors = [
+        { kind: 'outer', roomId: state.rooms[0].id, side: 'bottom', index: 3 },
+        { kind: 'outer', roomId: state.rooms[1].id, side: 'right', index: 2 },
+        { kind: 'inner', orientation: 'vertical', x: 5, y: 3 },
+        { kind: 'inner', orientation: 'horizontal', x: 7, y: 4 }
+      ];
+    }
+
+    applyGrid();
+    seedDemo();
+    render();
+  </script>
+</body>
+</html>

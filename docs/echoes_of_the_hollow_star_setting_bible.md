@@ -8,7 +8,7 @@
 
 **Echoes of the Hollow Star** is a retro sci-fi dungeon crawl set in and around a colossal sealed Dyson sphere known as the **Hollow Star**, a smooth black shell floating in deep space. The player begins as an ordinary worker, contractor, or station-hand on a frontier space station near the Sphere, learning the game through small, local quests. During a hostile raid, the player boards an enemy ship and is accidentally carried into the Hollow Star, becoming the first known Aligned-linked person ever confirmed inside.
 
-Inside the Sphere lies a vast artificial world inhabited by many peoples collectively known as the **Sphereals**. At its center burns the **Bound Core**, a failed supernova remnant held in an **arrested detonation state** by ancient containment systems. The Sphereals must continually stabilize the Bound Core with small quantities of **neodymium**, usually recovered from advanced technology rather than raw ore. To obtain it, Sphereal forces conduct raids into the nearby external sectors using a limited **Sphere-bound phase transit** system.
+Inside the Sphere lies a vast artificial world inhabited by many peoples collectively known as the **Sphereals**. At its center burns the **Bound Core**, a failed supernova remnant held in an **arrested detonation state** by ancient containment systems. The Sphereals must continually stabilize the Bound Core with small quantities of **neodymium**, usually recovered from advanced technology rather than raw ore. To obtain it, Sphereal forces conduct raids into the nearby external sectors using a limited **Echo Transit** system.
 
 The player becomes the only field contact The Aligned has ever had inside the Hollow Star, transforming from a minor frontier nobody into an unwilling scout, representative, and potential turning point in a growing inter-civilizational crisis.
 
@@ -119,20 +119,33 @@ That changed only because nearby frontier sectors experienced intermittent unexp
 
 ---
 
-## Sphere-Bound Phase Transit
+## Echo Transit
 
 ### Core Rule
-The Hollow Star’s outer shell is physically solid and impenetrable. Hostile ships do not pass through it by conventional flight, drilling, or brute force. Instead, certain keyed vessels use a **Sphere-bound phase transit** system that allows them to blink directly between the interior of the Hollow Star and nearby external space.
+The Hollow Star’s outer shell is physically solid and impenetrable. Hostile ships do not pass through it by conventional flight, drilling, or brute force. Instead, certain keyed vessels use **Echo Transit** to blink directly between the interior of the Hollow Star and nearby external space.
+
+Within frontier space, this impossible cross-shell movement is commonly known simply as **an Echo**.
 
 This is **not general teleportation**.
 
 ### Hard Limits
-Sphere-bound phase transit:
+Echo Transit:
 - only works for crossing the shell boundary
 - does not allow arbitrary travel across normal space
 - has a hard maximum range outside the Sphere
 - cannot be used to strike distant sectors across the galaxy
 - appears impossible for The Aligned to reproduce from the outside
+
+### Common and Technical Usage
+Useful terms:
+- **Echo**: common term for a transit event
+- **Echo Transit**: formal term
+- **to echo**: verb form used in speech and reports
+- **echo signature**: detectable trace left by a transit event
+- **echo range**: maximum outside operational radius
+- **echo point**: arrival or departure location
+- **echo lock**: keyed readiness for transit
+- **re-echo**: immediate return transit after an operation
 
 ### Gameplay and Story Implications
 - only sectors nearest the Hollow Star are regularly threatened
@@ -141,8 +154,6 @@ Sphere-bound phase transit:
 - pursuit is nearly impossible
 - The Aligned cannot simply launch an invasion once the player makes contact from within
 - one of the major long-term story goals is understanding, influencing, hijacking, or shutting down this transit system
-
----
 
 ## The Sphereals
 
@@ -313,7 +324,7 @@ The station goes from tutorial hub to war-damaged dungeon:
 The player, who spent the early game moving east, must now fight westward toward the station’s middle. This reversal is important because it turns familiar routes into damaged, remixed danger zones.
 
 ### Act IV: Boarding the Enemy Ship
-In the middle section of the station, the player discovers an enemy ship docked through a hidden or forced docking interface. Boarding it to fight, rescue, or stop the raid, the player becomes trapped as it executes Sphere-bound phase transit.
+In the middle section of the station, the player discovers an enemy ship docked through a hidden or forced docking interface. Boarding it to fight, rescue, or stop the raid, the player becomes trapped as it executes Echo Transit.
 
 ### Act V: Arrival Inside the Hollow Star
 The enemy ship phases into the Sphere, carrying the player beyond the sealed black shell. This is the major threshold moment of the game.
@@ -651,7 +662,7 @@ These clues should not be overexplained at first.
 The setting naturally supports multiple major late-game questions:
 - Can the Bound Core be permanently stabilized?
 - Can the neodymium dependency be reduced or replaced?
-- Can Sphere-bound phase transit be understood or altered?
+- Can Echo Transit be understood or altered?
 - Should The Aligned be allowed into the Hollow Star at all?
 - Are the current raids truly necessary, or just the current ruling method?
 - Does opening the Sphere invite war, salvation, annexation, or collapse?
@@ -716,10 +727,11 @@ The Sphereals must continuously stabilize the Bound Core using small quantities 
 ### Neodymium Recovery Pattern
 The Sphereals do not usually seek neodymium as ore. They harvest it from technology, stripped motors, sensor systems, coils, guidance assemblies, and industrial hardware, which is one reason The Aligned long misreads their raids as general tech theft rather than targeted resource recovery.
 
-### Phase Transit Rule
-The Hollow Star’s outer shell is physically solid and impenetrable. Hostile ships do not pass through it by any conventional means. Instead, they use a Sphere-bound phase transit system that allows keyed vessels to blink directly between the interior of the Hollow Star and nearby external space. This is not general teleportation, cannot be used for arbitrary travel, and has a hard maximum range outside the Sphere, which is why only the nearest sectors suffer raids.
+### Echo Transit Rule
+The Hollow Star’s outer shell is physically solid and impenetrable. Hostile ships do not pass through it by any conventional means. Instead, they use Echo Transit, which allows keyed vessels to blink directly between the interior of the Hollow Star and nearby external space. This is not general teleportation, cannot be used for arbitrary travel, and has a hard maximum range outside the Sphere, which is why only the nearest sectors suffer raids.
 
 ### Player Importance
+The player becomes the first known Aligned-linked person ever confirmed inside the Hollow Star and the only practical field contact The Aligned Forces has within the Sphere.
 The player becomes the first known Aligned-linked person ever confirmed inside the Hollow Star and the only practical field contact The Aligned Forces has within the Sphere.
 
 ---
@@ -744,4 +756,6 @@ These are the biggest next design targets:
 ## Final Summary
 
 **Echoes of the Hollow Star** is a retro sci-fi dungeon crawl built around one central image: a vast smooth black sphere no one can enter, until the player is accidentally carried inside. What begins as humble station work becomes a journey into a sealed world inhabited by the Sphereals, whose civilization survives only by feeding neodymium into the containment systems of the Bound Core, a failed supernova held in arrested detonation. The Aligned, long misreading the Sphereals’ raids as meaningless tech theft, now has one witness and one representative inside. Through a station tablet turned field relay, the player explores the Hollow Star, uncovers the truth behind the raids, and becomes entangled in the fate of two civilizations and a chained stellar apocalypse.
+
+The title carries multiple meanings. An **Echo** is the common frontier term for the impossible transit used by Sphereal ships to blink across the shell of the Hollow Star. But the word also points toward the setting’s deeper layers: residual signals, repeating histories, memory traces, cultural afterimages, and the lingering consequences of ancient decisions still reverberating through the Sphere.
 
