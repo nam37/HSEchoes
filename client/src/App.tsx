@@ -238,9 +238,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
         <main className="landing-stage">
           <header className="hero-panel hero-panel-landing">
             <div>
-              <p className="eyebrow">Retro Dungeon PoC</p>
+              <p className="eyebrow">Frontier Station — West Ring</p>
               <h1>{bootstrap?.title ?? "Echoes of the Hollow Star"}</h1>
-              <p className="intro-copy">{bootstrap?.intro ?? "A short descent into a cursed ruin."}</p>
+              <p className="intro-copy">{bootstrap?.intro ?? "Navigate the maintenance ring and reach the signal core."}</p>
             </div>
             <div className="hero-actions">
               <button onClick={() => void createRun()} disabled={busy}>Begin!</button>

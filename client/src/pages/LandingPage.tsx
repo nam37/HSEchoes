@@ -55,11 +55,11 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
       <main className="landing-stage">
         <header className="hero-panel hero-panel-landing">
           <div>
-            <p className="eyebrow">Retro Dungeon PoC</p>
+            <p className="eyebrow">Frontier Station — Classified</p>
             <h1>Echoes of the Hollow Star</h1>
             <p className="intro-copy">
-              A short descent into a cursed ruin beneath a dying star.
-              Sign in to begin your descent.
+              Navigate the station's maintenance ring, reach the signal core,
+              and get a transmission out before the sector goes dark. Sign in to proceed.
             </p>
           </div>
 
@@ -112,7 +112,7 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
                 />
               )}
               <button className="btn-primary" type="submit" disabled={busy}>
-                {busy ? "Please wait…" : mode === "signin" ? "Login Now" : "Begin Journey"}
+                {busy ? "Please wait…" : mode === "signin" ? "Login Now" : "Create Account"}
               </button>
             </form>
 
@@ -122,9 +122,9 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
 
         <div className="landing-lore">
           <div className="lore-card">
-            <p className="lore-line">Sector 7-Gamma. Year 2247.</p>
-            <p className="lore-line">The ancient ruin pulses with an unknown signal.</p>
-            <p className="lore-line">Your mission: descend. Retrieve the Star Sigil. Return.</p>
+            <p className="lore-line">Frontier Station — West Ring. Deep space, near the Hollow Star.</p>
+            <p className="lore-line">The sector is going dark. Something is cutting the relays.</p>
+            <p className="lore-line">Your mission: reach the signal core. Get a transmission out. Don't die.</p>
           </div>
         </div>
       </main>
