@@ -86,7 +86,7 @@ function cycleEdge(zone: Zone, edge: EdgeCoord): Zone {
   return { ...zone, edges: [...filtered, { x: edge.x, y: edge.y, dir: edge.dir, type: next } as ZoneEdge] };
 }
 
-/** Remove edges that are now interior to a single room or floating in void. */
+/** Remove edges that are no longer on a boundary between two different, present rooms. */
 function pruneEdges(zone: Zone): Zone {
   const validEdges = zone.edges.filter((edge) => {
     const [cx1, cy1, cx2, cy2] = edge.dir === "v"
@@ -94,8 +94,8 @@ function pruneEdges(zone: Zone): Zone {
       : [edge.x, edge.y, edge.x, edge.y + 1];
     const r1 = zone.rooms.find((r) => cx1 >= r.x && cx1 < r.x + r.w && cy1 >= r.y && cy1 < r.y + r.h);
     const r2 = zone.rooms.find((r) => cx2 >= r.x && cx2 < r.x + r.w && cy2 >= r.y && cy2 < r.y + r.h);
-    if (!r1 && !r2) return false;                      // both void
-    if (r1 && r2 && r1.id === r2.id) return false;    // interior of same room
+    if (!r1 || !r2) return false;           // either side is void — orphaned edge
+    if (r1.id === r2.id) return false;      // interior of same room
     return true;
   });
   return { ...zone, edges: validEdges };
