@@ -101,6 +101,48 @@ function pruneEdges(zone: Zone): Zone {
   return { ...zone, edges: validEdges };
 }
 
+/** True if edge lies on the boundary of the given room. */
+function isOnRoomBoundary(edge: ZoneEdge, room: ZoneRoom): boolean {
+  const { x: rx, y: ry, w: rw, h: rh } = room;
+  if (edge.dir === "v") {
+    // Left boundary: "v" edge at x=rx-1, between (rx-1,ey) and (rx,ey)
+    if (edge.x === rx - 1     && edge.y >= ry && edge.y < ry + rh) return true;
+    // Right boundary: "v" edge at x=rx+rw-1, between (rx+rw-1,ey) and (rx+rw,ey)
+    if (edge.x === rx + rw - 1 && edge.y >= ry && edge.y < ry + rh) return true;
+  } else {
+    // Top boundary: "h" edge at y=ry-1, between (ex,ry-1) and (ex,ry)
+    if (edge.y === ry - 1     && edge.x >= rx && edge.x < rx + rw) return true;
+    // Bottom boundary: "h" edge at y=ry+rh-1, between (ex,ry+rh-1) and (ex,ry+rh)
+    if (edge.y === ry + rh - 1 && edge.x >= rx && edge.x < rx + rw) return true;
+  }
+  return false;
+}
+
+/**
+ * Move a room and translate all edges that were on its boundary by the same delta.
+ * Edges between the moved room and a present neighbor at the new position are kept.
+ * Edges that end up invalid (one side void, or interior) are pruned.
+ */
+function moveRoomWithEdges(zone: Zone, oldRoom: ZoneRoom, newRoom: ZoneRoom): Zone {
+  const dx = newRoom.x - oldRoom.x;
+  const dy = newRoom.y - oldRoom.y;
+  const newRooms = zone.rooms.map((r) => r.id === oldRoom.id ? newRoom : r);
+  if (dx === 0 && dy === 0) return { ...zone, rooms: newRooms };
+
+  // Translate boundary edges; leave all others in place
+  const translated = zone.edges.map((edge) =>
+    isOnRoomBoundary(edge, oldRoom)
+      ? { ...edge, x: edge.x + dx, y: edge.y + dy }
+      : edge
+  );
+
+  // Deduplicate by position+dir (last write wins)
+  const edgeMap = new Map<string, ZoneEdge>();
+  for (const edge of translated) edgeMap.set(`${edge.x},${edge.y},${edge.dir}`, edge);
+
+  return pruneEdges({ ...zone, rooms: newRooms, edges: [...edgeMap.values()] });
+}
+
 /** True if candidate geometry doesn't overlap any other room and stays in bounds. */
 function isValidGeometry(
   geo: { x: number; y: number; w: number; h: number },
@@ -473,7 +515,7 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
       setTool("select");
     } else if (dragState.kind === "move" && dragState.valid) {
       const updated: ZoneRoom = { ...dragState.room, x: dragState.candidateX, y: dragState.candidateY };
-      setDraft((prev) => pruneEdges({ ...prev, rooms: prev.rooms.map((r) => r.id === updated.id ? updated : r) }));
+      setDraft((prev) => moveRoomWithEdges(prev, dragState.room, updated));
       setSelectedRoom(updated);
     } else if (dragState.kind === "resize" && dragState.valid) {
       const updated: ZoneRoom = { ...dragState.room, x: dragState.candidateX, y: dragState.candidateY, w: dragState.candidateW, h: dragState.candidateH };
