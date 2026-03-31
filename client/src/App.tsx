@@ -347,6 +347,28 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           </aside>
 
           <section className="bottom-row">
+            <section className="hud-card quest-card">
+              <h2>Assignments</h2>
+              <div className="quest-list scroll-panel">
+                {run.activeQuests.length === 0 ? (
+                  <p className="quest-empty">No active assignments.</p>
+                ) : (
+                  run.activeQuests.map((quest) => (
+                    <div key={quest.id} className="quest-entry">
+                      <p className="quest-title">{quest.title}</p>
+                      <ul className="quest-objectives">
+                        {quest.objectives.map((obj) => (
+                          <li key={obj.id} className={obj.completed ? "obj-done" : "obj-pending"}>
+                            {obj.description}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
             <section className="hud-card inventory-card">
               <h2>Inventory</h2>
               <div className="inventory-list scroll-panel">

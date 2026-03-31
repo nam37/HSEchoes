@@ -1,4 +1,4 @@
-import type { AssetManifest, Enemy, Encounter, Item, Zone } from "../../../shared/src/index.js";
+import type { AssetManifest, Enemy, Encounter, Item, QuestDef, Zone } from "../../../shared/src/index.js";
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
@@ -111,6 +111,69 @@ export const hollowStarZone: Zone = {
   ]
 };
 
+// ── Quests ────────────────────────────────────────────────────────────────────
+
+export const quests: QuestDef[] = [
+  {
+    id: "q_ring_survey",
+    title: "Ring Survey",
+    description: "Station protocol: log a check-in at all primary maintenance junctions before accessing secured sections. The hub and the flooded corridor are your first waypoints.",
+    objectives: [
+      { id: "q_ring_survey_1", description: "Reach the Processing Hub", type: "reach_room", targetId: "antechamber" },
+      { id: "q_ring_survey_2", description: "Reach the Flooded Service Corridor", type: "reach_room", targetId: "flooded_passage" }
+    ],
+    xpReward: 20,
+    creditReward: 0,
+    trigger: { type: "on_start" }
+  },
+  {
+    id: "q_infestation",
+    title: "Infestation Control",
+    description: "Biosensors flagging elevated vermin activity in the storage sections. Whoever is still on shift is expected to handle it.",
+    objectives: [
+      { id: "q_infestation_1", description: "Eliminate the vermin in the Records Bay", type: "defeat_enemy", targetId: "scriptorium_rats" }
+    ],
+    xpReward: 25,
+    creditReward: 2,
+    trigger: { type: "on_room_entry", targetId: "scriptorium" }
+  },
+  {
+    id: "q_coolant_loop",
+    title: "Coolant Loop Restoration",
+    description: "The coolant loop failure is spreading into the lower service levels. Source it. Neutralize whatever is down there and recover authorization to open the upper bulkheads.",
+    objectives: [
+      { id: "q_coolant_1", description: "Neutralize the contamination source in the flooded corridor", type: "defeat_enemy", targetId: "flooded_acolyte" },
+      { id: "q_coolant_2", description: "Recover the transit key", type: "collect_item", targetId: "transit_key" }
+    ],
+    xpReward: 30,
+    creditReward: 3,
+    trigger: { type: "on_room_entry", targetId: "flooded_passage" }
+  },
+  {
+    id: "q_sector_lockdown",
+    title: "Sector Lockdown",
+    description: "Unauthorized presences confirmed in the upper maintenance sections. All personnel are authorized to use necessary force. Secure the sector.",
+    objectives: [
+      { id: "q_lockdown_1", description: "Apprehend the intruder on the Observation Mezzanine", type: "defeat_enemy", targetId: "astral_pilgrim" },
+      { id: "q_lockdown_2", description: "Neutralize the security automaton in the Secure Cargo Hold", type: "defeat_enemy", targetId: "reliquary_guardian" }
+    ],
+    xpReward: 50,
+    creditReward: 5,
+    trigger: { type: "on_room_entry", targetId: "astral_gallery" }
+  },
+  {
+    id: "q_transmit_beacon",
+    title: "Transmit the Beacon",
+    description: "The signal core is active and locked onto an Aligned frequency. The antenna array in the Signal Core Chamber can broadcast it. Get there before the transmission window closes.",
+    objectives: [
+      { id: "q_beacon_1", description: "Reach the Signal Core Chamber and transmit", type: "reach_room", targetId: "star_sanctum" }
+    ],
+    xpReward: 75,
+    creditReward: 0,
+    trigger: { type: "on_item_collect", targetId: "signal_core" }
+  }
+];
+
 export interface WorldSeed {
   title: string;
   intro: string;
@@ -120,6 +183,7 @@ export interface WorldSeed {
   items: Item[];
   enemies: Enemy[];
   encounters: Encounter[];
+  quests: QuestDef[];
   assets: AssetManifest;
 }
 
@@ -132,5 +196,6 @@ export const worldSeed: WorldSeed = {
   items,
   enemies,
   encounters,
+  quests,
   assets: assetManifest
 };

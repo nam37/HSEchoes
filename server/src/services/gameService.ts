@@ -20,6 +20,8 @@ import {
   type Item,
   type MovePayload,
   type PlayerState,
+  type Quest,
+  type QuestDef,
   type RunEnvelope,
   type RunState,
   type SaveSummary,
@@ -40,6 +42,7 @@ export class GameService {
   private enemies!: Map<string, Enemy>;
   private encounters!: Map<string, Encounter>;
   private items!: Map<string, Item>;
+  private quests!: Map<string, QuestDef>;
   private meta!: MetaRow;
 
   private constructor(
@@ -54,6 +57,7 @@ export class GameService {
     instance.enemies    = await instance.loadMap<Enemy>("enemy");
     instance.encounters = await instance.loadMap<Encounter>("encounter");
     instance.items      = await instance.loadMap<Item>("item");
+    instance.quests     = await instance.loadMap<QuestDef>("quest");
     return instance;
   }
 
@@ -63,6 +67,7 @@ export class GameService {
     this.enemies    = await this.loadMap<Enemy>("enemy");
     this.encounters = await this.loadMap<Encounter>("encounter");
     this.items      = await this.loadMap<Item>("item");
+    this.quests     = await this.loadMap<QuestDef>("quest");
   }
 
   private getZone(zoneId: string): Zone {
@@ -173,7 +178,9 @@ export class GameService {
         inventory: ["maintenance_tool"],
         equipped: { weapon: "maintenance_tool", armor: null, accessory: null }
       },
-      combat:    null,
+      combat:             null,
+      activeQuests:       [],
+      completedQuestIds:  [],
       log:       ["You cycle through the maintenance airlock and descend into the ring."],
       createdAt: now,
       updatedAt: now
@@ -182,6 +189,7 @@ export class GameService {
     if (startRoom) {
       this.applyRoomEffects(run, startRoom);
     }
+    this.triggerQuestsForEvent(run, { type: "game_start" });
     await this.persistRun(run, userId, true);
     return run;
   }
@@ -257,6 +265,8 @@ export class GameService {
             if (firstTimeInRoom) {
               this.awardXp(run, 5);
             }
+            this.triggerQuestsForEvent(run, { type: "room_entry", targetId: nextRoom.id });
+            this.checkObjectives(run, { type: "room_entry", targetId: nextRoom.id });
             const transitionMsg = this.applyRoomEffects(run, nextRoom);
             if (transitionMsg !== undefined) {
               // Zone boundary crossed — transition message already pushed to log inside applyRoomEffects.
@@ -334,6 +344,8 @@ export class GameService {
         this.addItem(run, rewardItemId, `You claim ${this.getItem(rewardItemId).name}.`);
       }
       this.awardXp(run, enemy.maxHp * 2);
+      this.triggerQuestsForEvent(run, { type: "enemy_defeat", targetId: encounter.id });
+      this.checkObjectives(run, { type: "enemy_defeat", targetId: encounter.id });
       const currentRoom = findRoomContaining(this.getZone(run.zoneId), run.posX, run.posY);
       if (currentRoom) this.applyRoomEffects(run, currentRoom);
       run.log = pushLog(run.log, parts.join(" "));
@@ -516,11 +528,16 @@ export class GameService {
   }
 
   private addItem(run: RunState, itemId: string, message: string): void {
-    if (!run.player.inventory.includes(itemId)) {
+    const isNew = !run.player.inventory.includes(itemId);
+    if (isNew) {
       run.player.inventory = [...run.player.inventory, itemId];
     }
     run.collectedItemIds = unique([...run.collectedItemIds, itemId]);
     run.log = pushLog(run.log, message);
+    if (isNew) {
+      this.triggerQuestsForEvent(run, { type: "item_collect", targetId: itemId });
+      this.checkObjectives(run, { type: "item_collect", targetId: itemId });
+    }
   }
 
   private totalAttack(player: PlayerState): number {
@@ -544,7 +561,11 @@ export class GameService {
       SELECT json FROM runs WHERE slot_id = ${slotId} AND user_id = ${userId}
     `;
     if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
-    return JSON.parse(rows[0].json) as RunState;
+    const run = JSON.parse(rows[0].json) as RunState;
+    // Migrate older saves that predate the quest system
+    run.activeQuests     ??= [];
+    run.completedQuestIds ??= [];
+    return run;
   }
 
   private async persistRun(run: RunState, userId: string, asCheckpoint = false): Promise<void> {
@@ -588,6 +609,75 @@ export class GameService {
     return new Map(rows.map((row) => [row.id, JSON.parse(row.json) as T]));
   }
 
+  // ── Quest engine ─────────────────────────────────────────────────────────
+
+  private triggerQuestsForEvent(run: RunState, event: QuestEvent): void {
+    for (const [, def] of this.quests) {
+      if (run.activeQuests.some(q => q.id === def.id) || run.completedQuestIds.includes(def.id)) continue;
+      const t = def.trigger;
+      const matches =
+        (t.type === "on_start"        && event.type === "game_start") ||
+        (t.type === "on_room_entry"   && event.type === "room_entry"   && t.targetId === event.targetId) ||
+        (t.type === "on_item_collect" && event.type === "item_collect" && t.targetId === event.targetId) ||
+        (t.type === "on_enemy_defeat" && event.type === "enemy_defeat" && t.targetId === event.targetId);
+      if (matches) this.startQuest(run, def.id);
+    }
+  }
+
+  private startQuest(run: RunState, questId: string): void {
+    if (run.activeQuests.some(q => q.id === questId) || run.completedQuestIds.includes(questId)) return;
+    const def = this.quests.get(questId);
+    if (!def) return;
+    const quest: Quest = {
+      id:           def.id,
+      title:        def.title,
+      description:  def.description,
+      status:       "active",
+      objectives:   def.objectives.map(o => ({ ...o, completed: false })),
+      xpReward:     def.xpReward,
+      creditReward: def.creditReward
+    };
+    run.activeQuests = [...run.activeQuests, quest];
+    run.log = pushLog(run.log, `Assignment received: ${def.title}.`);
+  }
+
+  private checkObjectives(run: RunState, event: QuestEvent): void {
+    for (const quest of run.activeQuests) {
+      if (quest.status !== "active") continue;
+      let changed = false;
+      for (const obj of quest.objectives) {
+        if (obj.completed) continue;
+        const matches =
+          (obj.type === "reach_room"    && event.type === "room_entry"   && event.targetId === obj.targetId) ||
+          (obj.type === "defeat_enemy"  && event.type === "enemy_defeat" && event.targetId === obj.targetId) ||
+          (obj.type === "collect_item"  && event.type === "item_collect" && event.targetId === obj.targetId);
+        if (matches) {
+          obj.completed = true;
+          changed = true;
+          run.log = pushLog(run.log, `Objective complete: ${obj.description}.`);
+        }
+      }
+      if (changed && quest.objectives.every(o => o.completed)) {
+        this.completeQuest(run, quest.id);
+      }
+    }
+  }
+
+  private completeQuest(run: RunState, questId: string): void {
+    const idx = run.activeQuests.findIndex(q => q.id === questId);
+    if (idx === -1) return;
+    const quest = run.activeQuests[idx];
+    quest.status = "completed";
+    run.activeQuests      = run.activeQuests.filter(q => q.id !== questId);
+    run.completedQuestIds = unique([...run.completedQuestIds, questId]);
+    run.log = pushLog(run.log, `Assignment complete: ${quest.title}.`);
+    if (quest.xpReward > 0) this.awardXp(run, quest.xpReward);
+    if (quest.creditReward > 0) {
+      run.player.credits += quest.creditReward;
+      run.log = pushLog(run.log, `+${quest.creditReward} credits.`);
+    }
+  }
+
   private getEncounter(id: string): Encounter {
     const e = this.encounters.get(id);
     if (!e) throw new Error(`Unknown encounter '${id}'.`);
@@ -610,6 +700,12 @@ export class GameService {
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
+
+type QuestEvent =
+  | { type: "game_start" }
+  | { type: "room_entry";   targetId: string }
+  | { type: "enemy_defeat"; targetId: string }
+  | { type: "item_collect"; targetId: string };
 
 function oppositeDirection(direction: Direction): Direction {
   switch (direction) {

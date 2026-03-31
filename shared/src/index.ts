@@ -156,6 +156,42 @@ export const ADVANCEMENT_TABLE: Readonly<Record<number, { maxHp: number; baseAtt
   4: { maxHp: 5, baseAttack: 1, baseDefense: 1 },
 };
 
+// ── Quest system ──────────────────────────────────────────────────────────────
+
+export type QuestObjectiveType = "reach_room" | "defeat_enemy" | "collect_item" | "interact_terminal";
+export type QuestStatus = "active" | "completed";
+export type QuestTriggerType = "on_start" | "on_room_entry" | "on_item_collect" | "on_enemy_defeat";
+
+export interface QuestObjective {
+  id: string;
+  description: string;
+  type: QuestObjectiveType;
+  targetId?: string;
+  completed: boolean;
+}
+
+/** A quest instance stored inside RunState — tracks per-run progress. */
+export interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  status: QuestStatus;
+  objectives: QuestObjective[];
+  xpReward: number;
+  creditReward: number;
+}
+
+/** A quest template stored in world_data — defines structure and trigger. */
+export interface QuestDef {
+  id: string;
+  title: string;
+  description: string;
+  objectives: Omit<QuestObjective, "completed">[];
+  xpReward: number;
+  creditReward: number;
+  trigger: { type: QuestTriggerType; targetId?: string };
+}
+
 export interface CombatState {
   encounterId: string;
   enemyId: string;
@@ -181,6 +217,8 @@ export interface RunState {
   collectedItemIds: string[];
   player: PlayerState;
   combat: CombatState | null;
+  activeQuests: Quest[];
+  completedQuestIds: string[];
   log: string[];
   createdAt: string;
   updatedAt: string;
