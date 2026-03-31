@@ -28,8 +28,9 @@ export async function ensureSchema(sql: Sql): Promise<void> {
       updated_at TEXT NOT NULL
     )
   `;
-  // Migration: add user_id if this table already existed without it
+  // Migrations
   await sql`ALTER TABLE runs ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE runs ADD COLUMN IF NOT EXISTS checkpoint_json TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS user_profiles (
       user_id    TEXT PRIMARY KEY,

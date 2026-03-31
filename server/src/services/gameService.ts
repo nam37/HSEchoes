@@ -176,12 +176,18 @@ export class GameService {
     if (startRoom) {
       this.applyRoomEffects(run, startRoom);
     }
-    await this.persistRun(run, userId);
+    await this.persistRun(run, userId, true);
     return run;
   }
 
   async loadRun(slotId: string, userId: string): Promise<RunState> {
-    return this.readRun(slotId, userId);
+    // Load from checkpoint (last manual save), falling back to auto-save if never manually saved
+    const rows = await this.sql<Array<{ json: string }>>`
+      SELECT COALESCE(checkpoint_json, json) AS json
+      FROM runs WHERE slot_id = ${slotId} AND user_id = ${userId}
+    `;
+    if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
+    return JSON.parse(rows[0].json) as RunState;
   }
 
   // ── Movement ─────────────────────────────────────────────────────────────
@@ -373,10 +379,12 @@ export class GameService {
   }
 
   async saveRun(slotId: string, userId: string): Promise<RunEnvelope> {
+    // Copy the current auto-save state into checkpoint_json
+    await this.sql`
+      UPDATE runs SET checkpoint_json = json WHERE slot_id = ${slotId} AND user_id = ${userId}
+    `;
     const run = await this.readRun(slotId, userId);
-    this.touch(run);
-    await this.persistRun(run, userId);
-    return { run, message: "Run saved to the local archive." };
+    return { run, message: "Progress saved." };
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────
@@ -487,10 +495,11 @@ export class GameService {
     return JSON.parse(rows[0].json) as RunState;
   }
 
-  private async persistRun(run: RunState, userId: string): Promise<void> {
+  private async persistRun(run: RunState, userId: string, asCheckpoint = false): Promise<void> {
+    const j = JSON.stringify(run);
     await this.sql`
-      INSERT INTO runs (slot_id, user_id, json, created_at, updated_at)
-      VALUES (${run.slotId}, ${userId}, ${JSON.stringify(run)}, ${run.createdAt}, ${run.updatedAt})
+      INSERT INTO runs (slot_id, user_id, json, checkpoint_json, created_at, updated_at)
+      VALUES (${run.slotId}, ${userId}, ${j}, ${asCheckpoint ? j : null}, ${run.createdAt}, ${run.updatedAt})
       ON CONFLICT (slot_id) DO UPDATE SET json = EXCLUDED.json, updated_at = EXCLUDED.updated_at, user_id = EXCLUDED.user_id
     `;
   }
