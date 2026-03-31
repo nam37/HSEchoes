@@ -248,8 +248,11 @@ export class GameService {
     }
 
     run.log = pushLog(run.log, message);
-    this.touch(run);
-    await this.persistRun(run, userId);
+    // Don't persist if entering combat — DB retains last safe state for Load Latest
+    if (run.combat === null) {
+      this.touch(run);
+      await this.persistRun(run, userId);
+    }
     return { run, message };
   }
 
