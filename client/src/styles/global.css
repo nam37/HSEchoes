@@ -646,6 +646,35 @@ button:disabled {
   color: #ff8090;
 }
 
+/* Victory modal overrides */
+.victory-modal {
+  background: rgba(2, 10, 18, 0.97);
+  border-color: rgba(48, 180, 255, 0.45);
+  border-top-color: #30b4ff;
+  box-shadow: 0 0 60px rgba(30, 140, 255, 0.18), 0 0 120px rgba(30, 140, 255, 0.08);
+}
+
+.victory-modal .death-eyebrow {
+  color: #30b4ff;
+}
+
+.victory-heading {
+  color: #40c8ff;
+  text-shadow: 0 0 20px rgba(48, 180, 255, 0.7), 0 0 50px rgba(48, 180, 255, 0.35);
+}
+
+.victory-modal button {
+  border-color: rgba(48, 180, 255, 0.55);
+  color: #60d0ff;
+}
+
+.victory-modal button:hover:not(:disabled) {
+  border-color: #30b4ff;
+  background: linear-gradient(180deg, rgba(8, 30, 50, 0.92), rgba(4, 16, 28, 0.96));
+  box-shadow: 0 0 12px rgba(48, 180, 255, 0.45), inset 0 0 8px rgba(48, 180, 255, 0.07);
+  color: #90e0ff;
+}
+
 /* Responsive */
 @media (max-width: 1180px) {
   .app-shell.has-run {

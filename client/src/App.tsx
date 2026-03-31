@@ -243,6 +243,16 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
         </main>
       ) : (
         <main className="game-grid">
+          {run.status === "victory" && (
+            <div className="death-overlay" role="dialog" aria-modal="true" aria-label="Victory">
+              <div className="death-modal victory-modal">
+                <p className="death-eyebrow">Mission complete</p>
+                <h2 className="death-heading victory-heading">Signal recovered.</h2>
+                <p className="death-sub">{run.log.at(-1) ?? "The Hollow Star falls silent."}</p>
+                <button onClick={() => void createRun()} disabled={busy}>Descend Again</button>
+              </div>
+            </div>
+          )}
           {run.status === "defeat" && (
             <div className="death-overlay" role="dialog" aria-modal="true" aria-label="Game over">
               <div className="death-modal">
