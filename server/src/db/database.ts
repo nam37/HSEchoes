@@ -22,11 +22,14 @@ export async function ensureSchema(sql: Sql): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS runs (
       slot_id    TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL DEFAULT '',
       json       TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
   `;
+  // Migration: add user_id if this table already existed without it
+  await sql`ALTER TABLE runs ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT ''`;
   await sql`
     CREATE TABLE IF NOT EXISTS user_profiles (
       user_id    TEXT PRIMARY KEY,

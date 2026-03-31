@@ -6,7 +6,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireAdmin);
 
   app.get("/api/admin/stats", async () => {
-    const saves = await app.gameService.listSaves();
+    const saves = await app.gameService.listAllSaves();
     return {
       ok: true,
       data: {
@@ -19,7 +19,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/api/admin/runs", async () => {
-    const saves = await app.gameService.listSaves();
+    const saves = await app.gameService.listAllSaves();
     return { ok: true, data: saves };
   });
 

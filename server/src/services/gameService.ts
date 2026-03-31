@@ -93,7 +93,7 @@ export class GameService {
 
   // ── Bootstrap ────────────────────────────────────────────────────────────
 
-  async getBootstrap(): Promise<BootstrapData> {
+  async getBootstrap(userId: string): Promise<BootstrapData> {
     return {
       title:   this.meta.title,
       intro:   this.meta.intro,
@@ -104,11 +104,27 @@ export class GameService {
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()],
       assets: this.meta.assets,
-      saves:  await this.listSaves()
+      saves:  await this.listSaves(userId)
     };
   }
 
-  async listSaves(): Promise<SaveSummary[]> {
+  async listSaves(userId: string): Promise<SaveSummary[]> {
+    const rows = await this.sql<Array<{ slot_id: string; json: string; updated_at: string }>>`
+      SELECT slot_id, json, updated_at FROM runs WHERE user_id = ${userId} ORDER BY updated_at DESC
+    `;
+    return rows.map((row) => {
+      const run = JSON.parse(row.json) as RunState;
+      return {
+        slotId:    row.slot_id,
+        mode:      run.mode,
+        status:    run.status,
+        roomId:    run.roomId,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  async listAllSaves(): Promise<SaveSummary[]> {
     const rows = await this.sql<Array<{ slot_id: string; json: string; updated_at: string }>>`
       SELECT slot_id, json, updated_at FROM runs ORDER BY updated_at DESC
     `;
@@ -126,7 +142,7 @@ export class GameService {
 
   // ── Run lifecycle ────────────────────────────────────────────────────────
 
-  async createNewRun(): Promise<RunState> {
+  async createNewRun(userId: string): Promise<RunState> {
     const now  = new Date().toISOString();
     const startZone = [...this.zones.values()][0];
     const startRoom = findRoomContaining(startZone, this.meta.startX, this.meta.startY);
@@ -160,18 +176,18 @@ export class GameService {
     if (startRoom) {
       this.applyRoomEffects(run, startRoom);
     }
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return run;
   }
 
-  async loadRun(slotId: string): Promise<RunState> {
-    return this.readRun(slotId);
+  async loadRun(slotId: string, userId: string): Promise<RunState> {
+    return this.readRun(slotId, userId);
   }
 
   // ── Movement ─────────────────────────────────────────────────────────────
 
-  async move(payload: MovePayload): Promise<RunEnvelope> {
-    const run = await this.readRun(payload.slotId);
+  async move(payload: MovePayload, userId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(payload.slotId, userId);
     if (run.status !== "active") {
       return { run, message: "This run has already reached its end." };
     }
@@ -233,14 +249,14 @@ export class GameService {
 
     run.log = pushLog(run.log, message);
     this.touch(run);
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return { run, message };
   }
 
   // ── Combat ───────────────────────────────────────────────────────────────
 
-  async handleCombat(slotId: string, action: CombatAction, itemId?: string): Promise<RunEnvelope> {
-    const run = await this.readRun(slotId);
+  async handleCombat(slotId: string, action: CombatAction, userId: string, itemId?: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId, userId);
     const combat = run.combat;
     if (!combat) {
       return { run, message: "No enemy confronts you right now." };
@@ -278,7 +294,7 @@ export class GameService {
         parts.push("You break away and stagger back into the corridor.");
         run.log = pushLog(run.log, parts.join(" "));
         this.touch(run);
-        await this.persistRun(run);
+        await this.persistRun(run, userId);
         return { run, message: parts.join(" ") };
       } else {
         parts.push("You lunge for an opening, but the foe cuts you off.");
@@ -297,7 +313,7 @@ export class GameService {
       if (currentRoom) this.applyRoomEffects(run, currentRoom);
       run.log = pushLog(run.log, parts.join(" "));
       this.touch(run);
-      await this.persistRun(run);
+      await this.persistRun(run, userId);
       return { run, message: parts.join(" ") };
     }
 
@@ -319,20 +335,20 @@ export class GameService {
 
     run.log = pushLog(run.log, parts.join(" "));
     this.touch(run);
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return { run, message: parts.join(" ") };
   }
 
-  async useItem(slotId: string, itemId: string): Promise<RunEnvelope> {
-    const run = await this.readRun(slotId);
+  async useItem(slotId: string, itemId: string, userId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId, userId);
     const message = this.consumeItem(run, itemId);
     this.touch(run);
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return { run, message };
   }
 
-  async equipItem(slotId: string, itemId: string): Promise<RunEnvelope> {
-    const run = await this.readRun(slotId);
+  async equipItem(slotId: string, itemId: string, userId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId, userId);
     if (!run.player.inventory.includes(itemId)) {
       return { run, message: "That item is not in your pack." };
     }
@@ -346,14 +362,14 @@ export class GameService {
     const message = `You ${verb} ${item.name}.`;
     run.log = pushLog(run.log, message);
     this.touch(run);
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return { run, message };
   }
 
-  async saveRun(slotId: string): Promise<RunEnvelope> {
-    const run = await this.readRun(slotId);
+  async saveRun(slotId: string, userId: string): Promise<RunEnvelope> {
+    const run = await this.readRun(slotId, userId);
     this.touch(run);
-    await this.persistRun(run);
+    await this.persistRun(run, userId);
     return { run, message: "Run saved to the local archive." };
   }
 
@@ -457,17 +473,19 @@ export class GameService {
     return Math.floor(this.random() * (max - min + 1)) + min;
   }
 
-  private async readRun(slotId: string): Promise<RunState> {
-    const rows = await this.sql<Array<{ json: string }>>`SELECT json FROM runs WHERE slot_id = ${slotId}`;
+  private async readRun(slotId: string, userId: string): Promise<RunState> {
+    const rows = await this.sql<Array<{ json: string }>>`
+      SELECT json FROM runs WHERE slot_id = ${slotId} AND user_id = ${userId}
+    `;
     if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
     return JSON.parse(rows[0].json) as RunState;
   }
 
-  private async persistRun(run: RunState): Promise<void> {
+  private async persistRun(run: RunState, userId: string): Promise<void> {
     await this.sql`
-      INSERT INTO runs (slot_id, json, created_at, updated_at)
-      VALUES (${run.slotId}, ${JSON.stringify(run)}, ${run.createdAt}, ${run.updatedAt})
-      ON CONFLICT (slot_id) DO UPDATE SET json = EXCLUDED.json, updated_at = EXCLUDED.updated_at
+      INSERT INTO runs (slot_id, user_id, json, created_at, updated_at)
+      VALUES (${run.slotId}, ${userId}, ${JSON.stringify(run)}, ${run.createdAt}, ${run.updatedAt})
+      ON CONFLICT (slot_id) DO UPDATE SET json = EXCLUDED.json, updated_at = EXCLUDED.updated_at, user_id = EXCLUDED.user_id
     `;
   }
 
