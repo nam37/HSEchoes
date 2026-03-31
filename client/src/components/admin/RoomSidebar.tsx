@@ -3,14 +3,15 @@ import type { ZoneLink, ZoneRoom } from "../../../../shared/src/index";
 
 interface Props {
   room: ZoneRoom;
+  gridW: number;
+  gridH: number;
   onChange: (room: ZoneRoom) => void;
   onClose: () => void;
 }
 
-export function RoomSidebar({ room, onChange, onClose }: Props): JSX.Element {
+export function RoomSidebar({ room, gridW, gridH, onChange, onClose }: Props): JSX.Element {
   const [local, setLocal] = useState<ZoneRoom>({ ...room });
 
-  // Sync when selected room changes
   useEffect(() => {
     setLocal({ ...room });
   }, [room.id]);
@@ -19,6 +20,15 @@ export function RoomSidebar({ room, onChange, onClose }: Props): JSX.Element {
     const updated = { ...local, [key]: val };
     setLocal(updated);
     onChange(updated);
+  }
+
+  function setGeom(key: "x" | "y" | "w" | "h", raw: number): void {
+    let val = Math.max(key === "w" || key === "h" ? 1 : 0, raw);
+    if (key === "x") val = Math.min(val, gridW - local.w);
+    if (key === "y") val = Math.min(val, gridH - local.h);
+    if (key === "w") val = Math.min(val, gridW - local.x);
+    if (key === "h") val = Math.min(val, gridH - local.y);
+    set(key, val);
   }
 
   return (
@@ -30,8 +40,14 @@ export function RoomSidebar({ room, onChange, onClose }: Props): JSX.Element {
       <div className="zone-sidebar-body">
         <label>ID<input value={local.id} onChange={(e) => set("id", e.target.value)} /></label>
         <label>Title<input value={local.title} onChange={(e) => set("title", e.target.value)} /></label>
-        <label>Position<input value={`(${local.x}, ${local.y})`} readOnly /></label>
-        <label>Size<input value={`${local.w} × ${local.h}`} readOnly /></label>
+
+        <div className="zone-sidebar-geom-grid">
+          <label>X<input type="number" min={0} max={gridW - local.w} value={local.x} onChange={(e) => setGeom("x", Number(e.target.value))} /></label>
+          <label>Y<input type="number" min={0} max={gridH - local.h} value={local.y} onChange={(e) => setGeom("y", Number(e.target.value))} /></label>
+          <label>W<input type="number" min={1} max={gridW - local.x} value={local.w} onChange={(e) => setGeom("w", Number(e.target.value))} /></label>
+          <label>H<input type="number" min={1} max={gridH - local.y} value={local.h} onChange={(e) => setGeom("h", Number(e.target.value))} /></label>
+        </div>
+
         <label>Ceiling Color
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <input type="color" value={local.ceilingColor} onChange={(e) => set("ceilingColor", e.target.value)} style={{ width: "2.5rem", padding: "0.1rem" }} />
@@ -82,9 +98,8 @@ export function RoomSidebar({ room, onChange, onClose }: Props): JSX.Element {
 
   function setLink(key: keyof ZoneLink, val: unknown): void {
     const current = local.zoneLink ?? { toZoneId: "", toRoomId: "", entryX: 0, entryY: 0 };
-    const updated = { ...local, zoneLink: { ...current, [key]: val } };
-    // Clear zoneLink entirely if toZoneId is empty
-    if (!updated.zoneLink!.toZoneId) updated.zoneLink = undefined;
+    const merged = { ...current, [key]: val };
+    const updated: ZoneRoom = { ...local, zoneLink: merged.toZoneId ? merged : undefined };
     setLocal(updated);
     onChange(updated);
   }

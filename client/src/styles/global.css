@@ -1828,6 +1828,30 @@ button:disabled {
   background: rgba(0, 180, 240, 0.08);
 }
 
+.zone-grid-controls {
+  gap: 0.75rem;
+}
+
+.zone-grid-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.zone-grid-input {
+  width: 4rem;
+  padding: 0.25rem 0.4rem;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.8rem;
+  border-radius: 2px;
+}
+
 .zone-editor-hint {
   font-size: 0.78rem;
   color: var(--text-dim);
@@ -1935,6 +1959,12 @@ button:disabled {
 .zone-sidebar-body textarea {
   resize: vertical;
   min-height: 3rem;
+}
+
+.zone-sidebar-geom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.6rem;
 }
 
 .zone-sidebar-section-label {
