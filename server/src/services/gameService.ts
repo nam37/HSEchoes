@@ -201,6 +201,7 @@ export class GameService {
       return { run, message: "Defeat the current threat before moving on." };
     }
 
+    const zoneIdBefore = run.zoneId;
     let message = "";
 
     if (payload.command === "turn-left") {
@@ -254,8 +255,8 @@ export class GameService {
     }
 
     run.log = pushLog(run.log, message);
-    // Don't persist if entering combat — DB retains last safe state for Load Latest
-    if (run.combat === null) {
+    // Auto-save only on zone transitions; combat entry also excluded
+    if (run.combat === null && run.zoneId !== zoneIdBefore) {
       this.touch(run);
       await this.persistRun(run, userId);
     }
