@@ -110,6 +110,20 @@ showing the player, or zone transitions with narrative weight.
 - Saving/loading quest *progress* (which objectives are ticked) happens automatically through
   the existing auto-save and checkpoint system — no special handling required.
 
+### 3.6 Zone editor workflow
+- Add editable `gridW` and `gridH` controls to the zone editor so a zone's overall grid size can
+  be expanded or reduced without hand-editing data.
+- Allow drag-to-move for existing rooms in `/admin` → **Map**.
+- Allow drag-to-resize existing rooms by grabbing room edges or corners.
+- Add precise numeric `x`, `y`, `w`, and `h` inputs in the room sidebar as a fallback for exact
+  layout adjustments.
+- Preserve room `id` and all room metadata when moving or resizing; this is a reshape operation,
+  not delete-and-recreate.
+- Prevent invalid edits: no room overlap, no out-of-bounds placement, and no grid shrink that
+  would clip existing rooms.
+- After any move, resize, or grid-size change, prune or repair explicit passage edges that are no
+  longer valid for the updated room layout.
+
 ---
 
 ## Phase 4 — The Tablet System
@@ -431,4 +445,3 @@ The following are confirmed future systems, not slice targets:
 - Full Sphere interior zone map
 - Character creation or class selection
 - Multiplayer or co-op
-
