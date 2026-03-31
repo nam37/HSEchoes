@@ -753,6 +753,46 @@ These are the biggest next design targets:
 
 ---
 
+## Player Advancement System
+
+### Design Philosophy
+Advancement is earned through competence and experience, not prophecy or destiny. This fits the player’s narrative arc from Nobody to Field Representative — mechanical growth mirrors story growth. Levels should feel meaningful but never feel like a grind.
+
+### Character Levels
+
+The full game targets approximately 10–12 levels. The vertical slice targets **levels 1–5**.
+
+| Level | XP Required | Max HP | Base Attack | Base Defense | Narrative Beat |
+|-------|-------------|--------|-------------|--------------|----------------|
+| 1     | 0           | 20     | 2           | 0            | Station worker |
+| 2     | 100         | 24     | 3           | 0            | Capable survivor |
+| 3     | 250         | 28     | 3           | 1            | Hardened field contact |
+| 4     | 450         | 32     | 4           | 1            | Recognised operative |
+| 5     | 700         | 36     | 4           | 2            | Trusted representative |
+
+HP on level-up scales proportionally (current HP adjusts so the player does not suddenly feel topped-off or penalised).
+
+Level-ups are deferred until the player is in explore mode — no mid-combat advancement.
+
+### XP Sources
+
+| Source | XP Reward |
+|--------|-----------|
+| Combat victory | Scaled to enemy difficulty (base: enemy maxHp × 2) |
+| Quest completion | Primary reward, set per quest (typically 50–150) |
+| First-time room discovery | 5 XP |
+| First-time zone discovery | 25 XP |
+
+### Level-Up Feedback
+- Status ribbon message: *"Field experience logged. Capabilities improved."*
+- Action log entry confirming new level and stat changes
+- HP increase applied immediately; current HP scales proportionally
+
+### Future System: Tablet Upgrades
+A separate tablet progression track is planned as a distinct system. Where character levels improve combat capability (HP, attack, defense), tablet upgrades will unlock narrative and exploration capability: improved map range, new intel tabs, additional quest types, and extended comms range. This system is deferred beyond the vertical slice.
+
+---
+
 ## Final Summary
 
 **Echoes of the Hollow Star** is a retro sci-fi dungeon crawl built around one central image: a vast smooth black sphere no one can enter, until the player is accidentally carried inside. What begins as humble station work becomes a journey into a sealed world inhabited by the Sphereals, whose civilization survives only by feeding neodymium into the containment systems of the Bound Core, a failed supernova held in arrested detonation. The Aligned, long misreading the Sphereals’ raids as meaningless tech theft, now has one witness and one representative inside. Through a station tablet turned field relay, the player explores the Hollow Star, uncovers the truth behind the raids, and becomes entangled in the fate of two civilizations and a chained stellar apocalypse.
