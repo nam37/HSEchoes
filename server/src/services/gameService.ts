@@ -334,8 +334,11 @@ export class GameService {
     }
 
     run.log = pushLog(run.log, parts.join(" "));
-    this.touch(run);
-    await this.persistRun(run, userId);
+    // Don't persist on defeat — DB retains last alive state so Load Latest can restore it
+    if (run.status !== "defeat") {
+      this.touch(run);
+      await this.persistRun(run, userId);
+    }
     return { run, message: parts.join(" ") };
   }
 
