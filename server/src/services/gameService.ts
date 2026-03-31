@@ -254,11 +254,10 @@ export class GameService {
     }
 
     run.log = pushLog(run.log, message);
-    // Auto-save every explore-mode move; skip if combat was triggered
-    if (run.combat === null) {
-      this.touch(run);
-      await this.persistRun(run, userId);
-    }
+    // Always auto-save json so combat/move handlers read the correct state.
+    // checkpoint_json is what protects Load Latest from restoring mid-fight.
+    this.touch(run);
+    await this.persistRun(run, userId);
     return { run, message };
   }
 
