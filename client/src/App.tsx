@@ -250,6 +250,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <h2 className="death-heading">You are dead.</h2>
                 <p className="death-sub">{run.log.at(-1) ?? "The darkness claims you."}</p>
                 <button onClick={() => void createRun()} disabled={busy}>Restart</button>
+                {bootstrap?.saves?.[0] && (
+                  <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
+                )}
               </div>
             </div>
           )}
