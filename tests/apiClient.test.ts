@@ -17,7 +17,7 @@ const runEnvelope = {
       maxHp: 12,
       baseAttack: 2,
       baseDefense: 0,
-      gold: 0,
+      credits: 0,
       inventory: [],
       equipped: { weapon: null, armor: null, accessory: null }
     },

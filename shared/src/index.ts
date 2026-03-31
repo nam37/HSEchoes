@@ -130,7 +130,7 @@ export interface PlayerState {
   maxHp: number;
   baseAttack: number;
   baseDefense: number;
-  gold: number;
+  credits: number;
   inventory: string[];
   equipped: EquippedItems;
 }

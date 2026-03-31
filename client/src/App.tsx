@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, startTransition } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { BootstrapData, Direction, Item, RunState, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
 import { api } from "./lib/api";
@@ -9,15 +9,31 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState("Waking the lanterns...");
+  const [statusText, setStatusText] = useState("Initialising systems...");
+  const [statusFlash, setStatusFlash] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevZoneIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     void refreshBootstrap();
   }, []);
 
-  const zone: Zone | null = bootstrap?.zones[0] ?? null;
+  // Detect zone transitions and trigger status ribbon flash
+  useEffect(() => {
+    if (!run) return;
+    if (prevZoneIdRef.current !== null && prevZoneIdRef.current !== run.zoneId) {
+      setStatusFlash(true);
+      const timer = setTimeout(() => setStatusFlash(false), 900);
+      return () => clearTimeout(timer);
+    }
+    prevZoneIdRef.current = run.zoneId;
+  }, [run?.zoneId]);
+
+  const zone: Zone | null = useMemo(
+    () => (bootstrap && run ? bootstrap.zones.find(z => z.id === run.zoneId) ?? bootstrap.zones[0] ?? null : bootstrap?.zones[0] ?? null),
+    [bootstrap, run?.zoneId]
+  );
   const currentRoom: ZoneRoom | null = useMemo(
     () => (zone && run ? findRoomContaining(zone, run.posX, run.posY) ?? null : null),
     [zone, run]
@@ -270,7 +286,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
 
           <section className="stage-panel">
             {bootstrap && run ? <DungeonViewport bootstrap={bootstrap} run={run} /> : <div className="viewport-shell loading">Lighting the vault...</div>}
-            <div className="status-ribbon">{statusText}</div>
+            <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>{statusText}</div>
             {run.combat && (
               <section className="combat-banner" aria-label="Combat panel">
                 <div className="combat-banner-copy">
@@ -300,7 +316,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               </div>
               <div className="stat-grid">
                 <p><strong>HP</strong> {run.player.hp}/{run.player.maxHp}</p>
-                <p><strong>Gold</strong> {run.player.gold}</p>
+                <p><strong>Credits</strong> {run.player.credits}</p>
                 <p><strong>Facing</strong> {run.facing}</p>
                 <p><strong>Mode</strong> {run.mode}</p>
                 <p><strong>Weapon</strong> {labelFor(itemMap, run.player.equipped.weapon)}</p>

@@ -159,16 +159,16 @@ export class GameService {
       facing:             "north",
       discoveredRoomIds:  startRoom ? [startRoom.id] : [],
       clearedEncounterIds:[],
-      collectedItemIds:   ["rusted_blade"],
+      collectedItemIds:   ["maintenance_tool"],
       player: {
         hp: 20, maxHp: 20,
         baseAttack: 2, baseDefense: 0,
-        gold: 7,
-        inventory: ["rusted_blade"],
-        equipped: { weapon: "rusted_blade", armor: null, accessory: null }
+        credits: 7,
+        inventory: ["maintenance_tool"],
+        equipped: { weapon: "maintenance_tool", armor: null, accessory: null }
       },
       combat:    null,
-      log:       ["You descend beneath the Hollow Gate."],
+      log:       ["You cycle through the maintenance airlock and descend into the ring."],
       createdAt: now,
       updatedAt: now
     };
@@ -220,13 +220,13 @@ export class GameService {
       const nextRoom    = findRoomContaining(zone, nextX, nextY);
 
       if (!nextRoom) {
-        message = "Darkness offers no passage here.";
+        message = "No passage in that direction.";
       } else {
         const edge = findZoneEdge(zone, run.posX, run.posY, travelDir);
         const edgeType = resolveEdgeType(zone, run.posX, run.posY, travelDir);
 
         if (edgeType === "wall") {
-          message = "Stone blocks your path.";
+          message = "Solid bulkhead. No passage.";
         } else if (edge?.requirement && !run.player.inventory.includes(edge.requirement.itemId)) {
           message = edge.requirement.failureText;
         } else {
@@ -247,7 +247,13 @@ export class GameService {
             : `You move ${travelDir}.`;
 
           if (enteredNewRoom) {
-            this.applyRoomEffects(run, nextRoom);
+            const transitionMsg = this.applyRoomEffects(run, nextRoom);
+            if (transitionMsg !== undefined) {
+              // Zone boundary crossed — transition message already pushed to log inside applyRoomEffects.
+              this.touch(run);
+              await this.persistRun(run, userId);
+              return { run, message: transitionMsg };
+            }
           }
         }
       }
@@ -391,7 +397,8 @@ export class GameService {
 
   // ── Private helpers ──────────────────────────────────────────────────────
 
-  private applyRoomEffects(run: RunState, room: ZoneRoom): void {
+  /** Apply room effects. Returns zone-transition message if a zone boundary was crossed, undefined otherwise. */
+  private applyRoomEffects(run: RunState, room: ZoneRoom): string | undefined {
     if (room.loot) {
       for (const itemId of room.loot) {
         if (!run.collectedItemIds.includes(itemId)) {
@@ -415,7 +422,7 @@ export class GameService {
       run.mode   = "combat";
       run.combat = combat;
       run.log = pushLog(run.log, encounter.intro);
-      return;
+      return undefined;
     }
 
     if (room.zoneLink) {
@@ -431,23 +438,25 @@ export class GameService {
         if (!run.discoveredRoomIds.includes(link.toRoomId)) {
           run.discoveredRoomIds = [...run.discoveredRoomIds, link.toRoomId];
         }
-        const msg = link.transitionText ?? `You pass through to ${targetZone.title}.`;
+        const msg = link.transitionText ?? `You pass through the bulkhead into ${targetZone.title}.`;
         run.log = pushLog(run.log, msg);
         const entryRoom = findRoomContaining(targetZone, link.entryX, link.entryY);
         if (entryRoom) this.applyRoomEffects(run, entryRoom);
-        return;
+        return msg;
       }
     }
 
     if (room.victory) {
-      if (run.player.inventory.includes("star_sigil")) {
+      if (run.player.inventory.includes("signal_core")) {
         run.status = "victory";
         run.mode   = "victory";
-        run.log = pushLog(run.log, "The Star Sigil seats into the altar, and the dungeon finally falls silent.");
+        run.log = pushLog(run.log, "The signal core slots into the array. Encrypted carrier tone locks in. Transmission away.");
       } else {
-        run.log = pushLog(run.log, "The altar waits for a missing sigil from deeper in the ruin.");
+        run.log = pushLog(run.log, "The antenna array is ready but has no signal source. Find the signal core.");
       }
     }
+
+    return undefined;
   }
 
   private consumeItem(run: RunState, itemId: string): string {
