@@ -78,12 +78,13 @@ export class GameService {
 
   // ── World data access for admin ──────────────────────────────────────────
 
-  async getWorldData(): Promise<{ zones: Zone[]; enemies: Enemy[]; encounters: Encounter[]; items: Item[] }> {
+  async getWorldData(): Promise<{ zones: Zone[]; enemies: Enemy[]; encounters: Encounter[]; items: Item[]; quests: QuestDef[] }> {
     return {
       zones:      [...this.zones.values()],
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
-      items:      [...this.items.values()]
+      items:      [...this.items.values()],
+      quests:     [...this.quests.values()]
     };
   }
 

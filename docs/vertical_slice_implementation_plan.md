@@ -98,6 +98,18 @@ showing the player, or zone transitions with narrative weight.
   current objective.
 - Completed objectives shown with a strikethrough or check.
 
+### 3.5 Admin quest editor
+- Quest data is stored in `world_data` with `kind = 'quest'` and can be edited live without
+  a re-seed.
+- Add a **Quests** tab to the admin panel with a list view (id, title, trigger, objective count,
+  XP/credit rewards) and a modal edit form.
+- Edit form covers: id, title, description, xpReward, creditReward, trigger type + targetId,
+  and inline add/remove/edit of objectives (type, targetId, description).
+- Save calls `PUT /api/admin/world/quests/:id`; delete calls `DELETE /api/admin/world/quests/:id`.
+- Click **Publish Changes** after editing to reload the in-memory quest cache on the server.
+- Saving/loading quest *progress* (which objectives are ticked) happens automatically through
+  the existing auto-save and checkpoint system — no special handling required.
+
 ---
 
 ## Phase 4 — The Tablet System
@@ -230,6 +242,7 @@ Phases 1–4 are purely systemic and can be built before any new content exists.
 Phases 5–6 require both systems and authored content in parallel.
 Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
 Phase 8 is post-slice production readiness and does not block the vertical slice.
+Phase 8 is final polish and not needed for functional testing.
 
 Next Steps:
 - Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in

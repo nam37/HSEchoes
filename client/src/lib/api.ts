@@ -7,6 +7,7 @@ import type {
   InventoryPayload,
   Item,
   MovePayload,
+  QuestDef,
   RunEnvelope,
   SaveSummary,
   Zone
@@ -59,6 +60,7 @@ export interface WorldContent {
   enemies: Enemy[];
   encounters: Encounter[];
   items: Item[];
+  quests: QuestDef[];
 }
 
 export const api = {
@@ -98,6 +100,8 @@ export const api = {
   adminDeleteItem: (id: string) => request<{ deleted: string }>(`/api/admin/world/items/${id}`, { method: "DELETE" }),
   adminUpsertEncounter: (id: string, enc: Encounter) => request<Encounter>(`/api/admin/world/encounters/${id}`, { method: "PUT", body: JSON.stringify(enc) }),
   adminDeleteEncounter: (id: string) => request<{ deleted: string }>(`/api/admin/world/encounters/${id}`, { method: "DELETE" }),
+  adminUpsertQuest: (id: string, quest: QuestDef) => request<QuestDef>(`/api/admin/world/quests/${id}`, { method: "PUT", body: JSON.stringify(quest) }),
+  adminDeleteQuest: (id: string) => request<{ deleted: string }>(`/api/admin/world/quests/${id}`, { method: "DELETE" }),
   adminReload: () => request<{ reloaded: boolean }>("/api/admin/reload", { method: "POST" }),
 
   // Admin — users

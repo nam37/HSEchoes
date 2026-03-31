@@ -1,10 +1,11 @@
 import React, { useEffect, useReducer, useState } from "react";
 import { api, type AdminStats, type WorldContent, type UserProfile } from "../lib/api";
-import type { Encounter, Enemy, Item, Zone } from "../../../shared/src/index";
+import type { Encounter, Enemy, Item, QuestDef, Zone } from "../../../shared/src/index";
 import type { SaveSummary } from "../../../shared/src/index";
 import { EnemyEditor } from "../components/admin/EnemyEditor";
 import { ItemEditor } from "../components/admin/ItemEditor";
 import { EncounterEditor } from "../components/admin/EncounterEditor";
+import { QuestEditor } from "../components/admin/QuestEditor";
 import { ZoneEditor } from "../components/admin/ZoneEditor";
 
 interface AdminPageProps {
@@ -12,12 +13,13 @@ interface AdminPageProps {
   onSignOut: () => Promise<void>;
 }
 
-type Tab = "overview" | "map" | "zones" | "enemies" | "items" | "encounters" | "users";
+type Tab = "overview" | "map" | "zones" | "enemies" | "items" | "encounters" | "quests" | "users";
 
 type AdminModal =
   | { kind: "enemy"; enemy: Enemy }
   | { kind: "item"; item: Item }
   | { kind: "encounter"; encounter: Encounter }
+  | { kind: "quest"; quest: QuestDef }
   | null;
 
 function newEnemy(): Enemy {
@@ -30,6 +32,10 @@ function newItem(): Item {
 
 function newEncounter(): Encounter {
   return { id: "", enemyId: "", intro: "", victoryText: "", defeatText: "", canFlee: true, rewardItemIds: [], once: true };
+}
+
+function newQuest(): QuestDef {
+  return { id: "", title: "", description: "", objectives: [], xpReward: 0, creditReward: 0, trigger: { type: "on_start" } };
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }): JSX.Element {
@@ -158,6 +164,19 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
     setModal(null);
   }
 
+  async function saveQuest(quest: QuestDef): Promise<void> {
+    await api.adminUpsertQuest(quest.id, quest);
+    setWorld((prev) => prev ? { ...prev, quests: [...(prev.quests ?? []).filter((q) => q.id !== quest.id), quest] } : prev);
+    forceUpdate();
+  }
+
+  async function deleteQuest(id: string): Promise<void> {
+    if (!confirm(`Delete quest "${id}"?`)) return;
+    await api.adminDeleteQuest(id);
+    setWorld((prev) => prev ? { ...prev, quests: (prev.quests ?? []).filter((q) => q.id !== id) } : prev);
+    setModal(null);
+  }
+
   const firstZone = world?.zones[0];
   const totalRooms = world?.zones.reduce((sum, z) => sum + z.rooms.length, 0) ?? 0;
 
@@ -179,7 +198,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
       {error && <p className="error-banner">{error}</p>}
 
       <div className="admin-tabs">
-        {(["overview", "map", "zones", "enemies", "items", "encounters", "users"] as Tab[]).map((t) => (
+        {(["overview", "map", "zones", "enemies", "items", "encounters", "quests", "users"] as Tab[]).map((t) => (
           <button key={t} className={`admin-tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -211,6 +230,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
                       <div className="admin-stat-card"><p className="stat-value">{world.enemies.length}</p><p className="stat-label">Enemies</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{world.items.length}</p><p className="stat-label">Items</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{world.encounters.length}</p><p className="stat-label">Encounters</p></div>
+                      <div className="admin-stat-card"><p className="stat-value">{(world.quests ?? []).length}</p><p className="stat-label">Quests</p></div>
                     </div>
                   </section>
                 )}
@@ -359,6 +379,36 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
               </section>
             )}
 
+            {tab === "quests" && world && (
+              <section className="admin-section">
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Quests ({(world.quests ?? []).length})</h2>
+                  <button className="btn-primary" onClick={() => setModal({ kind: "quest", quest: newQuest() })}>+ New Quest</button>
+                </div>
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead><tr><th>ID</th><th>Title</th><th>Trigger</th><th>Objectives</th><th>XP</th><th>Credits</th><th></th></tr></thead>
+                    <tbody>
+                      {(world.quests ?? []).sort((a, b) => a.id.localeCompare(b.id)).map((quest) => (
+                        <tr key={quest.id}>
+                          <td className="run-slot">{quest.id}</td>
+                          <td>{quest.title}</td>
+                          <td>{quest.trigger.type}{quest.trigger.targetId ? ` → ${quest.trigger.targetId}` : ""}</td>
+                          <td>{quest.objectives.length}</td>
+                          <td>{quest.xpReward}</td>
+                          <td>{quest.creditReward}</td>
+                          <td className="admin-row-actions">
+                            <button onClick={() => setModal({ kind: "quest", quest })}>Edit</button>
+                            <button className="btn-danger" onClick={() => void deleteQuest(quest.id)} disabled={busy}>Del</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
             {tab === "users" && (
               <section className="admin-section">
                 <div className="admin-section-header">
@@ -406,6 +456,11 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
       {modal?.kind === "encounter" && world && (
         <Modal title={modal.encounter.id ? `Edit Encounter: ${modal.encounter.id}` : "New Encounter"} onClose={() => setModal(null)}>
           <EncounterEditor initial={modal.encounter} enemies={world.enemies} items={world.items} onSave={saveEncounter} onClose={() => setModal(null)} />
+        </Modal>
+      )}
+      {modal?.kind === "quest" && (
+        <Modal title={modal.quest.id ? `Edit Quest: ${modal.quest.id}` : "New Quest"} onClose={() => setModal(null)}>
+          <QuestEditor initial={modal.quest} onSave={saveQuest} onClose={() => setModal(null)} />
         </Modal>
       )}
     </div>
