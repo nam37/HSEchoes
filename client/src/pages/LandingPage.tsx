@@ -112,7 +112,7 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
                 />
               )}
               <button className="btn-primary" type="submit" disabled={busy}>
-                {busy ? "Please wait…" : mode === "signin" ? "Enter the Ruin" : "Begin Journey"}
+                {busy ? "Please wait…" : mode === "signin" ? "Login Now" : "Begin Journey"}
               </button>
             </form>
 
