@@ -23,6 +23,22 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
     setConfirm("");
   }
 
+  async function handleDevLogin(): Promise<void> {
+    const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
+    const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
+    if (!devEmail || !devPassword) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { token, user } = await signIn(devEmail, devPassword);
+      onAuthed(token, user);
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setError(null);
@@ -64,6 +80,16 @@ export default function LandingPage({ onAuthed }: LandingPageProps): JSX.Element
           </div>
 
           <div className="hero-actions hero-actions-auth">
+            {import.meta.env.DEV && import.meta.env.VITE_DEV_EMAIL && import.meta.env.VITE_DEV_PASSWORD && (
+              <button
+                type="button"
+                className="btn-dev-login"
+                onClick={() => void handleDevLogin()}
+                disabled={busy}
+              >
+                ⚡ Dev Login
+              </button>
+            )}
             <div className="auth-tabs">
               <button
                 className={`auth-tab${mode === "signin" ? " auth-tab--active" : ""}`}

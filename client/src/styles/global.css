@@ -836,6 +836,26 @@ button:disabled {
   width: min(22rem, 100%);
 }
 
+/* Dev login shortcut (localhost only, never in prod) */
+.btn-dev-login {
+  width: 100%;
+  padding: 0.55rem 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(255, 200, 0, 0.08);
+  color: #f0c040;
+  border: 1px dashed #f0c04066;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background 0.15s;
+}
+
+.btn-dev-login:hover:not(:disabled) {
+  background: rgba(255, 200, 0, 0.15);
+}
+
 /* Auth tabs (Sign In / Create Account) */
 .auth-tabs {
   display: flex;
