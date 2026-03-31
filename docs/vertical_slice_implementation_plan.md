@@ -228,6 +228,13 @@ Phases 1–4 are purely systemic and can be built before any new content exists.
 Phases 5–6 require both systems and authored content in parallel.
 Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
 
+Next Steps:
+- Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in
+`docs/Player Tablet.md`.
+- Additional Zones
+- Further the story using the added game mechanics above.
+
+
 ---
 
 ## Out of Scope for the Vertical Slice
@@ -242,3 +249,4 @@ The following are confirmed future systems, not slice targets:
 - Full Sphere interior zone map
 - Character creation or class selection
 - Multiplayer or co-op
+
