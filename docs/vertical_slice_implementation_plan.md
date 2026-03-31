@@ -224,6 +224,7 @@ showing the player, or zone transitions with narrative weight.
 | 6 | Zone content and story | High | High |
 | 7 | Polish and slice completion | Medium | Final |
 | 8 | Save slot system | Medium | Post-slice |
+| 9 | Visual polish | High | Post-slice |
 
 Phases 1–4 are purely systemic and can be built before any new content exists.
 Phases 5–6 require both systems and authored content in parallel.
@@ -284,6 +285,82 @@ language and UX need to change.
 - Keep the "All Runs" admin view as internal superuser tooling — it is useful for debugging and
   moderation and should not be removed.
 - No player-facing equivalent is needed.
+
+---
+
+---
+
+## Phase 9 — Visual Polish
+
+*Goal: Replace all placeholder and absent visual assets with final art, and bring the 3D viewport
+and UI to a shippable standard.*
+
+### Context
+
+The current build uses flat colored planes in the 3D viewport, missing enemy sprites in combat,
+placeholder item icons, a functional-but-bare mini-map, and text-only death/victory screens. The
+data model already carries the right hooks (`spritePath`, `iconPath`, `wallTexture`, `floorTexture`,
+`prop`, etc.) — this phase fills them.
+
+### 9.1 Room textures
+
+- Produce final wall, floor, and ceiling textures for each room type (maintenance corridor, flooded
+  section, secure hold, signal chamber, etc.).
+- Implement per-room texture variation in the 3D viewport renderer — rooms currently share a single
+  global texture; wire `ZoneRoom.wallTexture` and `ZoneRoom.floorTexture` through to Three.js
+  material assignment.
+- Ceiling color per room is already data-driven; verify it renders correctly at final art quality.
+
+### 9.2 Enemy sprites
+
+- Produce sprite art for each enemy: Vermin Cluster, Corroded Unit, Station Drifter, Security
+  Automaton, and any enemies added in Phase 6.
+- Add a sprite display region to the combat banner — `Enemy.spritePath` is defined but currently
+  unused in the UI.
+
+### 9.3 NPC portraits
+
+- Produce portrait art for each NPC introduced in Phase 5 (Station Boss and any others).
+- Wire portraits into the dialogue panel component (Phase 5).
+- Portrait dimensions and style guide to be defined before asset production begins.
+
+### 9.4 Item icons
+
+- Produce final icons for all items: Maintenance Hook, Impact Plating, Transit Key, Station Medkit,
+  Service Blade, Signal Core, and any items added in Phase 6.
+- All `Item.iconPath` values currently point to placeholder PNG stubs.
+
+### 9.5 Room prop sprites
+
+- Rooms have a `prop` field (e.g. `"brazier"`) defined in zone data but props are not rendered.
+- Produce sprite or mesh assets for each prop type used across all zones.
+- Implement prop rendering in the 3D viewport (billboard sprite or simple mesh).
+
+### 9.6 3D viewport geometry
+
+- Add door frame geometry at passable edges (currently a flat opening with no frame).
+- Vary ceiling height or treatment between room types where atmospherically appropriate.
+- Add prop mesh stubs at marked prop positions (terminals, crates, derelict equipment).
+
+### 9.7 Mini-map visual pass
+
+- Replace solid colored grid cells with outlined room shapes.
+- Add zone name header above the map.
+- Add a distinct player position marker (directional arrow or icon).
+- Color-code room states: undiscovered / discovered / current.
+
+### 9.8 UI icon set
+
+- Produce small icon assets for stat labels (HP, credits, level, XP, attack, defense).
+- Add mode indicator icons (explore, combat, victory, defeat) to the status ribbon or HUD.
+
+### 9.9 Death and victory screen art
+
+- Add a background image or illustrated element to the death modal (red-tinted wreckage or
+  darkness).
+- Add a background image or illustrated element to the victory modal (signal transmission,
+  distant Hollow Star).
+- Keep the existing text and button layout; art goes behind or alongside it.
 
 ---
 
