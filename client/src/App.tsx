@@ -282,9 +282,6 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               <div className="panel-heading-row">
                 <h2>Explorer</h2>
                 <div className="panel-actions">
-                  {bootstrap?.saves?.[0] && (
-                    <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
-                  )}
                   <button onClick={() => void saveRun()} disabled={busy}>Save</button>
                 </div>
               </div>
