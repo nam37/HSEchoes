@@ -335,6 +335,15 @@ This must be completed before any art production work begins.
   registry. Flag this now so Phase 5 implementation uses the registry from the start rather than
   adding another raw path field.
 
+### 9.0.1 Art spec document (prerequisite)
+
+Before any asset production begins, produce `docs/art_spec.md` defining:
+- Canonical sprite resolution: **256×256px** for enemies, NPC portraits, and props
+- Scaling method: nearest-neighbor (`image-rendering: pixelated`) throughout
+- File formats per asset category (see `docs/art_spec.md` for the full breakdown)
+- Color palette constraints and tone guidelines tied to the setting bible
+- Texture tile dimensions for wall/floor assets
+
 ### 9.1 Room textures
 
 - Produce final wall, floor, and ceiling textures for each room type (maintenance corridor, flooded
