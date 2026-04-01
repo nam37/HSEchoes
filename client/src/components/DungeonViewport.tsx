@@ -266,13 +266,28 @@ function addSquare(
       if (wall.direction === oppositeDirection(relation as Direction)) {
         continue;
       }
-      // Skip only open faces (interior to same room, or free passage).
-      // Door and gate faces render as solid walls — the frame detail isn't needed for neighbours.
-      if (resolveEdgeType(zone, sx, sy, wall.direction) === "open") continue;
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
-      mesh.position.set(...wall.position);
-      mesh.rotation.y = wall.rotation;
-      scene.add(mesh);
+      const neighbourFace = resolveEdgeType(zone, sx, sy, wall.direction);
+      if (neighbourFace === "open") continue; // interior or free passage — no geometry
+      if (neighbourFace === "wall") {
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
+        mesh.position.set(...wall.position);
+        mesh.rotation.y = wall.rotation;
+        scene.add(mesh);
+      } else {
+        // door or gate on the far side of a neighbour — render the full passage frame
+        // so the player can see it through the opening of the current cell's door
+        const edgeReq = findZoneEdge(zone, sx, sy, wall.direction)?.requirement;
+        const blocked = edgeReq ? !inventory.has(edgeReq.itemId) : false;
+        addPassageFrame(
+          scene,
+          wall.position,
+          wall.rotation,
+          neighbourFace === "gate" ? gateMaterial : doorMaterial,
+          wallMaterial,
+          neighbourFace,
+          blocked
+        );
+      }
       continue;
     }
 
