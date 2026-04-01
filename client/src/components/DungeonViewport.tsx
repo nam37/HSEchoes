@@ -134,19 +134,23 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       emissive: "#0e1e30",
     });
 
-    // Render a 3×3 grid: current, 4 cardinal neighbours, 4 diagonal neighbours.
-    // Diagonal cells are rendered as "outer" — all 4 faces checked via resolveEdgeType.
+    // Render a 5×5 grid around the player (up to 25 cells; void cells skipped below).
+    // The 4 direct cardinal neighbours get their own relation so the back-face skip works.
+    // Everything else in the grid is "outer" — all 4 faces resolved via resolveEdgeType.
     const renderSquares: Array<{ sx: number; sy: number; relation: SquareRelation }> = [
-      { sx: px,     sy: py,     relation: "current" },
-      { sx: px,     sy: py - 1, relation: "north"   },
-      { sx: px + 1, sy: py,     relation: "east"    },
-      { sx: px,     sy: py + 1, relation: "south"   },
-      { sx: px - 1, sy: py,     relation: "west"    },
-      { sx: px - 1, sy: py - 1, relation: "outer"   },
-      { sx: px + 1, sy: py - 1, relation: "outer"   },
-      { sx: px - 1, sy: py + 1, relation: "outer"   },
-      { sx: px + 1, sy: py + 1, relation: "outer"   },
+      { sx: px, sy: py, relation: "current" },
+      { sx: px,     sy: py - 1, relation: "north" },
+      { sx: px + 1, sy: py,     relation: "east"  },
+      { sx: px,     sy: py + 1, relation: "south" },
+      { sx: px - 1, sy: py,     relation: "west"  },
     ];
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        if (dx === 0 && dy === 0) continue;                    // current — already added
+        if (Math.abs(dx) + Math.abs(dy) === 1) continue;       // cardinals — already added
+        renderSquares.push({ sx: px + dx, sy: py + dy, relation: "outer" });
+      }
+    }
 
     for (const { sx, sy, relation } of renderSquares) {
       // Only render squares that are in a known room
