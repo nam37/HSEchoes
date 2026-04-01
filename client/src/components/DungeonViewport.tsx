@@ -225,11 +225,24 @@ function addSquare(
   const ceilingColor = room?.ceilingColor ?? "#3a4048";
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({ color: ceilingColor, roughness: 1 })
+    new THREE.MeshStandardMaterial({
+      color: ceilingColor,
+      emissive: ceilingColor,
+      emissiveIntensity: 0.4,
+      roughness: 0.9,
+    })
   );
   ceiling.position.set(offsetX, wallHeight, offsetZ);
   ceiling.rotation.x = Math.PI / 2;
   scene.add(ceiling);
+
+  // Ceiling-tinted fill light — only on the current cell so the room atmosphere
+  // picks up the ceiling colour without multiplying lights for every rendered cell.
+  if (relation === "current") {
+    const ceilLight = new THREE.PointLight(ceilingColor, 18, 22, 1.6);
+    ceilLight.position.set(offsetX, wallHeight - 0.3, offsetZ);
+    scene.add(ceilLight);
+  }
 
   // Prop
   if (relation === "current" && room?.prop) {

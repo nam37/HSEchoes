@@ -545,7 +545,7 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
         title: "New Room", description: "",
         wallTexture: "/assets/textures/wall-stone.png",
         floorTexture: "/assets/textures/floor-granite.png",
-        ceilingColor: "#141012",
+        ceilingColor: "#1a1f2e",
       };
       setDraft((prev) => ({ ...prev, rooms: [...prev.rooms, newRoom] }));
       setSelectedRoom(newRoom);
