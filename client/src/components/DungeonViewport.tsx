@@ -12,7 +12,7 @@ interface DungeonViewportProps {
 const roomSize = 10;
 const wallHeight = 5;
 
-type SquareRelation = "current" | Direction;
+type SquareRelation = "current" | Direction | "outer";
 
 export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.Element {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -134,13 +134,18 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       emissive: "#0e1e30",
     });
 
-    // Render current square + 4 adjacent squares
+    // Render a 3×3 grid: current, 4 cardinal neighbours, 4 diagonal neighbours.
+    // Diagonal cells are rendered as "outer" — all 4 faces checked via resolveEdgeType.
     const renderSquares: Array<{ sx: number; sy: number; relation: SquareRelation }> = [
       { sx: px,     sy: py,     relation: "current" },
       { sx: px,     sy: py - 1, relation: "north"   },
       { sx: px + 1, sy: py,     relation: "east"    },
       { sx: px,     sy: py + 1, relation: "south"   },
       { sx: px - 1, sy: py,     relation: "west"    },
+      { sx: px - 1, sy: py - 1, relation: "outer"   },
+      { sx: px + 1, sy: py - 1, relation: "outer"   },
+      { sx: px - 1, sy: py + 1, relation: "outer"   },
+      { sx: px + 1, sy: py + 1, relation: "outer"   },
     ];
 
     for (const { sx, sy, relation } of renderSquares) {
@@ -245,8 +250,18 @@ function addSquare(
   ];
 
   for (const wall of wallDefs) {
+    if (relation === "outer") {
+      // Diagonal cells: render each face only if it's a true wall
+      if (resolveEdgeType(zone, sx, sy, wall.direction) !== "wall") continue;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
+      mesh.position.set(...wall.position);
+      mesh.rotation.y = wall.rotation;
+      scene.add(mesh);
+      continue;
+    }
+
     if (relation !== "current") {
-      // For neighbor squares, skip the face that looks back toward the player
+      // Cardinal neighbours: skip the face that looks back toward the player
       if (wall.direction === oppositeDirection(relation as Direction)) {
         continue;
       }
