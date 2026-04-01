@@ -251,8 +251,9 @@ function addSquare(
 
   for (const wall of wallDefs) {
     if (relation === "outer") {
-      // Diagonal cells: render each face only if it's a true wall
-      if (resolveEdgeType(zone, sx, sy, wall.direction) !== "wall") continue;
+      // Diagonal cells: skip only truly open faces (interior or free passage);
+      // render wall, door, and gate all as a solid wall (no frame detail needed at this distance)
+      if (resolveEdgeType(zone, sx, sy, wall.direction) === "open") continue;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
       mesh.position.set(...wall.position);
       mesh.rotation.y = wall.rotation;
@@ -265,8 +266,9 @@ function addSquare(
       if (wall.direction === oppositeDirection(relation as Direction)) {
         continue;
       }
-      // Skip faces that are open (interior to same room, or open passage)
-      if (resolveEdgeType(zone, sx, sy, wall.direction) !== "wall") continue;
+      // Skip only open faces (interior to same room, or free passage).
+      // Door and gate faces render as solid walls — the frame detail isn't needed for neighbours.
+      if (resolveEdgeType(zone, sx, sy, wall.direction) === "open") continue;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
       mesh.position.set(...wall.position);
       mesh.rotation.y = wall.rotation;
