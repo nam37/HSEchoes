@@ -250,6 +250,8 @@ function addSquare(
       if (wall.direction === oppositeDirection(relation as Direction)) {
         continue;
       }
+      // Skip faces that are open (interior to same room, or open passage)
+      if (resolveEdgeType(zone, sx, sy, wall.direction) !== "wall") continue;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);
       mesh.position.set(...wall.position);
       mesh.rotation.y = wall.rotation;
@@ -258,6 +260,8 @@ function addSquare(
     }
 
     const face: CellFace = resolveEdgeType(zone, sx, sy, wall.direction);
+
+    if (face === "open") continue; // interior boundary or open passage — no geometry
 
     if (face === "wall") {
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, wallHeight), wallMaterial);

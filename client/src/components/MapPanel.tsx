@@ -10,7 +10,7 @@ function faceBorder(face: CellFace): string {
     case "wall": return "1px solid rgba(0, 200, 240, 0.75)";
     case "door": return "1px solid rgba(255, 170, 0, 0.65)";
     case "gate": return "1px solid rgba(0, 100, 255, 0.65)";
-    case "open": return "1px solid rgba(0, 120, 160, 0.18)";
+    case "open": return "none";
   }
 }
 
