@@ -156,7 +156,7 @@ export class GameService {
 
   // ── Run lifecycle ────────────────────────────────────────────────────────
 
-  async createNewRun(userId: string): Promise<RunState> {
+  async createNewRun(userId: string): Promise<RunEnvelope> {
     const now  = new Date().toISOString();
     const startZone = [...this.zones.values()][0];
     const startRoom = findRoomContaining(startZone, this.meta.startX, this.meta.startY);
@@ -200,7 +200,11 @@ export class GameService {
     this.triggerQuestsForEvent(run, { type: "game_start" });
     this.deliverMessages(run, { type: "game_start" });
     await this.persistRun(run, userId, true);
-    return run;
+
+    // Surface all run-start notifications in the ribbon so none are hidden behind log.at(-1).
+    const notifications = run.log.slice(1); // skip the entry-text flavour line
+    const message = notifications.length > 0 ? notifications.join("  ·  ") : undefined;
+    return { run, message };
   }
 
   async loadRun(slotId: string, userId: string): Promise<RunState> {

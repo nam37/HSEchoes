@@ -68,6 +68,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       startTransition(() => {
         setRun(envelope.run);
         setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "A new descent begins.");
+        setTabletOpen(false);
+        setTabletTab("messages");
       });
       await refreshBootstrap(true);
     } catch (caught) {

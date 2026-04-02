@@ -11,7 +11,7 @@ export async function registerGameRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/api/game/bootstrap", async (request) => ({ ok: true, data: await app.gameService.getBootstrap(uid(request)) }));
 
-  app.post("/api/game/new-run", async (request) => ({ ok: true, data: { run: await app.gameService.createNewRun(uid(request)) } }));
+  app.post("/api/game/new-run", async (request) => ({ ok: true, data: await app.gameService.createNewRun(uid(request)) }));
 
   app.get<{ Params: { slotId: string } }>("/api/game/run/:slotId", async (request) => ({
     ok: true,
