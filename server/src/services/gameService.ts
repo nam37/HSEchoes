@@ -655,6 +655,7 @@ export class GameService {
           read:      false
         };
         run.messages = [...run.messages, msg];
+        run.log = pushLog(run.log, `New message from ${def.sender}: "${def.subject}". [Open Tablet → Messages]`);
       }
     }
   }
