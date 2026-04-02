@@ -1,4 +1,4 @@
-import type { AssetManifest, Enemy, Encounter, Item, QuestDef, Zone } from "../../../shared/src/index.js";
+import type { AssetManifest, Enemy, Encounter, Item, MessageDef, QuestDef, Zone } from "../../../shared/src/index.js";
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
@@ -174,6 +174,67 @@ export const quests: QuestDef[] = [
   }
 ];
 
+// ── Tablet messages ───────────────────────────────────────────────────────────
+
+export const messages: MessageDef[] = [
+  {
+    id: "msg_station_boss_intro",
+    sender: "Station Commander Vasek",
+    subject: "Maintenance Ring — Standard Briefing",
+    body: `Personnel,
+
+You are cleared for unsupervised work in the maintenance ring as of this cycle.
+
+Standard protocol applies: log all junction check-ins, document any abnormalities in the coolant loop, and do not engage biological contamination without proper gear. Biosensors have been flagging elevated readings in the storage bays — treat this as active until cleared.
+
+The transit key locker in the flooded corridor has not been signed out. If you recover it, it authorises access to the upper bulkheads. Consider that part of the brief.
+
+Sector comms have been intermittent. If you lose contact, proceed on last standing orders.
+
+— Cdr. Vasek, Station West`,
+    timestamp: "Cycle 47 — Station Time 06:30",
+    trigger: { type: "on_start" }
+  },
+  {
+    id: "msg_attack_alert",
+    sender: "Station Emergency Broadcast",
+    subject: "PRIORITY — Unidentified Vessel — All Personnel",
+    body: `ATTENTION ALL STATION WEST PERSONNEL
+
+An unidentified vessel has been detected on approach vector, bearing 7-7-4. It does not respond to standard hailing frequencies.
+
+All non-essential personnel are to withdraw to designated shelter areas immediately. Security teams are authorised to arm.
+
+Repeat: this is not a drill.
+
+If you are in the upper maintenance sections, evacuate via the processing hub. Do not use the observation mezzanine catwalks.
+
+Station command will broadcast updates as the situation develops.
+
+STATION EMERGENCY SYSTEMS — AUTO-BROADCAST`,
+    timestamp: "Cycle 47 — Station Time 11:52",
+    trigger: { type: "on_room_entry", targetId: "astral_gallery" }
+  },
+  {
+    id: "msg_aligned_forces",
+    sender: "Unknown — Aligned Frequency",
+    subject: "[Encrypted] First Contact",
+    body: `Signal acknowledged.
+
+We have been monitoring this station's broadcast for three cycles. The carrier tone you transmitted matches Aligned authentication protocols exactly.
+
+You are not where you expected to be. Neither are we.
+
+Do not attempt to reply on this channel — your hardware cannot encode for the return path. Find a way to the threshold. We will guide you from there.
+
+More when you reach us.
+
+— AF`,
+    timestamp: "Cycle 47 — Station Time [CORRUPTED]",
+    trigger: { type: "on_zone_entry", targetId: "zone_hollow_star_sphere" }
+  }
+];
+
 export interface WorldSeed {
   title: string;
   intro: string;
@@ -184,6 +245,7 @@ export interface WorldSeed {
   enemies: Enemy[];
   encounters: Encounter[];
   quests: QuestDef[];
+  messages: MessageDef[];
   assets: AssetManifest;
 }
 
@@ -197,5 +259,6 @@ export const worldSeed: WorldSeed = {
   enemies,
   encounters,
   quests,
+  messages,
   assets: assetManifest
 };

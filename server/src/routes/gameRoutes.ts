@@ -42,4 +42,9 @@ export async function registerGameRoutes(app: FastifyInstance): Promise<void> {
     ok: true,
     data: await app.gameService.saveRun(request.params.slotId, uid(request))
   }));
+
+  app.post<{ Params: { slotId: string } }>("/api/game/run/:slotId/messages/read", async (request) => ({
+    ok: true,
+    data: await app.gameService.markMessagesRead(request.params.slotId, uid(request))
+  }));
 }

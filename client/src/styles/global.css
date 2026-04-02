@@ -361,7 +361,7 @@ button:disabled {
 .bottom-row {
   grid-column: 1 / -1;
   grid-row: 2;
-  grid-template-columns: 1fr 1.25fr 0.9fr 1fr;
+  grid-template-columns: 1.4fr 0.7fr 1fr;
 }
 
 /* HUD cards */
@@ -1975,4 +1975,502 @@ button:disabled {
   padding-top: 0.5rem;
   border-top: 1px solid var(--line);
   margin-top: 0.25rem;
+}
+
+/* ── Status ribbon inline action ─────────────────────────────────────────── */
+.status-ribbon-action {
+  display: inline;
+  padding: 0.1em 0.45em;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  clip-path: none;
+  cursor: pointer;
+  vertical-align: baseline;
+  margin-left: 0.4em;
+  transition: background 0.12s, color 0.12s;
+}
+
+.status-ribbon-action:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.22);
+  color: #fff;
+  border-color: var(--accent-strong);
+  box-shadow: none;
+}
+
+/* ── Tablet button ────────────────────────────────────────────────────────── */
+.tablet-btn {
+  border-color: rgba(0, 212, 255, 0.5);
+  background: linear-gradient(180deg, rgba(0, 35, 65, 0.9), rgba(0, 12, 30, 0.95));
+  color: var(--accent-strong);
+  position: relative;
+}
+
+.tablet-btn:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  background: linear-gradient(180deg, rgba(0, 60, 100, 0.9), rgba(0, 25, 55, 0.95));
+}
+
+/* ── Tablet overlay ──────────────────────────────────────────────────────── */
+.tablet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 12, 0.82);
+  display: grid;
+  place-items: center;
+  z-index: 800;
+  backdrop-filter: blur(8px);
+  animation: tablet-fade-in 0.18s ease both;
+}
+
+@keyframes tablet-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.tablet-shell {
+  width: min(76rem, calc(100vw - 2rem));
+  height: min(52rem, calc(100vh - 2rem));
+  background: var(--panel-strong);
+  border: 1px solid var(--line-strong);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 0 80px rgba(0, 212, 255, 0.12), 0 30px 80px rgba(0, 5, 20, 0.8);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  animation: tablet-rise 0.22s cubic-bezier(0.2, 0.85, 0.4, 1) both;
+}
+
+@keyframes tablet-rise {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.tablet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(0, 30, 60, 0.5), rgba(0, 8, 20, 0.3));
+}
+
+.tablet-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tablet-eyebrow {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.tablet-title {
+  margin: 0;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.tablet-close {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border-color: transparent;
+  background: transparent;
+  clip-path: none;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.tablet-close:hover:not(:disabled) {
+  color: var(--accent-strong);
+  border-color: var(--line);
+  background: rgba(0, 30, 50, 0.6);
+  box-shadow: none;
+}
+
+/* Tabs */
+.tablet-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.tablet-tab {
+  flex: none;
+  padding: 0.65rem 1.4rem;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--line);
+  border-bottom: 2px solid transparent;
+  clip-path: none;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tablet-tab:hover:not(:disabled) {
+  color: var(--accent);
+  background: rgba(0, 30, 55, 0.5);
+  border-color: var(--line) var(--line) transparent;
+  box-shadow: none;
+}
+
+.tablet-tab.active {
+  color: var(--accent-strong);
+  background: rgba(0, 40, 70, 0.5);
+  border-bottom-color: var(--accent);
+}
+
+.tablet-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  background: var(--accent);
+  color: #000a18;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  border-radius: 0;
+  line-height: 1;
+}
+
+/* Body */
+.tablet-body {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tablet-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.tablet-empty-detail {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0;
+  padding: 1.5rem;
+}
+
+/* Messages */
+.tablet-messages-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  height: 100%;
+  overflow: hidden;
+}
+
+.tablet-message-list {
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tablet-message-row {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 180, 240, 0.08);
+  border-radius: 0;
+  clip-path: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tablet-message-row:hover:not(:disabled) {
+  background: rgba(0, 30, 55, 0.55);
+  border-color: rgba(0, 180, 240, 0.08);
+  box-shadow: none;
+  color: var(--text);
+}
+
+.tablet-message-row.active {
+  background: rgba(0, 40, 72, 0.65);
+  border-left: 2px solid var(--accent);
+}
+
+.tablet-message-row.unread .msg-sender {
+  color: var(--accent-strong);
+}
+
+.tablet-message-row.unread .msg-subject::before {
+  content: "• ";
+  color: var(--accent);
+}
+
+.msg-sender {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-subject {
+  font-size: 0.8rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-timestamp {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.tablet-message-detail {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.msg-detail-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 0.22rem;
+}
+
+.msg-detail-from,
+.msg-detail-subject,
+.msg-detail-time {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.msg-detail-from strong,
+.msg-detail-subject strong {
+  color: var(--accent);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-right: 0.4em;
+}
+
+.msg-detail-time {
+  font-size: 0.68rem;
+}
+
+.msg-detail-body {
+  padding: 1rem 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.msg-detail-body p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* Assignments */
+.tablet-assignments {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tablet-assignment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tablet-section-label {
+  margin: 0 0 0.3rem;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tablet-quest-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  background: rgba(0, 15, 30, 0.5);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.tablet-quest-card.completed {
+  opacity: 0.5;
+  border-left-color: var(--text-dim);
+}
+
+.tablet-quest-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #d4e8f0;
+}
+
+.tablet-quest-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.tablet-quest-objectives {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.tablet-quest-objectives li {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding-left: 1.1rem;
+  position: relative;
+}
+
+.tablet-quest-objectives li::before {
+  content: "◦";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.tablet-quest-objectives li.obj-done {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+
+.tablet-quest-objectives li.obj-done::before {
+  content: "✓";
+}
+
+/* Map tab */
+.tablet-map-tab {
+  padding: 1rem 1.25rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tablet-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tablet-map-zone {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tablet-map-progress {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.full-map-grid {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.full-map-cell {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: rgba(0, 6, 16, 0.92);
+  transition: background 0.1s;
+  overflow: hidden;
+}
+
+.full-map-cell.hidden {
+  background: rgba(0, 3, 10, 0.96);
+  border: 1px solid rgba(0, 40, 60, 0.2) !important;
+}
+
+.full-map-cell.discovered {
+  background: rgba(0, 18, 38, 0.85);
+}
+
+.full-map-cell.current {
+  background: rgba(0, 45, 72, 0.92);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.35);
+}
+
+.full-map-facing {
+  font-size: 14px;
+  color: var(--accent-strong);
+  flex-shrink: 0;
+}
+
+.full-map-label {
+  font-size: 0.48rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.2;
+  padding: 2px 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.tablet-map-room {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
 }

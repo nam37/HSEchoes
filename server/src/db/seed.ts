@@ -31,6 +31,9 @@ export async function seedDatabase(sql: Sql): Promise<void> {
   for (const quest of worldSeed.quests) {
     await sql`INSERT INTO world_data (kind, id, json) VALUES ('quest', ${quest.id}, ${JSON.stringify(quest)})`;
   }
+  for (const message of worldSeed.messages) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('message', ${message.id}, ${JSON.stringify(message)})`;
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

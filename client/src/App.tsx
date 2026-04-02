@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, startTransition } from "react";
+import React, { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { BootstrapData, Direction, Item, RunState, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
 import { MapPanel } from "./components/MapPanel";
+import { TabletOverlay } from "./components/TabletOverlay";
 
 function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean }): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
@@ -13,6 +14,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [statusFlash, setStatusFlash] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tabletOpen, setTabletOpen] = useState(false);
+  const [tabletTab, setTabletTab] = useState<"messages" | "assignments" | "map">("messages");
   const prevZoneIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -229,6 +232,18 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
   }
 
+  async function handleMarkRead(): Promise<void> {
+    if (!run) return;
+    try {
+      const envelope = await api.markMessagesRead(run.slotId);
+      startTransition(() => setRun(envelope.run));
+    } catch {
+      // non-critical — ignore
+    }
+  }
+
+  const unreadCount = run?.messages.filter(m => !m.read).length ?? 0;
+
   const inventory = run?.player.inventory.map((itemId) => itemMap.get(itemId)).filter(Boolean) as Item[] | undefined;
   const currentExits = zone && run ? describeExits(zone, run.posX, run.posY, run, itemMap) : [];
 
@@ -286,7 +301,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
 
           <section className="stage-panel">
             {bootstrap && run ? <DungeonViewport bootstrap={bootstrap} run={run} /> : <div className="viewport-shell loading">Lighting the vault...</div>}
-            <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>{statusText}</div>
+            <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
+              {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
+            </div>
             {run.combat && (
               <section className="combat-banner" aria-label="Combat panel">
                 <div className="combat-banner-copy">
@@ -306,11 +323,29 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             )}
           </section>
 
+          {tabletOpen && zone && (
+            <TabletOverlay
+              run={run}
+              zone={zone}
+              onClose={() => setTabletOpen(false)}
+              onMarkRead={() => void handleMarkRead()}
+              initialTab={tabletTab}
+            />
+          )}
+
           <aside className="sidebar">
             <section className="hud-card explorer-card">
               <div className="panel-heading-row">
                 <h2>Explorer</h2>
                 <div className="panel-actions">
+                  <button
+                    className="tablet-btn"
+                    onClick={() => { setTabletTab("messages"); setTabletOpen(true); void handleMarkRead(); }}
+                    title="Open Tablet"
+                    aria-label="Open tablet"
+                  >
+                    Tablet{unreadCount > 0 ? ` [${unreadCount}]` : ""}
+                  </button>
                   <button onClick={() => void saveRun()} disabled={busy || run.mode === "combat"}>Save</button>
                 </div>
               </div>
@@ -347,28 +382,6 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           </aside>
 
           <section className="bottom-row">
-            <section className="hud-card quest-card">
-              <h2>Assignments</h2>
-              <div className="quest-list scroll-panel">
-                {run.activeQuests.length === 0 ? (
-                  <p className="quest-empty">No active assignments.</p>
-                ) : (
-                  run.activeQuests.map((quest) => (
-                    <div key={quest.id} className="quest-entry">
-                      <p className="quest-title">{quest.title}</p>
-                      <ul className="quest-objectives">
-                        {quest.objectives.map((obj) => (
-                          <li key={obj.id} className={obj.completed ? "obj-done" : "obj-pending"}>
-                            {obj.description}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-
             <section className="hud-card inventory-card">
               <h2>Inventory</h2>
               <div className="inventory-list scroll-panel">
@@ -398,7 +411,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
 
             <section className="hud-card map-card">
               <h2>Map</h2>
-              {bootstrap && zone && run ? <MapPanel zone={zone} run={run} /> : <p>Map unavailable.</p>}
+              {zone && <MapPanel zone={zone} run={run} />}
             </section>
 
             <section className="hud-card log-card">
@@ -412,6 +425,34 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       )}
     </div>
   );
+}
+
+const ACTION_RE = /\[([^\]]+)\]/g;
+
+function renderStatusText(text: string, onOpenTablet: (tab: "messages" | "assignments" | "map") => void): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  ACTION_RE.lastIndex = 0;
+  while ((match = ACTION_RE.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const label = match[1];
+    if (label.includes("Tablet")) {
+      const tab: "messages" | "assignments" | "map" =
+        label.toLowerCase().includes("assignment") ? "assignments" :
+        label.toLowerCase().includes("map") ? "map" : "messages";
+      parts.push(
+        <button key={match.index} className="status-ribbon-action" onClick={() => onOpenTablet(tab)}>
+          {label}
+        </button>
+      );
+    } else {
+      parts.push(match[0]);
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
 }
 
 function labelFor(itemMap: Map<string, Item>, itemId: string | null): string {

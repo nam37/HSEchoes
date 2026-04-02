@@ -156,6 +156,29 @@ export const ADVANCEMENT_TABLE: Readonly<Record<number, { maxHp: number; baseAtt
   4: { maxHp: 5, baseAttack: 1, baseDefense: 1 },
 };
 
+// ── Tablet messages ───────────────────────────────────────────────────────────
+
+export type MessageTriggerType = "on_start" | "on_room_entry" | "on_zone_entry";
+
+export interface TabletMessage {
+  id: string;
+  sender: string;
+  subject: string;
+  body: string;
+  timestamp: string;  // in-world flavour date, e.g. "Cycle 47 — Station Time 08:14"
+  read: boolean;
+}
+
+/** A message template stored in world_data — defines content and trigger. */
+export interface MessageDef {
+  id: string;
+  sender: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  trigger: { type: MessageTriggerType; targetId?: string };
+}
+
 // ── Quest system ──────────────────────────────────────────────────────────────
 
 export type QuestObjectiveType = "reach_room" | "defeat_enemy" | "collect_item" | "interact_terminal";
@@ -219,6 +242,8 @@ export interface RunState {
   combat: CombatState | null;
   activeQuests: Quest[];
   completedQuestIds: string[];
+  completedQuests: Quest[];
+  messages: TabletMessage[];
   log: string[];
   createdAt: string;
   updatedAt: string;

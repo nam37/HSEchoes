@@ -84,6 +84,7 @@ export const api = {
     body: JSON.stringify(payload)
   }),
   saveRun: (slotId: string) => request<RunEnvelope>(`/api/game/save/${slotId}`, { method: "POST" }),
+  markMessagesRead: (slotId: string) => request<RunEnvelope>(`/api/game/run/${slotId}/messages/read`, { method: "POST" }),
 
   // Admin — runs
   adminStats: () => request<AdminStats>("/api/admin/stats"),
