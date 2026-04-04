@@ -244,8 +244,8 @@ function addSquare(
     scene.add(ceilLight);
   }
 
-  // Prop
-  if (relation === "current" && room?.prop) {
+  // Prop — render in any visible cell (not just current) so it's seen from adjacent rooms
+  if (room?.prop) {
     const prop = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 2, 1.5),
       new THREE.MeshStandardMaterial({

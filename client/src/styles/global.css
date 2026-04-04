@@ -238,6 +238,7 @@ button:disabled {
 }
 
 .stage-panel {
+  position: relative;
   min-height: 22rem;
   padding: 0.75rem;
   display: grid;
@@ -560,6 +561,31 @@ button:disabled {
 .log-list {
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(48, 180, 255, 0.3) rgba(10, 16, 24, 0.5);
+}
+
+.scroll-panel::-webkit-scrollbar,
+.log-list::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.scroll-panel::-webkit-scrollbar-track,
+.log-list::-webkit-scrollbar-track {
+  background: rgba(10, 16, 24, 0.5);
+  border-radius: 2px;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb,
+.log-list::-webkit-scrollbar-thumb {
+  background: rgba(48, 180, 255, 0.3);
+  border-radius: 2px;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb:hover,
+.log-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(48, 180, 255, 0.55);
 }
 
 .log-list {
@@ -752,6 +778,85 @@ button:disabled {
   background: linear-gradient(180deg, rgba(8, 30, 50, 0.92), rgba(4, 16, 28, 0.96));
   box-shadow: 0 0 12px rgba(48, 180, 255, 0.45), inset 0 0 8px rgba(48, 180, 255, 0.07);
   color: #90e0ff;
+}
+
+/* Toast notification stack */
+.toast-stack {
+  position: absolute;
+  /* sits above the status-ribbon inside stage-panel, right-aligned to the viewport */
+  bottom: 3.2rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column-reverse; /* newest at bottom, older entries stack upward */
+  gap: 0.4rem;
+  width: min(26rem, 60%);
+  pointer-events: none;
+  z-index: 120;
+}
+
+.toast-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem 0.7rem;
+  background: rgba(4, 14, 28, 0.96);
+  border: 1px solid rgba(48, 180, 255, 0.28);
+  border-bottom: none; /* timer bar takes the bottom edge */
+  border-radius: 3px 3px 0 0;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.45;
+  pointer-events: all;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+  animation: toast-enter 0.18s ease both;
+  overflow: hidden;
+}
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(150, 190, 220, 0.55);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.25rem;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 2px;
+  transition: color 0.15s, background 0.15s;
+  box-shadow: none;
+  min-width: unset;
+}
+
+.toast-dismiss:hover {
+  color: #80c8ff;
+  background: rgba(48, 180, 255, 0.1);
+}
+
+.toast-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: rgba(48, 180, 255, 0.55);
+  border-radius: 0 0 0 3px;
+  animation: toast-drain linear forwards;
+  transform-origin: left;
+}
+
+@keyframes toast-drain {
+  from { width: 100%; }
+  to   { width: 0%; }
 }
 
 /* Interact button */

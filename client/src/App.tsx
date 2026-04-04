@@ -1,6 +1,26 @@
-import React, { useEffect, useMemo, useRef, useState, startTransition } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { BootstrapData, Direction, InteractResult, Item, NPC, RunState, Terminal, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
+
+interface Toast {
+  id: string;
+  text: string;
+  addedAt: number;
+}
+
+const TOAST_DURATION = 7000;
+
+function isNotification(text: string): boolean {
+  return /^(\+\d|LEVEL UP|Assignment received:|New message from|Objective complete:|Assignment complete:|You find |You claim |You access the terminal|Progress saved\.)/.test(text);
+}
+
+function getNewLogEntries(prevLog: string[], newLog: string[]): string[] {
+  if (prevLog.length === 0) return [...newLog];
+  const lastPrev = prevLog[prevLog.length - 1];
+  const idx = newLog.lastIndexOf(lastPrev);
+  if (idx === -1) return [...newLog];
+  return newLog.slice(idx + 1);
+}
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
 import { MapPanel } from "./components/MapPanel";
@@ -17,6 +37,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletTab, setTabletTab] = useState<"messages" | "assignments" | "map">("messages");
   const [interactResult, setInteractResult] = useState<InteractResult | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const prevLogRef = useRef<string[]>([]);
   const prevZoneIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -33,6 +55,42 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
     prevZoneIdRef.current = run.zoneId;
   }, [run?.zoneId]);
+
+  const pushToasts = useCallback((newLog: string[]) => {
+    const newEntries = getNewLogEntries(prevLogRef.current, newLog);
+    prevLogRef.current = [...newLog];
+    const notifications = newEntries.filter(isNotification);
+    if (notifications.length === 0) return;
+    const now = Date.now();
+    setToasts(prev => [
+      ...prev,
+      ...notifications.map((text, i) => ({
+        id: `${now}-${i}`,
+        text,
+        addedAt: now + i * 80, // slight stagger so IDs are unique
+      }))
+    ]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Auto-dismiss toasts after TOAST_DURATION
+  useEffect(() => {
+    if (toasts.length === 0) return;
+    const earliest = toasts.reduce((min, t) => Math.min(min, t.addedAt), Infinity);
+    const elapsed = Date.now() - earliest;
+    const remaining = TOAST_DURATION - elapsed;
+    if (remaining <= 0) {
+      setToasts(prev => prev.filter(t => Date.now() - t.addedAt < TOAST_DURATION));
+      return;
+    }
+    const timer = setTimeout(() => {
+      setToasts(prev => prev.filter(t => Date.now() - t.addedAt < TOAST_DURATION));
+    }, remaining + 50);
+    return () => clearTimeout(timer);
+  }, [toasts]);
 
   const zone: Zone | null = useMemo(
     () => (bootstrap && run ? bootstrap.zones.find(z => z.id === run.zoneId) ?? bootstrap.zones[0] ?? null : bootstrap?.zones[0] ?? null),
@@ -67,13 +125,17 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   async function createRun(): Promise<void> {
     try {
       setBusy(true);
+      prevLogRef.current = [];
       const envelope = await api.newRun();
       startTransition(() => {
         setRun(envelope.run);
-        setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "A new descent begins.");
+        // Ribbon shows the entry flavour line; notifications go to toasts
+        setStatusText(envelope.run.log[0] ?? "A new descent begins.");
+        setToasts([]);
         setTabletOpen(false);
         setTabletTab("messages");
       });
+      pushToasts(envelope.run.log);
       await refreshBootstrap(true);
     } catch (caught) {
       setError((caught as Error).message);
@@ -85,10 +147,13 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   async function loadSave(slotId: string): Promise<void> {
     try {
       setBusy(true);
+      prevLogRef.current = [];
       const envelope = await api.loadRun(slotId);
       startTransition(() => {
         setRun(envelope.run);
+        prevLogRef.current = [...envelope.run.log];
         setStatusText(envelope.run.log.at(-1) ?? `Loaded run ${slotId}.`);
+        setToasts([]);
       });
     } catch (caught) {
       setError((caught as Error).message);
@@ -108,6 +173,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
         setRun(envelope.run);
         setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "The silence shifts.");
       });
+      pushToasts(envelope.run.log);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -171,6 +237,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
         setRun(envelope.run);
         setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "Steel rings in the dark.");
       });
+      pushToasts(envelope.run.log);
       await refreshBootstrap(true);
     } catch (caught) {
       setError((caught as Error).message);
@@ -193,6 +260,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           setSelectedItemId(null);
         }
       });
+      pushToasts(envelope.run.log);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -229,6 +297,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
         setRun(envelope.run);
         setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "The archive takes your progress.");
       });
+      pushToasts(envelope.run.log);
       await refreshBootstrap(true);
     } catch (caught) {
       setError((caught as Error).message);
@@ -260,6 +329,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           setStatusText(result.message ?? "Nothing to interact with here.");
         }
       });
+      pushToasts(result.run.log);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -331,6 +401,22 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
               {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
             </div>
+            {toasts.length > 0 && (
+              <div className="toast-stack" aria-live="polite">
+                {toasts.map(t => (
+                  <div key={t.id} className="toast-item">
+                    <span className="toast-text">
+                      {renderStatusText(t.text, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
+                    </span>
+                    <button className="toast-dismiss" onClick={() => dismissToast(t.id)} aria-label="Dismiss">✕</button>
+                    <span
+                      className="toast-timer"
+                      style={{ animationDuration: `${TOAST_DURATION}ms` }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             {run.combat && (
               <section className="combat-banner" aria-label="Combat panel">
                 <div className="combat-banner-copy">
