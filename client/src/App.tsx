@@ -127,11 +127,11 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       setBusy(true);
       prevLogRef.current = [];
       const envelope = await api.newRun();
+      setToasts([]);  // reset before pushing new run notifications
       startTransition(() => {
         setRun(envelope.run);
         // Ribbon shows the entry flavour line; notifications go to toasts
         setStatusText(envelope.run.log[0] ?? "A new descent begins.");
-        setToasts([]);
         setTabletOpen(false);
         setTabletTab("messages");
       });
