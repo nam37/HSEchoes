@@ -259,6 +259,50 @@ function addSquare(
     scene.add(prop);
   }
 
+  // Terminal — wall-mounted console with glowing screen, visible from adjacent rooms
+  if (room?.terminalId) {
+    const group = new THREE.Group();
+
+    // Console body
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(1.8, 0.9, 0.7),
+      new THREE.MeshStandardMaterial({ color: "#283038", roughness: 0.5, metalness: 0.8, emissive: "#0a0e14" })
+    );
+    body.position.set(0, 0.45, 0);
+
+    // Screen bezel
+    const bezel = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.95, 0.12),
+      new THREE.MeshStandardMaterial({ color: "#202830", roughness: 0.4, metalness: 0.85, emissive: "#080c10" })
+    );
+    bezel.position.set(0, 1.37, 0.06);
+    bezel.rotation.x = -0.22; // slight tilt toward viewer
+
+    // Screen surface — emissive green
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.25, 0.75),
+      new THREE.MeshStandardMaterial({
+        color: "#00c870",
+        roughness: 0.2,
+        metalness: 0.0,
+        emissive: "#00c870",
+        emissiveIntensity: 1.0,
+      })
+    );
+    screen.position.set(0, 1.37, 0.13);
+    screen.rotation.x = -0.22;
+
+    group.add(body, bezel, screen);
+    // Place against the west wall, offset from center — keeps north/south passages clear
+    group.position.set(offsetX - 2.8, 0, offsetZ - 3.2);
+    scene.add(group);
+
+    // Soft green screen-glow light
+    const glow = new THREE.PointLight("#00c870", 4, 7, 2);
+    glow.position.set(offsetX - 2.8, 1.5, offsetZ - 3.0);
+    scene.add(glow);
+  }
+
   const wallDefs: Array<{ direction: Direction; position: [number, number, number]; rotation: number }> = [
     { direction: "north", position: [offsetX, wallHeight / 2, offsetZ - roomSize / 2], rotation: 0 },
     { direction: "east",  position: [offsetX + roomSize / 2, wallHeight / 2, offsetZ], rotation: -Math.PI / 2 },
