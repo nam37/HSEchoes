@@ -783,11 +783,10 @@ button:disabled {
 /* Toast notification stack */
 .toast-stack {
   position: absolute;
-  /* sits above the status-ribbon inside stage-panel, right-aligned to the viewport */
-  bottom: 3.2rem;
-  right: 0.75rem;
+  top: 0.75rem;
+  left: 0.75rem;
   display: flex;
-  flex-direction: column-reverse; /* newest at bottom, older entries stack upward */
+  flex-direction: column; /* newest appends below older */
   gap: 0.4rem;
   width: min(26rem, 60%);
   pointer-events: none;
