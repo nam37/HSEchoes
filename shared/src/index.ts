@@ -41,6 +41,8 @@ export interface ZoneRoom {
   loot?: string[];
   victory?: boolean;
   zoneLink?: ZoneLink;
+  npcId?: string;
+  terminalId?: string;
 }
 
 /**
@@ -68,6 +70,32 @@ export interface Zone {
   gridH: number;
   rooms: ZoneRoom[];
   edges: ZoneEdge[];
+}
+
+// ── NPCs and Terminals ────────────────────────────────────────────────────────
+
+export interface DialogueLine {
+  id: string;
+  text: string;
+  /** Optional trigger fired when this line is delivered (e.g. to unlock a quest). */
+  triggerId?: string;
+  /** ID of the next DialogueLine in sequence; undefined = end of dialogue. */
+  nextId?: string;
+}
+
+export interface NPC {
+  id: string;
+  name: string;
+  role: string;
+  portraitAssetId?: string;
+  dialogue: DialogueLine[];
+}
+
+export interface Terminal {
+  id: string;
+  title: string;
+  logText: string;
+  xpReward?: number;
 }
 
 // ── Assets ────────────────────────────────────────────────────────────────────
@@ -244,6 +272,7 @@ export interface RunState {
   completedQuestIds: string[];
   completedQuests: Quest[];
   messages: TabletMessage[];
+  interactedTerminalIds: string[];
   log: string[];
   createdAt: string;
   updatedAt: string;
@@ -266,6 +295,8 @@ export interface BootstrapData {
   enemies: Enemy[];
   encounters: Encounter[];
   items: Item[];
+  npcs: NPC[];
+  terminals: Terminal[];
   assets: AssetManifest;
   saves: SaveSummary[];
 }
@@ -298,6 +329,23 @@ export interface CombatPayload {
 export interface InventoryPayload {
   slotId: string;
   itemId: string;
+}
+
+export interface InteractPayload {
+  slotId: string;
+}
+
+export interface InteractResult {
+  run: RunState;
+  kind: "npc" | "terminal" | "none";
+  npcId?: string;
+  npcName?: string;
+  npcRole?: string;
+  lines?: DialogueLine[];
+  terminalId?: string;
+  terminalTitle?: string;
+  terminalText?: string;
+  message?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

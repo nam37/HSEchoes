@@ -1,4 +1,4 @@
-import type { AssetManifest, Enemy, Encounter, Item, MessageDef, QuestDef, Zone } from "../../../shared/src/index.js";
+import type { AssetManifest, Enemy, Encounter, Item, MessageDef, NPC, QuestDef, Terminal, Zone } from "../../../shared/src/index.js";
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
@@ -63,8 +63,8 @@ export const hollowStarZone: Zone = {
   gridW: 4,
   gridH: 5,
   rooms: [
-    { id: "gate",           x: 1, y: 4, w: 1, h: 1, title: "Maintenance Airlock",    description: "Worn decking and stenciled hazard lines lead down into the station's lower maintenance ring. The outer seal has not opened in years.",                                     wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141012", discoveryText: "The airlock cycles behind you with a tired hiss." },
-    { id: "antechamber",    x: 1, y: 3, w: 1, h: 1, title: "Processing Hub",         description: "A wide junction lined with dark monitors and branching conduits. Three passages lead deeper into the maintenance ring.",                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#17151a", discoveryText: "Your footsteps ring off the deck plating." },
+    { id: "gate",           x: 1, y: 4, w: 1, h: 1, title: "Maintenance Airlock",    description: "Worn decking and stenciled hazard lines lead down into the station's lower maintenance ring. The outer seal has not opened in years.",                                     wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141012", discoveryText: "The airlock cycles behind you with a tired hiss.", npcId: "cdr_vasek" },
+    { id: "antechamber",    x: 1, y: 3, w: 1, h: 1, title: "Processing Hub",         description: "A wide junction lined with dark monitors and branching conduits. Three passages lead deeper into the maintenance ring.",                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#17151a", discoveryText: "Your footsteps ring off the deck plating.", terminalId: "proc_hub_terminal" },
     { id: "scriptorium",    x: 0, y: 3, w: 1, h: 1, title: "Records Bay",            description: "Shelves of outdated storage cores lean against walls slick with coolant seepage. Half the ceiling panels have buckled.",                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#19141f", discoveryText: "Something shifts behind the fallen rack.",        encounterId: "scriptorium_rats" },
     { id: "moon_shrine",    x: 0, y: 2, w: 1, h: 1, title: "Coolant Alcove",         description: "A recessed alcove beside a sealed duct junction. Emergency supply shelving still holds a few kits behind a cracked safety panel.",                                          wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1b1822", discoveryText: "The alcove hums faintly from residual coolant flow.", loot: ["medkit"] },
     { id: "armory",         x: 2, y: 3, w: 1, h: 1, title: "Equipment Locker",       description: "Collapsed racks and dented lockers. A suit of salvaged impact plating survived the neglect, still hanging on its pegs.",                                                   wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1a1715", discoveryText: "A steady drip taps on dented plating.",            loot: ["impact_plating", "medkit"] },
@@ -174,6 +174,62 @@ export const quests: QuestDef[] = [
   }
 ];
 
+// ── NPCs ──────────────────────────────────────────────────────────────────────
+
+export const npcs: NPC[] = [
+  {
+    id: "cdr_vasek",
+    name: "Commander Vasek",
+    role: "Station Commander, West Ring",
+    portraitAssetId: undefined,
+    dialogue: [
+      {
+        id: "vasek_01",
+        text: "You made it through the airlock. Good. The ring has been degrading faster than anyone's willing to admit on the official logs.",
+        nextId: "vasek_02"
+      },
+      {
+        id: "vasek_02",
+        text: "Biosensors are flagging the storage bays. Coolant loop is compromised somewhere in the lower sections. And I've had one confirmed sighting of an unauthorised presence on the upper catwalks.",
+        nextId: "vasek_03"
+      },
+      {
+        id: "vasek_03",
+        text: "The transit key authorises the upper bulkheads — if you can recover it from the flooded corridor, the whole ring opens up. The signal core chamber is your objective. Get the beacon out."
+      }
+    ]
+  }
+];
+
+// ── Terminals ─────────────────────────────────────────────────────────────────
+
+export const terminals: Terminal[] = [
+  {
+    id: "proc_hub_terminal",
+    title: "Processing Hub — Station Log",
+    logText: `STATION WEST — MAINTENANCE LOG — CYCLE 47
+
+> COOLANT LOOP STATUS: CRITICAL FAILURE, SECTORS 2-4
+  Last diagnostic: 14 cycles ago. Automated repair sequencers offline.
+  Manual intervention required. Authorisation: active personnel only.
+
+> TRANSIT KEY — LOCKER 7-B: NOT RETURNED
+  Last signed out: Cycle 31. Technician PRYA SANDOR, maintenance detail.
+  Status: MISSING. Replacement authorisation pending.
+
+> BIOSENSOR ALERTS: ELEVATED (STORAGE BAY SECTORS)
+  Species: indeterminate. Behaviour pattern: territorial.
+  Recommended response: standard containment protocol.
+
+> PERSONNEL COMPLEMENT: 3 OF 12 OPERATIONAL
+  Command authorises remaining personnel to act under standing orders.
+  Contact Station Command if situation changes.
+
+-- END LOG --`,
+    xpReward: 5
+  }
+];
+
 // ── Tablet messages ───────────────────────────────────────────────────────────
 
 export const messages: MessageDef[] = [
@@ -246,6 +302,8 @@ export interface WorldSeed {
   encounters: Encounter[];
   quests: QuestDef[];
   messages: MessageDef[];
+  npcs: NPC[];
+  terminals: Terminal[];
   assets: AssetManifest;
 }
 
@@ -260,5 +318,7 @@ export const worldSeed: WorldSeed = {
   encounters,
   quests,
   messages,
+  npcs,
+  terminals,
   assets: assetManifest
 };

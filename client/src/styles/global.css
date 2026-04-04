@@ -754,6 +754,109 @@ button:disabled {
   color: #90e0ff;
 }
 
+/* Interact button */
+.interact-btn {
+  margin-top: 0.6rem;
+  width: 100%;
+  border-color: rgba(48, 180, 255, 0.4);
+  color: #60c8ff;
+}
+
+.interact-btn:hover:not(:disabled) {
+  border-color: #30b4ff;
+  background: linear-gradient(180deg, rgba(8, 24, 48, 0.92), rgba(4, 14, 30, 0.96));
+  box-shadow: 0 0 10px rgba(48, 180, 255, 0.35);
+  color: #90e0ff;
+}
+
+/* Interact / NPC / Terminal modal */
+.interact-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 8, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.18s ease both;
+}
+
+.interact-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  max-width: 38rem;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: rgba(4, 12, 24, 0.97);
+  border: 1px solid rgba(48, 180, 255, 0.38);
+  border-top: 2px solid rgba(48, 180, 255, 0.7);
+  border-radius: 3px;
+  padding: 2rem 2.2rem;
+  box-shadow: 0 0 60px rgba(30, 120, 255, 0.14), 0 0 120px rgba(30, 120, 255, 0.06);
+}
+
+.interact-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4ab8e8;
+  margin: 0;
+}
+
+.interact-heading {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 1.15rem;
+  color: #c0e8ff;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.interact-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.interact-body p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.interact-terminal-log {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  color: #7ecfa0;
+  background: rgba(0, 20, 10, 0.55);
+  border: 1px solid rgba(80, 200, 120, 0.2);
+  border-radius: 2px;
+  padding: 1rem 1.2rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.55;
+}
+
+.interact-modal button {
+  align-self: flex-end;
+  margin-top: 0.4rem;
+  border-color: rgba(48, 180, 255, 0.45);
+  color: #60c8ff;
+}
+
+.interact-modal button:hover:not(:disabled) {
+  border-color: #30b4ff;
+  background: linear-gradient(180deg, rgba(8, 28, 50, 0.92), rgba(4, 16, 32, 0.96));
+  box-shadow: 0 0 10px rgba(48, 180, 255, 0.35);
+  color: #90e0ff;
+}
+
 /* Responsive */
 @media (max-width: 1180px) {
   .app-shell.has-run {

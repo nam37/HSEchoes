@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { CombatPayload, InventoryPayload, MovePayload } from "../../../shared/src/index.js";
+import type { CombatPayload, InteractPayload, InventoryPayload, MovePayload } from "../../../shared/src/index.js";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/authMiddleware.js";
 
 function uid(request: unknown): string {
@@ -46,5 +46,10 @@ export async function registerGameRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { slotId: string } }>("/api/game/run/:slotId/messages/read", async (request) => ({
     ok: true,
     data: await app.gameService.markMessagesRead(request.params.slotId, uid(request))
+  }));
+
+  app.post<{ Body: InteractPayload }>("/api/game/interact", async (request) => ({
+    ok: true,
+    data: await app.gameService.interact(request.body.slotId, uid(request))
   }));
 }

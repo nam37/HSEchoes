@@ -17,9 +17,11 @@ import {
   type Direction,
   type Enemy,
   type Encounter,
+  type InteractResult,
   type Item,
   type MessageDef,
   type MovePayload,
+  type NPC,
   type PlayerState,
   type Quest,
   type QuestDef,
@@ -27,6 +29,7 @@ import {
   type RunState,
   type SaveSummary,
   type TabletMessage,
+  type Terminal,
   type Zone,
   type ZoneRoom
 } from "../../../shared/src/index.js";
@@ -46,6 +49,8 @@ export class GameService {
   private items!: Map<string, Item>;
   private quests!: Map<string, QuestDef>;
   private messageDefs!: Map<string, MessageDef>;
+  private npcs!: Map<string, NPC>;
+  private terminals!: Map<string, Terminal>;
   private meta!: MetaRow;
 
   private constructor(
@@ -62,6 +67,8 @@ export class GameService {
     instance.items       = await instance.loadMap<Item>("item");
     instance.quests      = await instance.loadMap<QuestDef>("quest");
     instance.messageDefs = await instance.loadMap<MessageDef>("message");
+    instance.npcs        = await instance.loadMap<NPC>("npc");
+    instance.terminals   = await instance.loadMap<Terminal>("terminal");
     return instance;
   }
 
@@ -73,6 +80,8 @@ export class GameService {
     this.items       = await this.loadMap<Item>("item");
     this.quests      = await this.loadMap<QuestDef>("quest");
     this.messageDefs = await this.loadMap<MessageDef>("message");
+    this.npcs        = await this.loadMap<NPC>("npc");
+    this.terminals   = await this.loadMap<Terminal>("terminal");
   }
 
   private getZone(zoneId: string): Zone {
@@ -117,6 +126,8 @@ export class GameService {
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()],
+      npcs:       [...this.npcs.values()],
+      terminals:  [...this.terminals.values()],
       assets: this.meta.assets,
       saves:  await this.listSaves(userId)
     };
@@ -184,11 +195,12 @@ export class GameService {
         inventory: ["maintenance_tool"],
         equipped: { weapon: "maintenance_tool", armor: null, accessory: null }
       },
-      combat:             null,
-      activeQuests:       [],
-      completedQuestIds:  [],
-      completedQuests:    [],
-      messages:           [],
+      combat:                   null,
+      activeQuests:             [],
+      completedQuestIds:        [],
+      completedQuests:          [],
+      messages:                 [],
+      interactedTerminalIds:    [],
       log:       ["You cycle through the maintenance airlock and descend into the ring."],
       createdAt: now,
       updatedAt: now
@@ -432,6 +444,61 @@ export class GameService {
     return { run, message: "Progress saved." };
   }
 
+  // ── Interact ─────────────────────────────────────────────────────────────
+
+  async interact(slotId: string, userId: string): Promise<InteractResult> {
+    const run = await this.readRun(slotId, userId);
+    if (run.mode === "combat") {
+      return { run, kind: "none", message: "Finish the fight first." };
+    }
+
+    const zone = this.getZone(run.zoneId);
+    const room = findRoomContaining(zone, run.posX, run.posY);
+    if (!room) {
+      return { run, kind: "none", message: "Nothing to interact with here." };
+    }
+
+    if (room.npcId) {
+      const npc = this.npcs.get(room.npcId);
+      if (!npc) return { run, kind: "none", message: "Nothing to interact with here." };
+      return {
+        run,
+        kind:    "npc",
+        npcId:   npc.id,
+        npcName: npc.name,
+        npcRole: npc.role,
+        lines:   npc.dialogue
+      };
+    }
+
+    if (room.terminalId) {
+      const terminal = this.terminals.get(room.terminalId);
+      if (!terminal) return { run, kind: "none", message: "Nothing to interact with here." };
+
+      const firstTime = !run.interactedTerminalIds.includes(terminal.id);
+      if (firstTime) {
+        run.interactedTerminalIds = unique([...run.interactedTerminalIds, terminal.id]);
+        if (terminal.xpReward) {
+          this.awardXp(run, terminal.xpReward);
+        }
+        run.log = pushLog(run.log, `You access the terminal: ${terminal.title}.`);
+        this.checkObjectives(run, { type: "terminal_interact", targetId: terminal.id });
+        this.touch(run);
+        await this.persistRun(run, userId);
+      }
+
+      return {
+        run,
+        kind:          "terminal",
+        terminalId:    terminal.id,
+        terminalTitle: terminal.title,
+        terminalText:  terminal.logText
+      };
+    }
+
+    return { run, kind: "none", message: "Nothing to interact with here." };
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────
 
   /** Apply room effects. Returns zone-transition message if a zone boundary was crossed, undefined otherwise. */
@@ -578,10 +645,11 @@ export class GameService {
     if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
     const run = JSON.parse(rows[0].json) as RunState;
     // Migrate older saves that predate these systems
-    run.activeQuests      ??= [];
-    run.completedQuestIds ??= [];
-    run.completedQuests   ??= [];
-    run.messages          ??= [];
+    run.activeQuests           ??= [];
+    run.completedQuestIds      ??= [];
+    run.completedQuests        ??= [];
+    run.messages               ??= [];
+    run.interactedTerminalIds  ??= [];
     return run;
   }
 
@@ -703,9 +771,10 @@ export class GameService {
       for (const obj of quest.objectives) {
         if (obj.completed) continue;
         const matches =
-          (obj.type === "reach_room"    && event.type === "room_entry"   && event.targetId === obj.targetId) ||
-          (obj.type === "defeat_enemy"  && event.type === "enemy_defeat" && event.targetId === obj.targetId) ||
-          (obj.type === "collect_item"  && event.type === "item_collect" && event.targetId === obj.targetId);
+          (obj.type === "reach_room"         && event.type === "room_entry"       && event.targetId === obj.targetId) ||
+          (obj.type === "defeat_enemy"       && event.type === "enemy_defeat"     && event.targetId === obj.targetId) ||
+          (obj.type === "collect_item"       && event.type === "item_collect"     && event.targetId === obj.targetId) ||
+          (obj.type === "interact_terminal"  && event.type === "terminal_interact" && event.targetId === obj.targetId);
         if (matches) {
           obj.completed = true;
           changed = true;
@@ -759,9 +828,10 @@ function unique<T>(values: T[]): T[] {
 
 type QuestEvent =
   | { type: "game_start" }
-  | { type: "room_entry";   targetId: string }
-  | { type: "enemy_defeat"; targetId: string }
-  | { type: "item_collect"; targetId: string };
+  | { type: "room_entry";        targetId: string }
+  | { type: "enemy_defeat";      targetId: string }
+  | { type: "item_collect";      targetId: string }
+  | { type: "terminal_interact"; targetId: string };
 
 type MessageEvent =
   | { type: "game_start" }

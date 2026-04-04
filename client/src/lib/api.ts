@@ -4,6 +4,8 @@ import type {
   CombatPayload,
   Encounter,
   Enemy,
+  InteractPayload,
+  InteractResult,
   InventoryPayload,
   Item,
   MovePayload,
@@ -85,6 +87,7 @@ export const api = {
   }),
   saveRun: (slotId: string) => request<RunEnvelope>(`/api/game/save/${slotId}`, { method: "POST" }),
   markMessagesRead: (slotId: string) => request<RunEnvelope>(`/api/game/run/${slotId}/messages/read`, { method: "POST" }),
+  interact: (payload: InteractPayload) => request<InteractResult>("/api/game/interact", { method: "POST", body: JSON.stringify(payload) }),
 
   // Admin — runs
   adminStats: () => request<AdminStats>("/api/admin/stats"),

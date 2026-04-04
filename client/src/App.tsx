@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, startTransition } from "react";
-import type { BootstrapData, Direction, Item, RunState, Zone, ZoneRoom } from "../../shared/src/index";
+import type { BootstrapData, Direction, InteractResult, Item, NPC, RunState, Terminal, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
 import { api } from "./lib/api";
 import { DungeonViewport } from "./components/DungeonViewport";
@@ -16,6 +16,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [error, setError] = useState<string | null>(null);
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletTab, setTabletTab] = useState<"messages" | "assignments" | "map">("messages");
+  const [interactResult, setInteractResult] = useState<InteractResult | null>(null);
   const prevZoneIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +43,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     [zone, run]
   );
   const itemMap = useMemo(() => new Map((bootstrap?.items ?? []).map((item) => [item.id, item])), [bootstrap]);
+  const npcMap = useMemo(() => new Map((bootstrap?.npcs ?? []).map((npc) => [npc.id, npc])), [bootstrap]);
+  const terminalMap = useMemo(() => new Map((bootstrap?.terminals ?? []).map((t) => [t.id, t])), [bootstrap]);
   const selectedItem = selectedItemId ? itemMap.get(selectedItemId) ?? null : null;
 
   async function refreshBootstrap(preserveStatus = false): Promise<void> {
@@ -244,10 +247,32 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
   }
 
+  async function handleInteract(): Promise<void> {
+    if (!run) return;
+    try {
+      setBusy(true);
+      const result = await api.interact({ slotId: run.slotId });
+      startTransition(() => {
+        setRun(result.run);
+        if (result.kind !== "none") {
+          setInteractResult(result);
+        } else {
+          setStatusText(result.message ?? "Nothing to interact with here.");
+        }
+      });
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const unreadCount = run?.messages.filter(m => !m.read).length ?? 0;
 
   const inventory = run?.player.inventory.map((itemId) => itemMap.get(itemId)).filter(Boolean) as Item[] | undefined;
   const currentExits = zone && run ? describeExits(zone, run.posX, run.posY, run, itemMap) : [];
+  const roomNpc: NPC | null = currentRoom?.npcId ? npcMap.get(currentRoom.npcId) ?? null : null;
+  const roomTerminal: Terminal | null = currentRoom?.terminalId ? terminalMap.get(currentRoom.terminalId) ?? null : null;
 
   return (
     <div className={run ? "app-shell has-run" : "app-shell landing-shell"}>
@@ -335,6 +360,32 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             />
           )}
 
+          {interactResult && interactResult.kind !== "none" && (
+            <div className="interact-overlay" role="dialog" aria-modal="true" aria-label="Interaction">
+              <div className="interact-modal">
+                {interactResult.kind === "npc" && (
+                  <>
+                    <p className="interact-eyebrow">{interactResult.npcRole}</p>
+                    <h2 className="interact-heading">{interactResult.npcName}</h2>
+                    <div className="interact-body">
+                      {(interactResult.lines ?? []).map((line) => (
+                        <p key={line.id}>{line.text}</p>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {interactResult.kind === "terminal" && (
+                  <>
+                    <p className="interact-eyebrow">Terminal Access</p>
+                    <h2 className="interact-heading">{interactResult.terminalTitle}</h2>
+                    <pre className="interact-terminal-log">{interactResult.terminalText}</pre>
+                  </>
+                )}
+                <button onClick={() => setInteractResult(null)}>Close</button>
+              </div>
+            </div>
+          )}
+
           <aside className="sidebar">
             <section className="hud-card explorer-card">
               <div className="panel-heading-row">
@@ -378,6 +429,15 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                   <div className="exit-list">
                     {currentExits.map((entry) => <p key={entry}>{entry}</p>)}
                   </div>
+                  {(roomNpc || roomTerminal) && (
+                    <button
+                      className="interact-btn"
+                      onClick={() => void handleInteract()}
+                      disabled={busy || run.mode === "combat"}
+                    >
+                      {roomNpc ? `Talk to ${roomNpc.name}` : `Access Terminal`}
+                    </button>
+                  )}
                 </>
               )}
             </section>
