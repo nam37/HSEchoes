@@ -11,7 +11,7 @@ interface Toast {
 const TOAST_DURATION = 7000;
 
 function isNotification(text: string): boolean {
-  return /^(\+\d|LEVEL UP|Assignment received:|New message from|Objective complete:|Assignment complete:|You find |You claim |You access the terminal|Progress saved\.)/.test(text);
+  return /^(LEVEL UP|Assignment received:|New message from|Objective complete:|Assignment complete:|You find |You claim |You access the terminal|Progress saved\.|\+\d+ credits)/.test(text);
 }
 
 function getNewLogEntries(prevLog: string[], newLog: string[]): string[] {
