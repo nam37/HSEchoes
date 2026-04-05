@@ -38,6 +38,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [tabletTab, setTabletTab] = useState<"messages" | "assignments" | "map">("messages");
   const [interactResult, setInteractResult] = useState<InteractResult | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [seenQuestIds, setSeenQuestIds] = useState<Set<string>>(new Set());
   const prevLogRef = useRef<string[]>([]);
   const prevZoneIdRef = useRef<string | null>(null);
 
@@ -128,6 +129,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       prevLogRef.current = [];
       const envelope = await api.newRun();
       setToasts([]);  // reset before pushing new run notifications
+      setSeenQuestIds(new Set());
       startTransition(() => {
         setRun(envelope.run);
         // Ribbon shows the entry flavour line; notifications go to toasts
@@ -337,7 +339,13 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
   }
 
-  const unreadCount = run?.messages.filter(m => !m.read).length ?? 0;
+  const unseenQuestCount = run?.activeQuests.filter(q => !seenQuestIds.has(q.id)).length ?? 0;
+  const unreadCount = (run?.messages.filter(m => !m.read).length ?? 0) + unseenQuestCount;
+
+  const markAssignmentsSeen = useCallback(() => {
+    if (!run) return;
+    setSeenQuestIds(prev => new Set([...prev, ...run.activeQuests.map(q => q.id)]));
+  }, [run]);
 
   const inventory = run?.player.inventory.map((itemId) => itemMap.get(itemId)).filter(Boolean) as Item[] | undefined;
   const currentExits = zone && run ? describeExits(zone, run.posX, run.posY, run, itemMap) : [];
@@ -451,6 +459,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               zone={zone}
               onClose={() => setTabletOpen(false)}
               onMarkRead={() => void handleMarkRead()}
+              onViewAssignments={markAssignmentsSeen}
               initialTab={tabletTab}
             />
           )}

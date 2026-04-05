@@ -9,17 +9,23 @@ interface Props {
   zone: Zone;
   onClose: () => void;
   onMarkRead: () => void;
+  onViewAssignments: () => void;
   initialTab?: Tab;
 }
 
-export function TabletOverlay({ run, zone, onClose, onMarkRead, initialTab = "messages" }: Props): JSX.Element {
+export function TabletOverlay({ run, zone, onClose, onMarkRead, onViewAssignments, initialTab = "messages" }: Props): JSX.Element {
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  // Mark assignments seen when the overlay opens on the assignments tab
+  React.useEffect(() => {
+    if (initialTab === "assignments") onViewAssignments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleTabChange(next: Tab) {
     setTab(next);
-    if (next === "messages") {
-      onMarkRead();
-    }
+    if (next === "messages") onMarkRead();
+    if (next === "assignments") onViewAssignments();
   }
 
   const unreadCount = run.messages.filter(m => !m.read).length;
