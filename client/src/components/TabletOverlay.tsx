@@ -1,20 +1,21 @@
 import React, { useState } from "react";
-import type { Quest, TabletMessage, Zone, RunState } from "../../../shared/src/index";
+import type { Quest, TabletMessage, Zone, ZoneRoom, RunState } from "../../../shared/src/index";
 import { findRoomContaining, resolveEdgeType } from "../../../shared/src/index";
 
 type Tab = "messages" | "assignments" | "map";
 
 interface Props {
   run: RunState;
-  zone: Zone;
+  zones: Zone[];
   onClose: () => void;
   onMarkRead: () => void;
   onViewAssignments: () => void;
   initialTab?: Tab;
 }
 
-export function TabletOverlay({ run, zone, onClose, onMarkRead, onViewAssignments, initialTab = "messages" }: Props): JSX.Element {
+export function TabletOverlay({ run, zones, onClose, onMarkRead, onViewAssignments, initialTab = "messages" }: Props): JSX.Element {
   const [tab, setTab] = useState<Tab>(initialTab);
+  const currentZone = zones.find(z => z.id === run.zoneId) ?? zones[0] ?? null;
 
   // Mark assignments seen when the overlay opens on the assignments tab
   React.useEffect(() => {
@@ -72,7 +73,9 @@ export function TabletOverlay({ run, zone, onClose, onMarkRead, onViewAssignment
               completedQuests={run.completedQuests ?? []}
             />
           )}
-          {tab === "map" && <MapTab zone={zone} run={run} />}
+          {tab === "map" && currentZone && (
+            <MapTab zone={currentZone} zones={zones} run={run} />
+          )}
         </div>
       </div>
     </div>
@@ -120,8 +123,12 @@ function MessagesTab({ messages }: { messages: TabletMessage[] }): JSX.Element {
               <p className="msg-detail-time">{active.timestamp}</p>
             </div>
             <div className="msg-detail-body">
-              {active.body.split("\n").map((line, i) => (
-                <p key={i}>{line || <>&nbsp;</>}</p>
+              {active.body.split(/\n\n+/).map((para, i) => (
+                <p key={i}>
+                  {para.split("\n").map((line, j) =>
+                    j === 0 ? line : <React.Fragment key={j}><br />{line}</React.Fragment>
+                  )}
+                </p>
               ))}
             </div>
           </>
@@ -180,6 +187,7 @@ function AssignmentsTab({ activeQuests, completedQuests }: { activeQuests: Quest
 
 // ── Map tab ───────────────────────────────────────────────────────────────────
 
+type MapView = "zones" | "detail";
 type CellFace = "wall" | "open" | "door" | "gate";
 
 function faceBorder(face: CellFace): string {
@@ -192,14 +200,103 @@ function faceBorder(face: CellFace): string {
 }
 
 const FACING_CHAR: Record<string, string> = { north: "▲", east: "▶", south: "▼", west: "◀" };
-const CELL = 48; // px per cell in the full map — matches admin zone editor scale
+const CELL = 48;
 
-function MapTab({ zone, run }: { zone: Zone; run: RunState }): JSX.Element {
+function MapTab({ zone, zones, run }: { zone: Zone; zones: Zone[]; run: RunState }): JSX.Element {
+  const [view, setView] = useState<MapView>("detail");
+
+  return (
+    <div className="tablet-map-tab">
+      <div className="tablet-map-view-toggle">
+        <button
+          className={`map-view-btn${view === "zones" ? " active" : ""}`}
+          onClick={() => setView("zones")}
+        >
+          Zones Overview
+        </button>
+        <button
+          className={`map-view-btn${view === "detail" ? " active" : ""}`}
+          onClick={() => setView("detail")}
+        >
+          Current Zone
+        </button>
+      </div>
+
+      {view === "zones"
+        ? <ZonesOverview zones={zones} run={run} />
+        : <ZoneDetail zone={zone} run={run} />
+      }
+    </div>
+  );
+}
+
+// ── Zones overview ────────────────────────────────────────────────────────────
+
+function ZonesOverview({ zones, run }: { zones: Zone[]; run: RunState }): JSX.Element {
+  // Collect all zone IDs the player has visited (any room discovered in that zone)
+  const visitedIds = new Set(
+    zones
+      .filter(z => z.rooms.some(r => run.discoveredRoomIds.includes(r.id)))
+      .map(z => z.id)
+  );
+
+  // Collect zone-to-zone links discovered by the player
+  const discoveredLinks = new Set<string>();
+  for (const z of zones) {
+    if (!visitedIds.has(z.id)) continue;
+    for (const room of z.rooms) {
+      if (room.zoneLink && run.discoveredRoomIds.includes(room.id)) {
+        discoveredLinks.add(`${z.id}→${room.zoneLink.toZoneId}`);
+      }
+    }
+  }
+
+  const visitedZones = zones.filter(z => visitedIds.has(z.id));
+
+  if (visitedZones.length === 0) {
+    return <div className="tablet-empty"><p>No zones surveyed.</p></div>;
+  }
+
+  return (
+    <div className="zones-overview">
+      {zones.map((z, i) => {
+        const visited = visitedIds.has(z.id);
+        const isCurrent = z.id === run.zoneId;
+        const roomsVisited = z.rooms.filter(r => run.discoveredRoomIds.includes(r.id)).length;
+        const hasLinkDown = zones[i + 1] && (
+          discoveredLinks.has(`${z.id}→${zones[i + 1].id}`) ||
+          // Also show connector if next zone is visited (implies the link was traversed)
+          visitedIds.has(zones[i + 1].id)
+        );
+
+        if (!visited) return null;
+
+        return (
+          <React.Fragment key={z.id}>
+            <div className={`zone-card${isCurrent ? " zone-card--current" : ""}`}>
+              <span className="zone-card-index">{String(i + 1).padStart(2, "0")}</span>
+              <div className="zone-card-info">
+                <span className="zone-card-title">{z.title}</span>
+                <span className="zone-card-progress">{roomsVisited}/{z.rooms.length} rooms surveyed</span>
+              </div>
+              {isCurrent && <span className="zone-card-active">● ACTIVE</span>}
+            </div>
+            {hasLinkDown && <div className="zone-connector">↓</div>}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Zone detail map ───────────────────────────────────────────────────────────
+
+function ZoneDetail({ zone, run }: { zone: Zone; run: RunState }): JSX.Element {
   const cells: JSX.Element[] = [];
 
   for (let y = 0; y < zone.gridH; y++) {
     for (let x = 0; x < zone.gridW; x++) {
-      const room = findRoomContaining(zone, x, y);
+      const room: ZoneRoom | null = findRoomContaining(zone, x, y) ?? null;
       const discovered = room ? run.discoveredRoomIds.includes(room.id) : false;
       const current = x === run.posX && y === run.posY;
 
@@ -234,7 +331,7 @@ function MapTab({ zone, run }: { zone: Zone; run: RunState }): JSX.Element {
   const total = zone.rooms.length;
 
   return (
-    <div className="tablet-map-tab">
+    <>
       <div className="tablet-map-header">
         <span className="tablet-map-zone">{zone.title}</span>
         <span className="tablet-map-progress">{discovered}/{total} rooms surveyed</span>
@@ -251,6 +348,6 @@ function MapTab({ zone, run }: { zone: Zone; run: RunState }): JSX.Element {
       {currentRoom && (
         <p className="tablet-map-room">Current: {currentRoom.title}</p>
       )}
-    </div>
+    </>
   );
 }

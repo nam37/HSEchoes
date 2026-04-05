@@ -200,9 +200,9 @@ showing the player, or zone transitions with narrative weight.
 - Each with appropriate stats, attack/defense values, and defeat text.
 
 ### 6.3 Item roster
-- Starting tool (replaces rusted blade)
+- Starting tool (replaces rusted blade - possibly already fixed)
 - Station medkit (consumable)
-- Salvaged armour (armor slot)
+- Salvaged armour (armor slot - possibly already fixed)
 - Sphereal sidearm (weapon slot, found on enemy ship)
 - Neodymium fragment (key item / story object, not equippable)
 
@@ -216,7 +216,7 @@ showing the player, or zone transitions with narrative weight.
 
 *Goal: Make the slice feel like a real game, not a prototype.*
 
-### 7.1 Victory condition update
+### 7.1 Victory condition update (NOTE: Possibly already addressed)
 - Current: find Star Sigil, place on altar (fantasy placeholder).
 - Replace with: survive the station attack, board the enemy ship, survive Echo Transit,
   receive first contact from Aligned Forces inside the Sphere.
@@ -227,6 +227,7 @@ showing the player, or zone transitions with narrative weight.
 ### 7.3 Landing page
 - Replace "Retro Dungeon PoC" branding with actual game title treatment.
 - Intro text should reflect the actual setting opening.
+- "Admin" added to the title screen when loading /admin .
 
 ### 7.4 Responsive layout
 - Ensure the game is playable on a standard laptop screen without scrollbars.
@@ -235,37 +236,25 @@ showing the player, or zone transitions with narrative weight.
 ### 7.5 Audio stubs (optional)
 - Placeholder ambient sound or silence-by-design decision made.
 - Not required for the slice but worth deciding intentionally.
+- Music:
+- - Title screen theme song.
+- - Exploration (general gameplay)
+- - Combat
+- - Character Death Music
+- - End Game "Credits
+- Music should crossfade and be low volume
+- Controled by "Settings" options from the main menu (optional)
 
----
+### 7.5 Re-Work Terminal > Map 
+- Terminal > Map should containt 2 maps: 
+- - Zones (Visualised as rough outline with found entry and exit points, only discovered zones)
+- - Current Zone Detailed map
+- Not required for the slice but worth deciding intentionally.
 
-## Implementation Order Summary
-
-| Phase | Description | Complexity | Priority |
-|-------|-------------|------------|----------|
-| 1 | Foundation cleanup | Low | Immediate |
-| 2 | Character advancement | Medium | High |
-| 3 | Quest system | High | High |
-| 4 | Tablet system | High | High |
-| 5 | NPCs and dialogue | Medium | Medium |
-| 6 | Zone content and story | High | High |
-| 7 | Polish and slice completion | Medium | Final |
-| 8 | Save slot system | Medium | Post-slice |
-| 9 | Visual polish | High | Post-slice |
-
-Phases 1–4 are purely systemic and can be built before any new content exists.
-Phases 5–6 require both systems and authored content in parallel.
-Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
-Phase 8 is post-slice production readiness and does not block the vertical slice.
-Phase 8 is final polish and not needed for functional testing.
-
-Next Steps:
-- Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in
-`docs/Player Tablet.md`.
-- Additional Zones
-- Further the story using the added game mechanics above.
-
-
----
+### 7.6 Small Tweaks
+- Buttons like "Talk to Commander Vasek" and "Access Terminal" are too easy to not notice. They need to be more obvious.
+- Tablet > Messages often, possibly always, have too much vertical spacing between paragraphs.
+- Zone Map have too many 1x1 rooms. There should be more variateion in room size.
 
 ---
 
@@ -312,8 +301,6 @@ language and UX need to change.
 - Keep the "All Runs" admin view as internal superuser tooling — it is useful for debugging and
   moderation and should not be removed.
 - No player-facing equivalent is needed.
-
----
 
 ---
 
@@ -430,6 +417,38 @@ Before any asset production begins, produce `docs/art_spec.md` defining:
 - Add a background image or illustrated element to the victory modal (signal transmission,
   distant Hollow Star).
 - Keep the existing text and button layout; art goes behind or alongside it.
+
+
+
+---
+
+
+## Implementation Order Summary
+
+| Phase | Description | Complexity | Priority |
+|-------|-------------|------------|----------|
+| 1 | Foundation cleanup | Low | Immediate |
+| 2 | Character advancement | Medium | High |
+| 3 | Quest system | High | High |
+| 4 | Tablet system | High | High |
+| 5 | NPCs and dialogue | Medium | Medium |
+| 6 | Zone content and story | High | High |
+| 7 | Polish and slice completion | Medium | Final |
+| 8 | Save slot system | Medium | Post-slice |
+| 9 | Visual polish | High | Post-slice |
+
+Phases 1–4 are purely systemic and can be built before any new content exists.
+Phases 5–6 require both systems and authored content in parallel.
+Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
+Phase 8 is post-slice production readiness and does not block the vertical slice.
+Phase 9 is final polish and not needed for functional testing.
+
+Next Steps:
+- Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in
+`docs/Player Tablet.md`.
+- Additional Zones
+- Further the story using the added game mechanics above.
+
 
 ---
 

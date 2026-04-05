@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import type { BootstrapData, Direction, InteractResult, Item, NPC, RunState, Terminal, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
+import { useAudio } from "./hooks/useAudio";
 
 interface Toast {
   id: string;
@@ -39,12 +40,27 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [interactResult, setInteractResult] = useState<InteractResult | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [seenQuestIds, setSeenQuestIds] = useState<Set<string>>(new Set());
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const prevLogRef = useRef<string[]>([]);
   const prevZoneIdRef = useRef<string | null>(null);
+  const audio = useAudio();
 
   useEffect(() => {
     void refreshBootstrap();
   }, []);
+
+  // Audio track switching
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!run) {
+      audio.play("title");
+      return;
+    }
+    if (run.status === "defeat") { audio.play("death");   return; }
+    if (run.status === "victory") { audio.play("victory"); return; }
+    if (run.mode === "combat")    { audio.play("combat");  return; }
+    audio.play("explore");
+  }, [run?.status, run?.mode]);
 
   // Detect zone transitions and trigger status ribbon flash
   useEffect(() => {
@@ -359,8 +375,11 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           <header className="hero-panel hero-panel-landing">
             <div>
               <p className="eyebrow">Frontier Station — West Ring</p>
-              <h1>{bootstrap?.title ?? "Echoes of the Hollow Star"}</h1>
-              <p className="intro-copy">{bootstrap?.intro ?? "Navigate the maintenance ring and reach the signal core."}</p>
+              <h1>
+                {bootstrap?.title ?? "Echoes of the Hollow Star"}
+                {isAdmin && <span className="title-admin-badge">Admin</span>}
+              </h1>
+              <p className="intro-copy">{bootstrap?.intro ?? "Routine maintenance shift. Station West, sublevel 3."}</p>
             </div>
             <div className="hero-actions">
               <button onClick={() => void createRun()} disabled={busy}>Begin!</button>
@@ -370,10 +389,36 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               {isAdmin && (
                 <button className="btn-secondary" onClick={() => { window.location.href = "/admin"; }}>Admin</button>
               )}
+              <button className="btn-secondary" onClick={() => setSettingsOpen(s => !s)}>Settings</button>
               {onSignOut && (
                 <button className="btn-secondary" onClick={onSignOut}>Sign Out</button>
               )}
             </div>
+            {settingsOpen && (
+              <div className="settings-panel">
+                <p className="settings-label">Music</p>
+                <div className="settings-row">
+                  <button
+                    className={`settings-toggle${audio.enabled ? " active" : ""}`}
+                    onClick={audio.toggleEnabled}
+                  >
+                    {audio.enabled ? "On" : "Off"}
+                  </button>
+                  <input
+                    type="range"
+                    className="settings-slider"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={audio.volume}
+                    onChange={e => audio.setVolume(parseFloat(e.target.value))}
+                    disabled={!audio.enabled}
+                    aria-label="Music volume"
+                  />
+                  <span className="settings-vol-label">{Math.round(audio.volume * 100)}%</span>
+                </div>
+              </div>
+            )}
           </header>
           {error && <p className="error-banner">{error}</p>}
         </main>
@@ -382,19 +427,19 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           {run.status === "victory" && (
             <div className="death-overlay" role="dialog" aria-modal="true" aria-label="Victory">
               <div className="death-modal victory-modal">
-                <p className="death-eyebrow">Mission complete</p>
+                <p className="death-eyebrow">Contact established</p>
                 <h2 className="death-heading victory-heading">Signal recovered.</h2>
-                <p className="death-sub">{run.log.at(-1) ?? "The Hollow Star falls silent."}</p>
-                <button onClick={() => void createRun()} disabled={busy}>Descend Again</button>
+                <p className="death-sub">{run.log.at(-1) ?? "Transmission confirmed. You are inside the Hollow Star."}</p>
+                <button onClick={() => void createRun()} disabled={busy}>Begin Again</button>
               </div>
             </div>
           )}
           {run.status === "defeat" && (
             <div className="death-overlay" role="dialog" aria-modal="true" aria-label="Game over">
               <div className="death-modal">
-                <p className="death-eyebrow">Signal lost</p>
+                <p className="death-eyebrow">Biosign terminated</p>
                 <h2 className="death-heading">You are dead.</h2>
-                <p className="death-sub">{run.log.at(-1) ?? "The darkness claims you."}</p>
+                <p className="death-sub">{run.log.at(-1) ?? "Your lifesign drops from the station network. No recovery signal."}</p>
                 <button onClick={() => void createRun()} disabled={busy}>Restart</button>
                 {bootstrap?.saves?.[0] && (
                   <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
@@ -453,10 +498,10 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             )}
           </section>
 
-          {tabletOpen && zone && (
+          {tabletOpen && (
             <TabletOverlay
               run={run}
-              zone={zone}
+              zones={bootstrap?.zones ?? []}
               onClose={() => setTabletOpen(false)}
               onMarkRead={() => void handleMarkRead()}
               onViewAssignments={markAssignmentsSeen}
