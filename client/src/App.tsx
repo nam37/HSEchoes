@@ -454,6 +454,19 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
               {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
             </div>
+            {roomNpc && run.mode !== "combat" && (
+              <div className="npc-presence">
+                <img
+                  className="npc-presence-portrait"
+                  src={roomNpc.portraitAssetId ?? "/portraits/npc-placeholder.svg"}
+                  alt=""
+                />
+                <div className="npc-presence-info">
+                  <span className="npc-presence-name">{roomNpc.name}</span>
+                  <span className="npc-presence-role">{roomNpc.role}</span>
+                </div>
+              </div>
+            )}
             {(roomNpc || roomTerminal) && run.mode !== "combat" && (
               <button
                 className="interact-btn stage-interact-btn"
@@ -514,6 +527,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               <div className="interact-modal">
                 {interactResult.kind === "npc" && (
                   <>
+                    {interactResult.npcPortrait && (
+                      <img className="interact-portrait" src={interactResult.npcPortrait} alt={interactResult.npcName} />
+                    )}
                     <p className="interact-eyebrow">{interactResult.npcRole}</p>
                     <h2 className="interact-heading">{interactResult.npcName}</h2>
                     <div className="interact-body">

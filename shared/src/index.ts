@@ -341,6 +341,7 @@ export interface InteractResult {
   npcId?: string;
   npcName?: string;
   npcRole?: string;
+  npcPortrait?: string;
   lines?: DialogueLine[];
   terminalId?: string;
   terminalTitle?: string;

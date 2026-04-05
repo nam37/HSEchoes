@@ -13,6 +13,20 @@ const clientDistRoot = path.resolve(process.cwd(), "dist", "client");
 const clientAssetRoot = path.join(clientDistRoot, "assets");
 const clientIndexPath = path.join(clientDistRoot, "index.html");
 
+/** Serve any subdirectory of dist/client as static files. */
+async function registerSubdirRoute(app: FastifyInstance, urlPrefix: string, diskDir: string): Promise<void> {
+  app.get<{ Params: { "*": string } }>(`${urlPrefix}/*`, async (request, reply) => {
+    const filePath = request.params["*"];
+    const candidate = path.resolve(diskDir, filePath);
+    if (!candidate.startsWith(diskDir) || !(await isFile(candidate))) {
+      reply.code(404).send({ ok: false, error: "Not found." });
+      return;
+    }
+    reply.header("Cache-Control", "public, max-age=31536000, immutable");
+    reply.type(contentTypeFor(candidate)).send(await readFile(candidate));
+  });
+}
+
 export async function buildApp(): Promise<FastifyInstance> {
   const sql = createDatabase();
   const app = Fastify({ logger: false });
@@ -23,6 +37,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.register(registerAuthProxy);
   app.register(registerGameRoutes);
   app.register(registerAdminRoutes);
+
+  // Serve public subdirectories
+  await registerSubdirRoute(app, "/music",     path.join(clientDistRoot, "music"));
+  await registerSubdirRoute(app, "/portraits", path.join(clientDistRoot, "portraits"));
 
   // Serve built client assets
   app.get<{ Params: { "*": string } }>("/assets/*", async (request, reply) => {
@@ -121,6 +139,10 @@ function contentTypeFor(filePath: string): string {
       return "font/woff2";
     case ".ico":
       return "image/x-icon";
+    case ".mp3":
+      return "audio/mpeg";
+    case ".ogg":
+      return "audio/ogg";
     default:
       return "application/octet-stream";
   }

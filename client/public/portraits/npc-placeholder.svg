@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <rect width="160" height="160" fill="#060d1a"/>
+  <rect x="3" y="3" width="154" height="154" fill="none" stroke="rgba(0,200,240,0.35)" stroke-width="1"/>
+  <path d="M3,3 L20,3 M3,3 L3,20" stroke="#00c8f0" stroke-width="2" fill="none" opacity="0.75"/>
+  <path d="M157,3 L140,3 M157,3 L157,20" stroke="#00c8f0" stroke-width="2" fill="none" opacity="0.75"/>
+  <path d="M3,157 L20,157 M3,157 L3,140" stroke="#00c8f0" stroke-width="2" fill="none" opacity="0.75"/>
+  <path d="M157,157 L140,157 M157,157 L157,140" stroke="#00c8f0" stroke-width="2" fill="none" opacity="0.75"/>
+  <ellipse cx="80" cy="64" rx="27" ry="30" fill="rgba(0,80,140,0.35)" stroke="rgba(0,200,240,0.45)" stroke-width="1"/>
+  <path d="M36,150 C36,116 56,106 80,106 C104,106 124,116 124,150" fill="rgba(0,80,140,0.35)" stroke="rgba(0,200,240,0.45)" stroke-width="1"/>
+  <text x="80" y="154" text-anchor="middle" font-family="'Courier New',monospace" font-size="7" fill="rgba(0,200,240,0.45)" letter-spacing="3">PERSONNEL</text>
+</svg>

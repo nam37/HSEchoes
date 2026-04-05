@@ -421,7 +421,7 @@ export const npcs: NPC[] = [
     id: "cdr_vasek",
     name: "Commander Vasek",
     role: "Station Commander, West Ring",
-    portraitAssetId: undefined,
+    portraitAssetId: "/portraits/npc-placeholder.svg",
     dialogue: [
       {
         id: "vasek_01",
@@ -464,7 +464,7 @@ export const npcs: NPC[] = [
     id: "tech_sandor",
     name: "Technician Sandor",
     role: "Station Maintenance Technician",
-    portraitAssetId: undefined,
+    portraitAssetId: "/portraits/npc-placeholder.svg",
     dialogue: [
       { id: "sandor_01", text: "Don't — I'm not a threat. I've been here since the alarm. Merrak sent me to check the power junction readings and then everything went wrong.", nextId: "sandor_02" },
       { id: "sandor_02", text: "I know about the components. I was the one who noticed first — I signed out a coil assembly for inspection in Cycle 31 and when I logged the neodymium content, the numbers didn't match. Someone had swapped the cores before I got there.", nextId: "sandor_03" },
@@ -475,7 +475,7 @@ export const npcs: NPC[] = [
     id: "security_chen",
     name: "Officer Chen",
     role: "Station Security, East Section",
-    portraitAssetId: undefined,
+    portraitAssetId: "/portraits/npc-placeholder.svg",
     dialogue: [
       { id: "chen_01", text: "Stay low. They came through the dock — maybe forty seconds of warning before the first ones were inside. I have never seen armour like that.", nextId: "chen_02" },
       { id: "chen_02", text: "They were not shooting everything. Moving fast, heading deeper — like they had a destination. Two of them broke off toward the industrial junction. The rest held the dock.", nextId: "chen_03" },

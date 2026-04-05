@@ -463,11 +463,12 @@ export class GameService {
       if (!npc) return { run, kind: "none", message: "Nothing to interact with here." };
       return {
         run,
-        kind:    "npc",
-        npcId:   npc.id,
-        npcName: npc.name,
-        npcRole: npc.role,
-        lines:   npc.dialogue
+        kind:       "npc",
+        npcId:      npc.id,
+        npcName:    npc.name,
+        npcRole:    npc.role,
+        npcPortrait: npc.portraitAssetId,
+        lines:      npc.dialogue
       };
     }
 
