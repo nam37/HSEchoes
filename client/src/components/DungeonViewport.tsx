@@ -84,7 +84,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 
     clearScene(scene);
 
-    const zone: Zone | undefined = bootstrap.zones[0];
+    const zone: Zone | undefined = bootstrap.zones.find(z => z.id === run.zoneId) ?? bootstrap.zones[0];
     if (!zone) {
       return;
     }

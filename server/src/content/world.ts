@@ -20,7 +20,9 @@ export const items: Item[] = [
   { id: "transit_key",      name: "Transit Key",       slot: "accessory", description: "A magnetic access fob that unlocks sealed bulkhead passages in this sector.",               iconPath: "/assets/ui/icon-moon-charm.png",  defenseBonus: 1, keyItem: true },
   { id: "medkit",           name: "Station Medkit",    slot: "consumable", description: "A standard-issue field kit. Restores 4 HP.",                                                iconPath: "/assets/ui/icon-amber-draught.png", healAmount: 4 },
   { id: "service_blade",    name: "Service Blade",     slot: "weapon",    description: "A cutting tool from the maintenance lockers, sharpened to an edge that means business.",     iconPath: "/assets/ui/icon-rusted-blade.png", attackBonus: 2 },
-  { id: "signal_core",      name: "Signal Core",       slot: "accessory", description: "A compact relay unit still broadcasting on an encrypted Aligned frequency.",                iconPath: "/assets/ui/icon-star-sigil.png",  attackBonus: 1, keyItem: true }
+  { id: "signal_core",      name: "Signal Core",       slot: "accessory", description: "A compact relay unit still broadcasting on an encrypted Aligned frequency.",                iconPath: "/assets/ui/icon-star-sigil.png",  attackBonus: 1, keyItem: true },
+  { id: "sphereal_sidearm",     name: "Sphereal Sidearm",      slot: "weapon",    description: "A compact directed-energy weapon recovered from a fallen boarder. The trigger feels strange under your fingers, but the output is unmistakable.", iconPath: "/assets/ui/icon-rusted-blade.png", attackBonus: 3 },
+  { id: "neodymium_fragment",   name: "Neodymium Fragment",    slot: "accessory", description: "A dense metallic component stripped from the raider's drive assembly. Something about its composition is unusual — it reads as neodymium on your scanner.", iconPath: "/assets/ui/icon-star-sigil.png", keyItem: true }
 ];
 
 // ── Enemies ───────────────────────────────────────────────────────────────────
@@ -29,7 +31,10 @@ export const enemies: Enemy[] = [
   { id: "rat_scavenger",   name: "Vermin Cluster",      maxHp: 6,  attack: 2, defense: 0, spritePath: "/assets/sprites/rat-scavenger.png",  introLine: "Something small and fast skitters out of the broken storage racks." },
   { id: "drowned_acolyte", name: "Corroded Unit",       maxHp: 8,  attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A malfunctioning maintenance drone drags itself upright from the flooded deck." },
   { id: "ashen_pilgrim",   name: "Station Drifter",     maxHp: 10, attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A figure in degraded EVA gear moves between the racks with unsettling purpose." },
-  { id: "bone_sentinel",   name: "Security Automaton",  maxHp: 12, attack: 4, defense: 1, spritePath: "/assets/sprites/bone-sentinel.png",  introLine: "An old security unit powers up in the dark, its optical array locking onto you." }
+  { id: "bone_sentinel",   name: "Security Automaton",  maxHp: 12, attack: 4, defense: 1, spritePath: "/assets/sprites/bone-sentinel.png",  introLine: "An old security unit powers up in the dark, its optical array locking onto you." },
+  { id: "feral_service_bot", name: "Feral Service Drone", maxHp: 8,  attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A maintenance drone lurches out of its charging bay, actuators sparking, operational protocols gone." },
+  { id: "sphereal_boarder",  name: "Sphereal Raider",     maxHp: 14, attack: 5, defense: 2, spritePath: "/assets/sprites/bone-sentinel.png",   introLine: "A figure in angular combat plating steps from the shadows. The armour design is unlike anything in Aligned inventory." },
+  { id: "sphereal_elite",    name: "Sphereal Combat Unit", maxHp: 18, attack: 6, defense: 3, spritePath: "/assets/sprites/bone-sentinel.png",   introLine: "A heavily armoured figure blocks the passage. Its visor is opaque. It does not speak." }
 ];
 
 // ── Encounters ────────────────────────────────────────────────────────────────
@@ -38,7 +43,12 @@ export const encounters: Encounter[] = [
   { id: "scriptorium_rats",   enemyId: "rat_scavenger",   intro: "A cluster of station vermin erupts from behind the toppled storage units, going straight for your pack.",                         victoryText: "They scatter back into the conduit gaps. Something small rolls out of the wreckage.",         defeatText: "They overwhelm you in the dark, small claws finding every opening.",                     canFlee: true,  rewardItemIds: ["medkit"],          once: true },
   { id: "flooded_acolyte",    enemyId: "drowned_acolyte", intro: "The coolant surface breaks and a corroded maintenance drone hauls itself upright, actuators grinding.",                            victoryText: "The unit seizes and drops. A transit key bobs to the surface in the slick.",               defeatText: "Coolant floods your helmet seals. The drone's weight holds you down.",                    canFlee: true,  rewardItemIds: ["transit_key"],     once: true },
   { id: "astral_pilgrim",     enemyId: "ashen_pilgrim",   intro: "The drifter spots you from the catwalk and drops down between you and the far corridor, cutting tool raised.",                    victoryText: "They collapse against the railing. A service blade clatters to the grating beside them.", defeatText: "The cutting tool finds the gap between your plates.",                                     canFlee: true,  rewardItemIds: ["service_blade"],   once: true },
-  { id: "reliquary_guardian", enemyId: "bone_sentinel",   intro: "The security automaton steps from its alcove and levels a restraint arm across the corridor. It is not asking.",                  victoryText: "It crashes to the deck, housing cracked. The signal core falls from its chassis housing.", defeatText: "The automaton pins you to the bulkhead. Restraint locks engage.",                         canFlee: false, rewardItemIds: ["signal_core"],     once: true }
+  { id: "reliquary_guardian", enemyId: "bone_sentinel",   intro: "The security automaton steps from its alcove and levels a restraint arm across the corridor. It is not asking.",                  victoryText: "It crashes to the deck, housing cracked. The signal core falls from its chassis housing.", defeatText: "The automaton pins you to the bulkhead. Restraint locks engage.",                         canFlee: false, rewardItemIds: ["signal_core"],     once: true },
+  { id: "ind_bot_encounter",   enemyId: "feral_service_bot", intro: "A maintenance drone detaches from its bay, sparks cascading off its frame. Its pathfinding is erratic but its cutting arm is not.",                                                                                        victoryText: "The drone stutters and collapses, actuators grinding to a halt. The machine deck is quiet again.", defeatText: "The cutting arm finds a gap in your kit. Systems failing.",                                                       canFlee: true,  rewardItemIds: [],                  once: true },
+  { id: "boarder_ambush",      enemyId: "sphereal_boarder",  intro: "A figure in angular combat plating drops from a ceiling duct and levels a weapon at your chest. It hasn't fired yet.",                                                                                                   victoryText: "The raider stumbles and goes down. Whatever they came for, they found something else.", defeatText: "The weapon fires at close range. You do not get up.",                                                                          canFlee: true,  rewardItemIds: [],                  once: true },
+  { id: "boarder_ambush_2",    enemyId: "sphereal_boarder",  intro: "Two corridors converge ahead. A second boarder holds the junction, cutting off the route forward.",                                                                                                                      victoryText: "The raider goes down hard. The route to the breach point is clear.", defeatText: "The raider holds the junction. You do not.",                                                                                                  canFlee: true,  rewardItemIds: [],                  once: true },
+  { id: "ship_corridor_fight", enemyId: "sphereal_boarder",  intro: "A raider at the far end of the ship corridor raises a weapon. Aboard their own vessel, they are not interested in prisoners.",                                                                                          victoryText: "The boarder falls. The corridor to the bridge is open.", defeatText: "On their own ship, they had the advantage. They used it.",                                                                                               canFlee: false, rewardItemIds: [],                  once: true },
+  { id: "bridge_guard_fight",  enemyId: "sphereal_elite",    intro: "The bridge door is blocked by a hulking figure in heavy plate. It has clearly been waiting. The weapon it carries is not standard issue.",                                                                              victoryText: "The combat unit crashes to the deck. A sidearm clatters loose from its holster. The bridge console is ahead.", defeatText: "The combat unit is faster and heavier than anything you have faced. It ends quickly.",                  canFlee: false, rewardItemIds: ["sphereal_sidearm"], once: true }
 ];
 
 // ── Zone: Station West — Maintenance Ring ─────────────────────────────────────
@@ -60,7 +70,7 @@ const TKEY  = { itemId: "transit_key", failureText: "The bulkhead panel flashes 
 export const hollowStarZone: Zone = {
   id: "zone_hollow_star",
   title: "Station West — Maintenance Ring",
-  gridW: 4,
+  gridW: 5,
   gridH: 5,
   rooms: [
     { id: "gate",           x: 1, y: 4, w: 1, h: 1, title: "Maintenance Airlock",    description: "Worn decking and stenciled hazard lines lead down into the station's lower maintenance ring. The outer seal has not opened in years.",                                     wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141012", discoveryText: "The airlock cycles behind you with a tired hiss.", npcId: "cdr_vasek" },
@@ -75,7 +85,8 @@ export const hollowStarZone: Zone = {
     { id: "astral_gallery", x: 1, y: 1, w: 1, h: 1, title: "Observation Mezzanine", description: "A mezzanine catwalk overlooks the service shaft below, its guard rails bent outward. The upper racks hold shadows that shift.",                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#102033", discoveryText: "Movement registers in the high shadows above the railing.", encounterId: "astral_pilgrim" },
     { id: "seal_niche",     x: 2, y: 1, w: 1, h: 1, title: "Ration Cache",           description: "A small recess shelters a locker of emergency rations, sealed against the station's recycled air. The lock is corroded but yields.",                                      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#151a2a", discoveryText: "The locker seal breaks with a sharp crack.",          loot: ["medkit"], prop: "brazier" },
     { id: "reliquary",      x: 3, y: 1, w: 1, h: 1, title: "Secure Cargo Hold",      description: "A reinforced hold, its blast door wrenched aside from the inside. Equipment manifests are pinned to the walls, most items checked off against a long absence.",            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1628", discoveryText: "A power-on cycle spins up somewhere in the dark.",     encounterId: "reliquary_guardian" },
-    { id: "star_sanctum",   x: 3, y: 0, w: 1, h: 1, title: "Signal Core Chamber",    description: "A circular chamber houses a derelict antenna array, its dish angled toward a fixed point in the dark beyond the station hull. The relay equipment is intact.",             wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#101a30", discoveryText: "The array indicators flicker green as you approach.", victory: true }
+    { id: "star_sanctum",   x: 3, y: 0, w: 1, h: 1, title: "Signal Core Chamber",    description: "A circular chamber houses a derelict antenna array, its dish angled toward a fixed point in the dark beyond the station hull. The relay equipment is intact.",             wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#101a30", discoveryText: "The array indicators flicker green as you approach.", victory: true },
+    { id: "east_threshold", x: 4, y: 2, w: 1, h: 1, title: "East Passage",            description: "A narrow inter-section corridor. The decking changes from maintenance-worn to industrial-grade plating. Beyond, the hum of heavy machinery is audible.",                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#16181e", zoneLink: { toZoneId: "zone_station_industrial", toRoomId: "ind_entry", entryX: 0, entryY: 1, facing: "east", transitionText: "You cross the section boundary into Station Industrial. The machinery is louder here." } }
   ],
   edges: [
     // ── Open passages ─────────────────────────────────────────────────────────
@@ -107,7 +118,120 @@ export const hollowStarZone: Zone = {
     // flooded(1,2) <-> obs_mezz(1,1):      h edge at (1,1) locked: transit_key
     { x: 1, y: 1, dir: "h", type: "door", requirement: TKEY },
     // long_corridor(3,2) <-> secure_hold(3,1): h edge at (3,1) locked: transit_key
-    { x: 3, y: 1, dir: "h", type: "door", requirement: TKEY }
+    { x: 3, y: 1, dir: "h", type: "door", requirement: TKEY },
+    // long_corridor(3,2) <-> east_threshold(4,2): v edge at (3,2)
+    { x: 3, y: 2, dir: "v", type: "open" }
+  ]
+};
+
+// ── Zone: Station Industrial ──────────────────────────────────────────────────
+
+export const stationIndustrialZone: Zone = {
+  id: "zone_station_industrial",
+  title: "Station West — Industrial Section",
+  gridW: 5,
+  gridH: 3,
+  rooms: [
+    { id: "ind_supervisor_office", x: 0, y: 0, w: 1, h: 1, title: "Shift Supervisor's Office",  description: "A cramped office with a terminal still active on the desk. Shift logs, anomaly reports, and a long list of unanswered requisition forms cover every surface.",                                         wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1a1518", discoveryText: "The chair is still warm.", npcId: "ind_supervisor_merrak" },
+    { id: "ind_relay_station",     x: 1, y: 0, w: 1, h: 1, title: "Relay Station",              description: "A junction room packed with signal-routing hardware. Most units are functional, but the maintenance log shows a pattern of missing components that no one has explained.",                           wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#171218", discoveryText: "The equipment hums normally, but the component bays have gaps.", terminalId: "ind_relay_log" },
+    { id: "ind_cargo_office",      x: 2, y: 0, w: 1, h: 1, title: "Cargo Office",               description: "A small office used for manifest reconciliation. Someone left in a hurry — a half-eaten ration pack sits on the console and the terminal is still logged in.",                                        wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#151218", discoveryText: "Papers are scattered across the deck plating.", loot: ["medkit"] },
+    { id: "ind_entry",             x: 0, y: 1, w: 1, h: 1, title: "Industrial Section Entry",   description: "The transition corridor between the maintenance ring and the industrial decks. The noise level rises sharply here — cooling fans, conveyor systems, the deep thrum of active machinery.",              wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#161318", discoveryText: "The air smells of machine oil and recycled atmosphere." },
+    { id: "ind_machine_deck",      x: 1, y: 1, w: 1, h: 1, title: "Machine Deck",               description: "A wide deck lined with industrial machinery — press units, fabrication arms, heavy-load conveyors. Several units show signs of hasty disassembly, components stripped and missing.",                 wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#161014", discoveryText: "Something is wrong with one of the fabrication arms — it is moving when it should not be.", encounterId: "ind_bot_encounter" },
+    { id: "ind_cargo_hold",        x: 2, y: 1, w: 1, h: 1, title: "Cargo Hold",                 description: "A large hold with rack storage running floor to ceiling. Several racks have been stripped bare. The hold manifest terminal is active — someone was checking inventory before the shift ended.",       wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#151014", discoveryText: "The hold is mostly empty. Something has been here and taken things.", terminalId: "ind_cargo_manifest", loot: ["medkit"] },
+    { id: "ind_east_approach",     x: 3, y: 1, w: 1, h: 1, title: "Eastern Approach Corridor",  description: "A long corridor connecting the industrial section to the station's eastern blocks. The bulkhead ahead shows recent stress marks — something heavy was recently moved against it.",                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141018" },
+    { id: "ind_east_exit",         x: 4, y: 1, w: 1, h: 1, title: "East Section Bulkhead",      description: "The boundary threshold between industrial and the station's eastern operational sections. Through the reinforced door, the layout opens out into dock-adjacent corridors.",                          wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#131018", zoneLink: { toZoneId: "zone_station_east", toRoomId: "east_entry", entryX: 0, entryY: 1, facing: "east", transitionText: "You push through the east bulkhead. The sounds ahead are wrong — alarms, distant impacts. Something is happening in Station East." } },
+    { id: "ind_stripped_bay",      x: 1, y: 2, w: 1, h: 1, title: "Stripped Service Bay",       description: "A service bay where three maintenance drones sit in their charging cradles, stripped to their frames. Motor assemblies, guidance units, every neodymium-bearing component — gone. The work was fast and precise.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#161215", discoveryText: "Three drone chassis, emptied with surgical efficiency." },
+    { id: "ind_loading_bay",       x: 2, y: 2, w: 1, h: 1, title: "Loading Bay",                description: "A bay used for staging heavy cargo. The blast door to the external dock interface has been forced from the outside. Boot prints in the dust lead from the forced door toward the interior.",            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#150e12", discoveryText: "Someone came in through the dock interface. Someone from outside.", encounterId: "boarder_ambush" },
+    { id: "ind_holding_cells",     x: 3, y: 2, w: 1, h: 1, title: "Holding Cells",              description: "A short-term detention area, rarely used. The cell doors are open. Someone left a kit behind — possibly a station worker who was moving fast.",                                                        wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141018", discoveryText: "The cells are empty. The medkit on the bench has not been claimed.", loot: ["medkit"] }
+  ],
+  edges: [
+    { x: 0, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 0, dir: "h", type: "open" },
+    { x: 2, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 1, dir: "h", type: "open" },
+    { x: 2, y: 1, dir: "h", type: "open" },
+    { x: 3, y: 1, dir: "h", type: "open" },
+    { x: 0, y: 0, dir: "v", type: "open" },
+    { x: 1, y: 0, dir: "v", type: "open" },
+    { x: 0, y: 1, dir: "v", type: "open" },
+    { x: 1, y: 1, dir: "v", type: "open" },
+    { x: 2, y: 1, dir: "v", type: "open" },
+    { x: 3, y: 1, dir: "v", type: "open" },
+    { x: 1, y: 2, dir: "v", type: "open" },
+    { x: 2, y: 2, dir: "v", type: "open" }
+  ]
+};
+
+// ── Zone: Station East — Attack Zone ─────────────────────────────────────────
+
+export const stationEastZone: Zone = {
+  id: "zone_station_east",
+  title: "Station East — Docking Sectors",
+  gridW: 4,
+  gridH: 3,
+  rooms: [
+    { id: "comms_room",      x: 0, y: 0, w: 1, h: 1, title: "Communications Room",     description: "The station's primary communications relay for the eastern section. Screens show fragmented incoming signals and one sustained encrypted burst that the system cannot decode. A live log is still running.",   wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#201010", discoveryText: "The consoles are lit up with alerts. Something has already happened.", terminalId: "east_comms_terminal" },
+    { id: "armory_east",     x: 1, y: 0, w: 1, h: 1, title: "East Section Armory",      description: "A small equipment locker room, its cage door hanging open. Most of the weapons have been issued already. One medkit remains on the emergency shelf.",                                                         wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1e1010", discoveryText: "The armory has been raided from the inside — station personnel taking what they could before evacuating.", loot: ["medkit"] },
+    { id: "breach_staging",  x: 2, y: 0, w: 1, h: 1, title: "Staging Corridor",         description: "A wide corridor used for staging heavy equipment before dock operations. Smoke from an electrical fault hangs near the ceiling. The lights at the far end have been shot out.",                               wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1c1212", discoveryText: "The smell of burning insulation and something unfamiliar — the boarders' weapons." },
+    { id: "east_entry",      x: 0, y: 1, w: 1, h: 1, title: "East Section Entry",        description: "The main access corridor into the eastern docking sections. Blast marks on the bulkheads. A body — station security — lies near the far wall. The attack is not over.",                                      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#201414", discoveryText: "The attack reached here before you did." },
+    { id: "docking_bay",     x: 1, y: 1, w: 1, h: 1, title: "Docking Bay",               description: "A large pressurised docking bay, currently breached on the far side. Decompression safety systems have sealed the outer doors, but boarders are already on this side of them.",                             wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1e1212", discoveryText: "A figure in unknown armour is moving through the dock. It sees you.", encounterId: "boarder_ambush_2" },
+    { id: "breach_corridor", x: 2, y: 1, w: 1, h: 1, title: "Breach Corridor",           description: "A section of corridor that connects the dock to the hull breach point. The walls are scorched and one ceiling panel has collapsed. Whoever forced this route was not concerned about collateral damage.",      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1a1010", discoveryText: "The route ahead is clear, but barely passable." },
+    { id: "hull_breach",     x: 3, y: 1, w: 1, h: 1, title: "Hull Breach Point",         description: "The raider vessel has physically docked through a forced breach in the station's outer hull. The airlock interface is improvised but functional. Through it, the angular interior of an alien ship is visible.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#181818", discoveryText: "The ship is right there. The breach is open.", zoneLink: { toZoneId: "zone_enemy_ship", toRoomId: "ship_airlock", entryX: 1, entryY: 2, facing: "north", transitionText: "You step through the breach and into the raider. The geometry of the interior is subtly wrong — angles that do not correspond to Aligned construction standards." } },
+    { id: "emergency_bay",   x: 1, y: 2, w: 1, h: 1, title: "Emergency Response Bay",    description: "A staging area for emergency response teams. It has been used — equipment is strewn across the floor, a medkit remains on the kit rack. Whoever was here left in a hurry.",                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1c1010", discoveryText: "Signs of a rapid evacuation. Someone thought ahead enough to leave the medkit.", loot: ["medkit"] }
+  ],
+  edges: [
+    { x: 0, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 1, dir: "h", type: "open" },
+    { x: 0, y: 0, dir: "v", type: "open" },
+    { x: 1, y: 0, dir: "v", type: "open" },
+    { x: 0, y: 1, dir: "v", type: "open" },
+    { x: 1, y: 1, dir: "v", type: "open" },
+    { x: 2, y: 1, dir: "v", type: "open" }
+  ]
+};
+
+// ── Zone: Enemy Ship ──────────────────────────────────────────────────────────
+
+export const enemyShipZone: Zone = {
+  id: "zone_enemy_ship",
+  title: "Sphereal Raider Vessel",
+  gridW: 3,
+  gridH: 3,
+  rooms: [
+    { id: "ship_bridge",          x: 1, y: 0, w: 1, h: 1, title: "Raider Bridge",              description: "The command deck of the Sphereal vessel. Consoles display navigation data in script you cannot read. At the centre, a transit apparatus pulses with low blue light — the Echo Transit system, still active and primed.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1820", discoveryText: "The transit system is powered. Whatever its destination, it is ready to depart.", zoneLink: { toZoneId: "zone_sphere_arrival", toRoomId: "sphere_transit_point", entryX: 1, entryY: 2, facing: "north", transitionText: "The bridge pulses with blue-white light. You brace. The universe inverts for one impossible instant — and then you are somewhere else entirely." } },
+    { id: "ship_hold",            x: 0, y: 1, w: 1, h: 1, title: "Cargo Hold",                 description: "The raider's cargo hold. Sealed containers are stacked along one wall. An active manifest terminal shows the ship's most recent acquisition record — a precise list of components taken from a station that matches the one you just left.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0d1a22", discoveryText: "The hold is organised with military precision. Every container is labelled in the same unreadable script.", terminalId: "ship_cargo_log", loot: ["neodymium_fragment"] },
+    { id: "ship_corridor",        x: 1, y: 1, w: 1, h: 1, title: "Main Corridor",              description: "The ship's central passage. The ceiling is lower than station standard and the lighting has a cold blue-green quality that makes everything look clinical. This crew did not consider comfort.",                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1a20", discoveryText: "The corridor smells of recirculated air and something you cannot identify — machinery, or biology, or both.", encounterId: "ship_corridor_fight" },
+    { id: "ship_bridge_approach", x: 2, y: 1, w: 1, h: 1, title: "Bridge Approach",            description: "The final corridor before the bridge. A heavy blast door stands partially open. The guard stationed here has not moved since you entered the ship.",                                                                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1c22", discoveryText: "The guard at the bridge door is still at their post. They are aware of you.", encounterId: "bridge_guard_fight" },
+    { id: "ship_airlock",         x: 1, y: 2, w: 1, h: 1, title: "Boarding Airlock",           description: "The improvised airlock interface where the raider vessel forced contact with the station hull. The seals are temporary. Looking back through the breach, the station corridor is visible but already distant.",                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e181e", discoveryText: "You are aboard the raider vessel. The breach seal holds, for now." }
+  ],
+  edges: [
+    { x: 1, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 1, dir: "h", type: "open" },
+    { x: 0, y: 1, dir: "v", type: "open" },
+    { x: 1, y: 1, dir: "v", type: "open" }
+  ]
+};
+
+// ── Zone: Sphere Arrival Sector ───────────────────────────────────────────────
+
+export const sphereArrivalZone: Zone = {
+  id: "zone_sphere_arrival",
+  title: "Hollow Star — Arrival Sector",
+  gridW: 3,
+  gridH: 3,
+  rooms: [
+    { id: "sphere_signal_lock",  x: 1, y: 0, w: 1, h: 1, title: "Signal Lock Chamber",         description: "A vaulted chamber with walls covered in active displays — navigation data, signal traces, atmospheric readings. The screens show internal geometry on a scale that should not be possible. At the far end, a communications node is broadcasting on an encrypted Aligned frequency.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0a1e30", discoveryText: "The displays show a world inside a world. You are inside the Hollow Star.", victory: true },
+    { id: "sphere_observation",  x: 0, y: 1, w: 1, h: 1, title: "Observation Alcove",           description: "A small alcove with a viewport that has been sealed. Through a cracked panel, a faint light is visible — warm, distant, impossibly large. The Bound Core. A terminal is active beside the viewport.",                                                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1a28", discoveryText: "The light through the cracked panel is not starlight. It is something else entirely.", terminalId: "sphere_arrival_terminal" },
+    { id: "sphere_corridor_a",   x: 1, y: 1, w: 1, h: 1, title: "Interior Corridor",            description: "The first corridor of the Hollow Star interior. The construction is ancient — different from any Aligned standard — but maintained. The materials are unfamiliar. The air is breathable but carries a faint metallic taste.",                                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0d1c2a", discoveryText: "You are walking inside the Hollow Star. No Aligned contact has ever done this." },
+    { id: "sphere_junction",     x: 2, y: 1, w: 1, h: 1, title: "First Junction",               description: "A junction point where three passages diverge. The signage is in Sphereal script — unreadable without a translation system. Two routes appear to lead deeper into the Sphere. One leads back.",                                                                                          wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1e2c", discoveryText: "The Sphere has infrastructure. This is not a dead shell." },
+    { id: "sphere_transit_point",x: 1, y: 2, w: 1, h: 1, title: "Echo Transit Arrival Point",   description: "The arrival point of the Echo Transit event. The transit signature still lingers — a faint shimmer in the air where you materialised. There is no obvious way to return the same way. There is, however, a way forward.",                                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1a28", discoveryText: "You are here. Inside. The black shell of the Hollow Star is all around you, and you are alive." }
+  ],
+  edges: [
+    { x: 1, y: 0, dir: "h", type: "open" },
+    { x: 1, y: 1, dir: "h", type: "open" },
+    { x: 0, y: 1, dir: "v", type: "open" },
+    { x: 1, y: 1, dir: "v", type: "open" }
   ]
 };
 
@@ -171,6 +295,73 @@ export const quests: QuestDef[] = [
     xpReward: 75,
     creditReward: 0,
     trigger: { type: "on_item_collect", targetId: "signal_core" }
+  },
+  {
+    id: "q_service_floor_infestation",
+    title: "Service Floor Infestation",
+    description: "Industrial biosensors are flagging an active drone malfunction on the machine deck. Station protocol: contain and neutralise.",
+    objectives: [
+      { id: "q_sfi_1", description: "Neutralise the feral drone on the Machine Deck", type: "defeat_enemy", targetId: "ind_bot_encounter" }
+    ],
+    xpReward: 25,
+    creditReward: 2,
+    trigger: { type: "on_room_entry", targetId: "ind_machine_deck" }
+  },
+  {
+    id: "q_theft_investigation",
+    title: "The Theft Pattern",
+    description: "Supervisor Merrak has been logging component losses across the industrial section for three cycles — specifically neodymium-bearing parts. Check the relay station log and the cargo manifest. See if the pattern is real.",
+    objectives: [
+      { id: "q_theft_1", description: "Read the Relay Station maintenance log", type: "interact_terminal", targetId: "ind_relay_log" },
+      { id: "q_theft_2", description: "Review the Cargo Hold manifest", type: "interact_terminal", targetId: "ind_cargo_manifest" }
+    ],
+    xpReward: 40,
+    creditReward: 3,
+    trigger: { type: "on_room_entry", targetId: "ind_stripped_bay" }
+  },
+  {
+    id: "q_station_under_attack",
+    title: "Station Under Attack",
+    description: "The eastern sections are under assault from an unidentified vessel. Station East protocols are active. Reach the breach point and assess the situation.",
+    objectives: [
+      { id: "q_attack_1", description: "Reach the Hull Breach Point in Station East", type: "reach_room", targetId: "hull_breach" }
+    ],
+    xpReward: 50,
+    creditReward: 0,
+    trigger: { type: "on_zone_entry", targetId: "zone_station_east" }
+  },
+  {
+    id: "q_board_the_raider",
+    title: "Board the Raider",
+    description: "The vessel conducting the assault is still docked at the hull breach point. Whatever is happening, the answers are aboard that ship. Board it and reach the bridge before it can depart.",
+    objectives: [
+      { id: "q_board_1", description: "Reach the Bridge of the Sphereal raider vessel", type: "reach_room", targetId: "ship_bridge" }
+    ],
+    xpReward: 60,
+    creditReward: 0,
+    trigger: { type: "on_zone_entry", targetId: "zone_enemy_ship" }
+  },
+  {
+    id: "q_core_feed_evidence",
+    title: "Core-Feed Evidence",
+    description: "The neodymium fragment you recovered is a processed component — stripped from the station's machinery. The ship's cargo manifest may explain what it was for.",
+    objectives: [
+      { id: "q_cfe_1", description: "Access the cargo manifest terminal aboard the raider", type: "interact_terminal", targetId: "ship_cargo_log" }
+    ],
+    xpReward: 50,
+    creditReward: 0,
+    trigger: { type: "on_item_collect", targetId: "neodymium_fragment" }
+  },
+  {
+    id: "q_make_contact",
+    title: "Make Contact",
+    description: "You are inside the Hollow Star. No one from the Aligned has ever been here. Find a signal point and establish contact before your position is identified.",
+    objectives: [
+      { id: "q_contact_1", description: "Reach the Signal Lock Chamber", type: "reach_room", targetId: "sphere_signal_lock" }
+    ],
+    xpReward: 75,
+    creditReward: 0,
+    trigger: { type: "on_zone_entry", targetId: "zone_sphere_arrival" }
   }
 ];
 
@@ -196,6 +387,27 @@ export const npcs: NPC[] = [
       {
         id: "vasek_03",
         text: "The transit key authorises the upper bulkheads — if you can recover it from the flooded corridor, the whole ring opens up. The signal core chamber is your objective. Get the beacon out."
+      }
+    ]
+  },
+  {
+    id: "ind_supervisor_merrak",
+    name: "Supervisor Merrak",
+    role: "Industrial Shift Supervisor",
+    dialogue: [
+      {
+        id: "merrak_01",
+        text: "Finally, someone who isn't running the other way. Three cycles I've been filing anomaly reports and no one's done anything. Something is stripping my bays — not randomly, selectively.",
+        nextId: "merrak_02"
+      },
+      {
+        id: "merrak_02",
+        text: "Coil assemblies. Motor windings. Guidance units from the service drones. All high neodymium content. Whoever is taking them knows exactly what they need and exactly where to find it.",
+        nextId: "merrak_03"
+      },
+      {
+        id: "merrak_03",
+        text: "The relay station log and the cargo manifest will show you the pattern. I need someone with clearance to see it before I go above Vasek's head with this."
       }
     ]
   }
@@ -227,6 +439,146 @@ export const terminals: Terminal[] = [
 
 -- END LOG --`,
     xpReward: 5
+  },
+  {
+    id: "ind_relay_log",
+    title: "Relay Station — Maintenance Record",
+    logText: `STATION WEST — RELAY STATION — MAINTENANCE RECORD — CYCLE 47
+
+> SENSOR COIL ASSEMBLY — BAY 7: MISSING
+  Last service cycle: 42. Technician PRYA SANDOR signed out for inspection.
+  Current status: UNRETURNED. Replacement request denied — supply shortage.
+  Note: Third coil assembly missing this cycle. All high-neodymium type.
+
+> DRIVE GUIDANCE UNIT — SERVICE DRONE 4: STRIPPED
+  Found in situ, partially disassembled. Frame intact. Guidance module REMOVED.
+  No authorisation on record for disassembly.
+
+> PATTERN NOTE (MERRAK, SHIFT SUPERVISOR):
+  Components taken across three separate incidents all share one trait:
+  high neodymium content. Coils, windings, sensor heads. Nothing else touched.
+  This is not random. I am requesting a formal review.
+  If no response by Cycle 48 I am escalating.
+
+-- RECORD ENDS --`,
+    xpReward: 5
+  },
+  {
+    id: "ind_cargo_manifest",
+    title: "Cargo Hold — Manifest Log",
+    logText: `STATION WEST — CARGO HOLD — MANIFEST LOG — CYCLES 44–47
+
+INBOUND SHIPMENT 44-C:
+  12x guidance assemblies (standard drone)...........ARRIVED
+  4x  motor spindle sets (class B).......................ARRIVED
+  8x  neodymium-core coil units..........................ARRIVED: 3 REMAINING
+      [Note: 5 units signed out as 'maintenance requisition'. Authorising signature illegible.]
+
+INBOUND SHIPMENT 46-A:
+  20x standard cargo containers..........................ARRIVED: 20 REMAINING
+  6x  high-density motor cores...........................ARRIVED: 1 REMAINING
+      [Note: 5 cores 'transferred to storage'. No storage record found.]
+
+DISCREPANCY TOTAL — CYCLES 44–47:
+  Neodymium-bearing components missing: 12 units minimum.
+  Estimated replacement value: 1,400 credits.
+  No theft report filed. No investigation active.
+
+  Status: UNDER REVIEW (Supervisor Merrak, Cycle 47)
+
+-- MANIFEST ENDS --`,
+    xpReward: 5
+  },
+  {
+    id: "east_comms_terminal",
+    title: "Communications Room — Live Feed",
+    logText: `STATION EAST — COMMS RELAY — LIVE LOG — CYCLE 47
+
+[INCOMING — PRIORITY ALPHA — 11:52]
+Unidentified vessel has breached docking bay protocols at coordinates
+EAST-3 through EAST-7. Approach vector: UNKNOWN. No transponder registered.
+Sector alarm: ACTIVE. All personnel: evacuate non-essential east sections.
+
+[INTERNAL — COMMANDER VASEK — 11:54]
+Security teams not responding on channels 4 and 5. Attempting direct
+contact with eastern dock personnel. East bulkhead E-7 confirmed breached.
+Do not approach. Fall back to industrial section junction.
+
+[AUTOMATED — STATION EMERGENCY — 11:55]
+Hull breach confirmed, east sector. Emergency bulkheads sealing.
+Evacuation corridors: industrial junction, west ring access.
+This is not a drill.
+
+[INCOMING — UNKNOWN SOURCE — ENCRYPTED — 11:58]
+> [DECRYPTION FAILED — UNKNOWN PROTOCOL]
+> ...signal strength: HIGH...
+> [CONTENT UNAVAILABLE]
+
+-- FEED CONTINUES --`,
+    xpReward: 5
+  },
+  {
+    id: "ship_cargo_log",
+    title: "Raider Vessel — Cargo Manifest",
+    logText: `SPHEREAL RAIDER VESSEL — ACQUISITION RECORD — TRANSIT CYCLE 47
+[TRANSLATED FROM SPHEREAL NOTATION — PARTIAL]
+
+COLLECTION SITE: Station West sector, Aligned frontier, Sector 3
+
+ACQUIRED:
+  5x neodymium motor coil units (high grade)
+  5x high-density motor cores (neodymium alloy)
+  Service components (miscellaneous, low neodymium, secondary acquisition)
+
+TOTAL NEODYMIUM YIELD: 340 units by weight (estimated)
+DESTINATION: Core-feed processing, Bound Core stabilisation priority.
+
+COLLECTION STATUS: COMPLETE.
+ECHO TRANSIT: INITIATED.
+
+MISSION NOTE:
+  Yield is below projection. Containment drift is accelerating.
+  Stabilisation reserves will not hold beyond 8 cycles at current rate.
+  Next scheduled collection: Cycle 52. Secondary target: Station East
+  freight dock complex. Authorised by Core Council directive.
+
+  Crew note: Aligned personnel encountered on-site. Standard protocol
+  observed. They did not understand what they were looking at.
+
+-- END RECORD --`,
+    xpReward: 10
+  },
+  {
+    id: "sphere_arrival_terminal",
+    title: "Transit Point — Echo Signature Record",
+    logText: `TRANSIT WAYPOINT — ECHO SIGNATURE RECORD — INTERNAL LOG
+
+Echo transit event registered: INBOUND (EXTERNAL ORIGIN)
+
+WARNING: This event is anomalous.
+All registered transit keys are accounted for at departure registry.
+Transit origin: External space, Sector 3, Aligned frontier zone.
+Payload mass: UNEXPECTED — single personnel equivalent.
+
+This node is a passive waypoint record only.
+
+INTERIOR NETWORK STATUS:
+  Zone designation: ARRIVAL SECTOR — LOWER RING
+  Internal comms: ACTIVE on this node
+  Atmosphere: NOMINAL
+  Temperature: WITHIN RANGE
+  Bound Core reading: STABLE at this distance
+  Core-feed delivery status: DELAYED — 3 cycles overdue
+
+SECURITY ADVISORY:
+  Unregistered transit arrival logged and flagged.
+  Internal monitoring will have noted your presence.
+
+  We know you are here.
+  Do not move from this position.
+
+-- RECORD ENDS --`,
+    xpReward: 10
   }
 ];
 
@@ -269,7 +621,7 @@ Station command will broadcast updates as the situation develops.
 
 STATION EMERGENCY SYSTEMS — AUTO-BROADCAST`,
     timestamp: "Cycle 47 — Station Time 11:52",
-    trigger: { type: "on_room_entry", targetId: "astral_gallery" }
+    trigger: { type: "on_zone_entry", targetId: "zone_station_east" }
   },
   {
     id: "msg_aligned_forces",
@@ -287,7 +639,7 @@ More when you reach us.
 
 — AF`,
     timestamp: "Cycle 47 — Station Time [CORRUPTED]",
-    trigger: { type: "on_zone_entry", targetId: "zone_hollow_star_sphere" }
+    trigger: { type: "on_zone_entry", targetId: "zone_sphere_arrival" }
   }
 ];
 
@@ -296,7 +648,7 @@ export interface WorldSeed {
   intro: string;
   startX: number;
   startY: number;
-  zone: Zone;
+  zones: Zone[];
   items: Item[];
   enemies: Enemy[];
   encounters: Encounter[];
@@ -312,7 +664,7 @@ export const worldSeed: WorldSeed = {
   intro: "Navigate the station's maintenance ring, reach the signal core, and get a transmission out before the sector goes dark.",
   startX: 1,
   startY: 4,
-  zone: hollowStarZone,
+  zones: [hollowStarZone, stationIndustrialZone, stationEastZone, enemyShipZone, sphereArrivalZone],
   items,
   enemies,
   encounters,

@@ -211,7 +211,7 @@ export interface MessageDef {
 
 export type QuestObjectiveType = "reach_room" | "defeat_enemy" | "collect_item" | "interact_terminal";
 export type QuestStatus = "active" | "completed";
-export type QuestTriggerType = "on_start" | "on_room_entry" | "on_item_collect" | "on_enemy_defeat";
+export type QuestTriggerType = "on_start" | "on_room_entry" | "on_item_collect" | "on_enemy_defeat" | "on_zone_entry";
 
 export interface QuestObjective {
   id: string;

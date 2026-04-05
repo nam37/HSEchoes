@@ -17,7 +17,9 @@ export async function seedDatabase(sql: Sql): Promise<void> {
     })})
   `;
 
-  await sql`INSERT INTO world_data (kind, id, json) VALUES ('zone', ${worldSeed.zone.id}, ${JSON.stringify(worldSeed.zone)})`;
+  for (const zone of worldSeed.zones) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('zone', ${zone.id}, ${JSON.stringify(zone)})`;
+  }
 
   for (const item of worldSeed.items) {
     await sql`INSERT INTO world_data (kind, id, json) VALUES ('item', ${item.id}, ${JSON.stringify(item)})`;

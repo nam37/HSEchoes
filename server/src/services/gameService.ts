@@ -548,6 +548,7 @@ export class GameService {
         if (firstTimeInZone) {
           this.awardXp(run, 25);
           this.deliverMessages(run, { type: "zone_entry", targetId: link.toZoneId });
+          this.triggerQuestsForEvent(run, { type: "zone_entry", targetId: link.toZoneId });
         }
         const entryRoom = findRoomContaining(targetZone, link.entryX, link.entryY);
         if (entryRoom) this.applyRoomEffects(run, entryRoom);
@@ -556,7 +557,11 @@ export class GameService {
     }
 
     if (room.victory) {
-      if (run.player.inventory.includes("signal_core")) {
+      if (run.zoneId === "zone_sphere_arrival") {
+        run.status = "victory";
+        run.mode   = "victory";
+        run.log = pushLog(run.log, "The tablet opens on an encrypted channel: 'Signal confirmed. You are the first Aligned contact inside the Hollow Star. Stay mobile — extraction is being calculated.' The Sphere stretches around you, vast and alive.");
+      } else if (run.player.inventory.includes("signal_core")) {
         run.status = "victory";
         run.mode   = "victory";
         run.log = pushLog(run.log, "The signal core slots into the array. Encrypted carrier tone locks in. Transmission away.");
@@ -742,7 +747,8 @@ export class GameService {
         (t.type === "on_start"        && event.type === "game_start") ||
         (t.type === "on_room_entry"   && event.type === "room_entry"   && t.targetId === event.targetId) ||
         (t.type === "on_item_collect" && event.type === "item_collect" && t.targetId === event.targetId) ||
-        (t.type === "on_enemy_defeat" && event.type === "enemy_defeat" && t.targetId === event.targetId);
+        (t.type === "on_enemy_defeat" && event.type === "enemy_defeat" && t.targetId === event.targetId) ||
+      (t.type === "on_zone_entry"   && event.type === "zone_entry"   && t.targetId === event.targetId);
       if (matches) this.startQuest(run, def.id);
     }
   }
@@ -831,7 +837,8 @@ type QuestEvent =
   | { type: "room_entry";        targetId: string }
   | { type: "enemy_defeat";      targetId: string }
   | { type: "item_collect";      targetId: string }
-  | { type: "terminal_interact"; targetId: string };
+  | { type: "terminal_interact"; targetId: string }
+  | { type: "zone_entry";        targetId: string };
 
 type MessageEvent =
   | { type: "game_start" }
