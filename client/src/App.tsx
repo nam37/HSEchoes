@@ -401,6 +401,15 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
               {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
             </div>
+            {(roomNpc || roomTerminal) && run.mode !== "combat" && (
+              <button
+                className="interact-btn stage-interact-btn"
+                onClick={() => void handleInteract()}
+                disabled={busy}
+              >
+                {roomNpc ? `Talk to ${roomNpc.name}` : `Access Terminal`}
+              </button>
+            )}
             {toasts.length > 0 && (
               <div className="toast-stack" aria-live="polite">
                 {toasts.map(t => (
@@ -510,21 +519,12 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <button onClick={() => void handleMove("turn-right")} disabled={busy || run.mode === "combat"}>Turn Right</button>
               </div>
               {currentRoom && (
-                <>
+                <div className="controls-scroll">
                   <p className="room-copy">{currentRoom.title}: {currentRoom.description}</p>
                   <div className="exit-list">
                     {currentExits.map((entry) => <p key={entry}>{entry}</p>)}
                   </div>
-                  {(roomNpc || roomTerminal) && (
-                    <button
-                      className="interact-btn"
-                      onClick={() => void handleInteract()}
-                      disabled={busy || run.mode === "combat"}
-                    >
-                      {roomNpc ? `Talk to ${roomNpc.name}` : `Access Terminal`}
-                    </button>
-                  )}
-                </>
+                </div>
               )}
             </section>
           </aside>

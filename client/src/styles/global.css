@@ -305,6 +305,32 @@ button:disabled {
   100% { opacity: 1;   letter-spacing: normal; }
 }
 
+/* Interact button in stage panel (below status-ribbon) */
+.stage-interact-btn {
+  margin-top: 0;
+  width: 100%;
+  border-color: rgba(0, 200, 112, 0.5);
+  color: #00c870;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  animation: interact-pulse 2s ease-in-out infinite;
+}
+
+.stage-interact-btn:hover:not(:disabled) {
+  border-color: #00c870;
+  background: linear-gradient(180deg, rgba(0, 40, 22, 0.92), rgba(0, 20, 12, 0.96));
+  box-shadow: 0 0 12px rgba(0, 200, 112, 0.35);
+  color: #40ffaa;
+}
+
+@keyframes interact-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 200, 112, 0); }
+  50%       { box-shadow: 0 0 8px 2px rgba(0, 200, 112, 0.2); }
+}
+
 /* Combat banner */
 .combat-banner {
   display: grid;
@@ -857,6 +883,21 @@ button:disabled {
   from { width: 100%; }
   to   { width: 0%; }
 }
+
+/* Scrollable area inside controls card (room info + exits + interact button) */
+.controls-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(48, 180, 255, 0.3) rgba(10, 16, 24, 0.5);
+}
+
+.controls-scroll::-webkit-scrollbar { width: 4px; }
+.controls-scroll::-webkit-scrollbar-track { background: rgba(10, 16, 24, 0.5); border-radius: 2px; }
+.controls-scroll::-webkit-scrollbar-thumb { background: rgba(48, 180, 255, 0.3); border-radius: 2px; }
 
 /* Interact button */
 .interact-btn {
