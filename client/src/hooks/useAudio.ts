@@ -53,7 +53,12 @@ export function useAudio() {
     activeTrack.current = track;
     pendingTrack.current = null;
 
-    void audio.play().catch(() => { /* autoplay blocked — user must interact first */ });
+    void audio.play().catch(() => {
+      // Autoplay blocked — resume on first user interaction
+      const resume = () => { void audio.play(); };
+      document.addEventListener("click",   resume, { once: true });
+      document.addEventListener("keydown", resume, { once: true });
+    });
 
     let step = 0;
     clearFade();
