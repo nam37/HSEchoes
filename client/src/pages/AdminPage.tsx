@@ -68,6 +68,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<AdminModal>(null);
   const [reloadMsg, setReloadMsg] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const forceUpdate = useForceUpdate();
 
   useEffect(() => { void loadData(); }, []);
@@ -177,7 +178,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
     setModal(null);
   }
 
-  const firstZone = world?.zones[0];
+  const activeZone = world?.zones.find(z => z.id === selectedZoneId) ?? world?.zones[0];
   const totalRooms = world?.zones.reduce((sum, z) => sum + z.rooms.length, 0) ?? 0;
 
   return (
@@ -262,10 +263,21 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
               </>
             )}
 
-            {tab === "map" && (firstZone ? (
+            {tab === "map" && (activeZone && world ? (
               <section className="admin-section">
-                <h2 className="admin-section-title">Zone Editor: {firstZone.title}</h2>
-                <ZoneEditor zone={firstZone} onSave={saveZone} />
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Zone Editor: {activeZone.title}</h2>
+                  <select
+                    className="admin-zone-picker"
+                    value={activeZone.id}
+                    onChange={e => setSelectedZoneId(e.target.value)}
+                  >
+                    {world.zones.map(z => (
+                      <option key={z.id} value={z.id}>{z.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <ZoneEditor key={activeZone.id} zone={activeZone} onSave={saveZone} />
               </section>
             ) : <p className="admin-empty">No zones found.</p>)}
 
@@ -277,7 +289,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
                     <thead><tr><th>ID</th><th>Title</th><th>Grid</th><th>Rooms</th><th>Edges</th></tr></thead>
                     <tbody>
                       {world.zones.map((zone) => (
-                        <tr key={zone.id} onClick={() => setTab("map")} style={{ cursor: "pointer" }}>
+                        <tr key={zone.id} onClick={() => { setSelectedZoneId(zone.id); setTab("map"); }} style={{ cursor: "pointer" }}>
                           <td className="run-slot">{zone.id}</td>
                           <td>{zone.title}</td>
                           <td>{zone.gridW}×{zone.gridH}</td>
