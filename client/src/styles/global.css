@@ -361,8 +361,12 @@ button:disabled {
   50%       { box-shadow: 0 0 14px 3px rgba(0, 200, 112, 0.3); }
 }
 
-/* NPC presence indicator (shown on stage when NPC is in current room) */
+/* NPC presence indicator — floats over the viewport, does not affect layout */
 .npc-presence {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -370,6 +374,7 @@ button:disabled {
   background: rgba(4, 10, 22, 0.88);
   border: 1px solid rgba(0, 200, 240, 0.25);
   border-left: 3px solid rgba(0, 200, 240, 0.6);
+  pointer-events: none;
 }
 
 .npc-presence-portrait {
@@ -2320,6 +2325,12 @@ button:disabled {
   align-items: flex-start;
 }
 
+.zone-editor-sidebars {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .zone-canvas-wrap {
   overflow: auto;
   flex: 1;
@@ -2400,7 +2411,8 @@ button:disabled {
 }
 
 .zone-sidebar-body input,
-.zone-sidebar-body textarea {
+.zone-sidebar-body textarea,
+.zone-sidebar-body select {
   background: var(--bg);
   border: 1px solid var(--line);
   color: var(--text);
@@ -2430,6 +2442,34 @@ button:disabled {
   padding-top: 0.5rem;
   border-top: 1px solid var(--line);
   margin-top: 0.25rem;
+}
+
+.zone-surface-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.zone-surface-toggle {
+  flex-shrink: 0;
+  padding: 0.35rem 0.55rem;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.zone-surface-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.zone-surface-meta {
+  font-size: 0.68rem;
+  color: var(--text-dim);
 }
 
 /* ── Status ribbon inline action ─────────────────────────────────────────── */

@@ -43,6 +43,27 @@ export function useAudio() {
     }
   }, []);
 
+  const attemptPlay = useCallback((audio: HTMLAudioElement, onBlocked?: () => void) => {
+    try {
+      const result = audio.play();
+      if (result && typeof result.catch === "function") {
+        void result.catch(() => {
+          onBlocked?.();
+        });
+      }
+    } catch {
+      onBlocked?.();
+    }
+  }, []);
+
+  const safePause = useCallback((audio: HTMLAudioElement) => {
+    try {
+      audio.pause();
+    } catch {
+      // ignore environments without media playback
+    }
+  }, []);
+
   const startTrack = useCallback((track: AudioTrack, targetVol: number) => {
     const srcs = TRACKS[track];
     const src = srcs[Math.floor(Math.random() * srcs.length)];
@@ -53,9 +74,9 @@ export function useAudio() {
     activeTrack.current = track;
     pendingTrack.current = null;
 
-    void audio.play().catch(() => {
+    attemptPlay(audio, () => {
       // Autoplay blocked — resume on first user interaction
-      const resume = () => { void audio.play(); };
+      const resume = () => { attemptPlay(audio); };
       document.addEventListener("click",   resume, { once: true });
       document.addEventListener("keydown", resume, { once: true });
     });
@@ -67,7 +88,7 @@ export function useAudio() {
       audio.volume = Math.min(targetVol, targetVol * (step / FADE_STEPS));
       if (step >= FADE_STEPS) clearFade();
     }, STEP_MS);
-  }, [clearFade]);
+  }, [attemptPlay, clearFade]);
 
   const stopCurrent = useCallback((onDone: () => void) => {
     const audio = audioRef.current;
@@ -81,14 +102,14 @@ export function useAudio() {
       audio.volume = Math.max(0, startVol * (1 - step / FADE_STEPS));
       if (step >= FADE_STEPS) {
         clearFade();
-        audio.pause();
+        safePause(audio);
         audio.src = "";
         audioRef.current = null;
         activeTrack.current = null;
         onDone();
       }
     }, STEP_MS);
-  }, [clearFade]);
+  }, [clearFade, safePause]);
 
   const play = useCallback((track: AudioTrack) => {
     if (activeTrack.current === track) return;
@@ -149,11 +170,11 @@ export function useAudio() {
     return () => {
       clearFade();
       if (audioRef.current) {
-        audioRef.current.pause();
+        safePause(audioRef.current);
         audioRef.current.src = "";
       }
     };
-  }, [clearFade]);
+  }, [clearFade, safePause]);
 
   return { enabled, toggleEnabled, volume, setVolume, play };
 }
