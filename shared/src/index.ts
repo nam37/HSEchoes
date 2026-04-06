@@ -116,6 +116,13 @@ export interface Terminal {
   xpReward?: number;
 }
 
+export interface PropDef {
+  id: string;
+  name: string;
+  description?: string;
+  iconLabel?: string;
+}
+
 // ── Assets ────────────────────────────────────────────────────────────────────
 
 export interface AssetManifest {
@@ -298,9 +305,12 @@ export interface RunState {
 
 export interface SaveSummary {
   slotId: string;
+  slotNumber: number;
   mode: GameMode;
   status: RunStatus;
   roomId: string;
+  roomTitle: string;
+  level: number;
   updatedAt: string;
 }
 
@@ -315,6 +325,7 @@ export interface BootstrapData {
   items: Item[];
   npcs: NPC[];
   terminals: Terminal[];
+  props: PropDef[];
   assets: AssetManifest;
   saves: SaveSummary[];
 }
@@ -331,6 +342,10 @@ export interface ApiResult<T> {
 export interface RunEnvelope {
   run: RunState;
   message?: string;
+}
+
+export interface CreateRunPayload {
+  slotNumber: number;
 }
 
 export interface MovePayload {

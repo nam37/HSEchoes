@@ -2,6 +2,7 @@ import type {
   ApiResult,
   BootstrapData,
   CombatPayload,
+  CreateRunPayload,
   Encounter,
   Enemy,
   InteractPayload,
@@ -67,7 +68,11 @@ export interface WorldContent {
 
 export const api = {
   bootstrap: () => request<BootstrapData>("/api/game/bootstrap"),
-  newRun: () => request<RunEnvelope>("/api/game/new-run", { method: "POST" }),
+  newRun: (payload: CreateRunPayload) => request<RunEnvelope>("/api/game/new-run", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  }),
+  deleteRun: (slotId: string) => request<{ deleted: string }>(`/api/game/run/${slotId}`, { method: "DELETE" }),
   loadRun: (slotId: string) => request<RunEnvelope>(`/api/game/run/${slotId}`),
   move: (payload: MovePayload) => request<RunEnvelope>("/api/game/move", {
     method: "POST",

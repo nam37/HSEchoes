@@ -194,6 +194,146 @@ button:disabled {
   width: min(72rem, 100%);
 }
 
+.slot-picker-panel {
+  width: min(72rem, 100%);
+  margin-top: 1rem;
+  padding: 1.4rem 1.6rem 1.6rem;
+  background: rgba(2, 8, 22, 0.94);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 0 32px rgba(0, 100, 200, 0.07), 0 20px 50px var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.slot-picker-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.slot-picker-kicker {
+  margin: 0 0 0.2rem;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.slot-picker-header h2 {
+  margin: 0;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: #e4f4ff;
+  text-transform: uppercase;
+}
+
+.slot-picker-copy {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.slot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 14rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(0, 18, 38, 0.8), rgba(0, 8, 22, 0.95));
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+}
+
+.slot-card.empty {
+  border-left-color: rgba(168, 216, 240, 0.25);
+  background: linear-gradient(180deg, rgba(0, 10, 20, 0.62), rgba(0, 6, 16, 0.92));
+}
+
+.slot-card-header,
+.slot-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.slot-card-label {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.slot-status {
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--line);
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.slot-status-active {
+  color: var(--accent-strong);
+  border-color: rgba(0, 212, 255, 0.45);
+}
+
+.slot-status-victory {
+  color: #60d0ff;
+  border-color: rgba(48, 180, 255, 0.45);
+}
+
+.slot-status-defeat {
+  color: #ff8090;
+  border-color: rgba(255, 48, 64, 0.45);
+}
+
+.slot-status-empty {
+  color: var(--text-dim);
+  border-color: rgba(168, 216, 240, 0.22);
+}
+
+.slot-card-body {
+  display: grid;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.slot-room {
+  margin: 0;
+  font-size: 0.96rem;
+  color: #e4f4ff;
+  line-height: 1.4;
+}
+
+.slot-meta {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.slot-card-actions {
+  align-items: stretch;
+}
+
+.slot-card-actions button {
+  flex: 1 1 30%;
+}
+
 .eyebrow,
 .combat-kicker {
   margin: 0;
@@ -361,40 +501,94 @@ button:disabled {
   50%       { box-shadow: 0 0 14px 3px rgba(0, 200, 112, 0.3); }
 }
 
-/* NPC presence indicator — floats over the viewport, does not affect layout */
-.npc-presence {
+/* Room content cards — compact upper-right viewport stack */
+.room-content-stack {
   position: absolute;
   top: 0.75rem;
-  left: 0.75rem;
+  right: 0.75rem;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.45rem 0.75rem;
-  background: rgba(4, 10, 22, 0.88);
-  border: 1px solid rgba(0, 200, 240, 0.25);
-  border-left: 3px solid rgba(0, 200, 240, 0.6);
+  display: grid;
+  gap: 0.45rem;
+  width: min(20rem, calc(100% - 1.5rem));
   pointer-events: none;
 }
 
-.npc-presence-portrait {
-  width: 42px;
-  height: 42px;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 1px solid rgba(0, 200, 240, 0.3);
+.room-content-card {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(10, 18, 34, 0.94), rgba(4, 10, 20, 0.98)),
+    repeating-linear-gradient(180deg, rgba(120, 170, 210, 0.03) 0 1px, transparent 1px 3px);
+  border: 1px solid rgba(0, 200, 240, 0.26);
+  border-left: 3px solid rgba(0, 200, 240, 0.66);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(160, 220, 255, 0.03);
 }
 
-.npc-presence-info {
+.room-content-card--combat {
+  border-color: rgba(255, 82, 104, 0.32);
+  border-left-color: rgba(255, 92, 112, 0.82);
+  background:
+    linear-gradient(180deg, rgba(38, 10, 20, 0.95), rgba(12, 4, 10, 0.98)),
+    repeating-linear-gradient(180deg, rgba(255, 150, 170, 0.03) 0 1px, transparent 1px 3px);
+}
+
+.room-content-portrait,
+.room-content-badge {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+.room-content-portrait {
+  object-fit: cover;
+  border: 1px solid rgba(0, 200, 240, 0.3);
+  background: rgba(4, 10, 22, 0.88);
+}
+
+.room-content-badge {
+  display: grid;
+  place-items: center;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: #9bdcff;
+  border: 1px solid rgba(0, 200, 240, 0.34);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(78, 170, 224, 0.2), transparent 55%),
+    linear-gradient(180deg, rgba(10, 24, 40, 0.96), rgba(4, 10, 20, 1));
+}
+
+.room-content-badge--combat {
+  color: #ff99a6;
+  border-color: rgba(255, 92, 112, 0.36);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 126, 150, 0.22), transparent 55%),
+    linear-gradient(180deg, rgba(42, 12, 20, 0.98), rgba(12, 4, 10, 1));
+}
+
+.room-content-info {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
 }
 
-.npc-presence-name {
+.room-content-label {
+  font-size: 0.58rem;
+  color: #5f89a7;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-content-title {
   font-family: 'Kensmark', 'Share Tech Mono', monospace;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: #b0dff8;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -402,14 +596,20 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
-.npc-presence-role {
-  font-size: 0.65rem;
-  color: #4a7a98;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.room-content-subtitle {
+  font-size: 0.66rem;
+  color: #6f95af;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+}
+
+.room-content-card--combat .room-content-label,
+.room-content-card--combat .room-content-subtitle {
+  color: #c98b96;
+}
+
+.room-content-card--combat .room-content-title {
+  color: #ffb0bc;
 }
 
 /* Combat banner */
@@ -1137,6 +1337,15 @@ button:disabled {
 
 /* Responsive */
 @media (max-width: 1180px) {
+  .slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .slot-picker-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .app-shell.has-run {
     height: auto;
     overflow: visible;
@@ -1163,6 +1372,10 @@ button:disabled {
   .viewport-shell {
     min-height: 24rem;
   }
+
+  .room-content-stack {
+    width: min(18rem, calc(100% - 1.25rem));
+  }
 }
 
 @media (max-width: 720px) {
@@ -1180,9 +1393,45 @@ button:disabled {
     align-items: stretch;
   }
 
+  .slot-picker-panel {
+    padding: 1rem;
+  }
+
   .stat-grid,
   .combat-banner-actions {
     grid-template-columns: 1fr;
+  }
+
+  .room-content-stack {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: min(15rem, calc(100% - 1rem));
+  }
+
+  .room-content-card {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .room-content-portrait,
+  .room-content-badge {
+    width: 36px;
+    height: 36px;
+  }
+
+  .settings-overlay {
+    padding: 0.85rem;
+  }
+
+  .settings-modal-header,
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-close {
+    align-self: flex-end;
   }
 }
 
@@ -1298,8 +1547,59 @@ button:disabled {
 }
 
 /* ── Settings panel ────────────────────────────────────────────────────── */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(0, 2, 10, 0.84);
+  animation: fadeIn 0.18s ease both;
+}
+
+.settings-modal {
+  width: min(34rem, 100%);
+  display: grid;
+  gap: 1rem;
+  padding: 1.3rem 1.4rem 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(6, 14, 30, 0.98), rgba(3, 8, 20, 0.99)),
+    repeating-linear-gradient(90deg, rgba(60, 180, 255, 0.025) 0 1px, transparent 1px 52px);
+  border: 1px solid rgba(48, 180, 255, 0.32);
+  border-top: 2px solid rgba(48, 180, 255, 0.72);
+  box-shadow: 0 0 60px rgba(24, 116, 255, 0.14), 0 22px 70px rgba(0, 0, 0, 0.55);
+}
+
+.settings-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settings-title {
+  margin: 0.25rem 0 0;
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: #d8f0ff;
+  text-transform: uppercase;
+}
+
+.settings-close {
+  min-width: auto;
+  padding-inline: 0.9rem;
+  border-color: rgba(48, 180, 255, 0.42);
+  color: #7ed4ff;
+}
+
+.settings-close:hover:not(:disabled) {
+  border-color: rgba(98, 206, 255, 0.75);
+  color: #b1e7ff;
+}
+
 .settings-panel {
-  margin-top: 0.9rem;
   padding: 0.9rem 1.1rem;
   background: var(--panel-strong);
   border: 1px solid var(--line);

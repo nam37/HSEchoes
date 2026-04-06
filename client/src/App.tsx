@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
-import type { BootstrapData, Direction, InteractResult, Item, NPC, RunState, Terminal, Zone, ZoneRoom } from "../../shared/src/index";
+import type { BootstrapData, Direction, InteractResult, Item, NPC, RunState, SaveSummary, Terminal, Zone, ZoneRoom } from "../../shared/src/index";
 import { findRoomContaining, findZoneEdge, formatFaceLabel, DIRECTIONS, resolveEdgeType } from "../../shared/src/index";
 import { useAudio } from "./hooks/useAudio";
 
@@ -7,6 +7,11 @@ interface Toast {
   id: string;
   text: string;
   addedAt: number;
+}
+
+interface SlotCard {
+  slotNumber: number;
+  save: SaveSummary | null;
 }
 
 const TOAST_DURATION = 7000;
@@ -23,6 +28,7 @@ function getNewLogEntries(prevLog: string[], newLog: string[]): string[] {
   return newLog.slice(idx + 1);
 }
 import { api } from "./lib/api";
+import { buildRoomContentCards } from "./lib/roomContentCards";
 import { DungeonViewport } from "./components/DungeonViewport";
 import { MapPanel } from "./components/MapPanel";
 import { TabletOverlay } from "./components/TabletOverlay";
@@ -120,7 +126,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const itemMap = useMemo(() => new Map((bootstrap?.items ?? []).map((item) => [item.id, item])), [bootstrap]);
   const npcMap = useMemo(() => new Map((bootstrap?.npcs ?? []).map((npc) => [npc.id, npc])), [bootstrap]);
   const terminalMap = useMemo(() => new Map((bootstrap?.terminals ?? []).map((t) => [t.id, t])), [bootstrap]);
+  const propMap = useMemo(() => new Map((bootstrap?.props ?? []).map((prop) => [prop.id, prop])), [bootstrap]);
   const selectedItem = selectedItemId ? itemMap.get(selectedItemId) ?? null : null;
+  const slotCards = useMemo(() => buildSaveSlots(bootstrap?.saves ?? []), [bootstrap?.saves]);
 
   async function refreshBootstrap(preserveStatus = false): Promise<void> {
     try {
@@ -139,11 +147,13 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
   }
 
-  async function createRun(): Promise<void> {
+  async function createRun(slotNumber: number): Promise<void> {
     try {
       setBusy(true);
+      setError(null);
       prevLogRef.current = [];
-      const envelope = await api.newRun();
+      prevZoneIdRef.current = null;
+      const envelope = await api.newRun({ slotNumber });
       setToasts([]);  // reset before pushing new run notifications
       setSeenQuestIds(new Set());
       startTransition(() => {
@@ -165,7 +175,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   async function loadSave(slotId: string): Promise<void> {
     try {
       setBusy(true);
+      setError(null);
       prevLogRef.current = [];
+      prevZoneIdRef.current = null;
       const envelope = await api.loadRun(slotId);
       startTransition(() => {
         setRun(envelope.run);
@@ -178,6 +190,63 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     } finally {
       setBusy(false);
     }
+  }
+
+  async function deleteSave(slotId: string): Promise<void> {
+    if (!window.confirm("Delete this save slot? This cannot be undone.")) {
+      return;
+    }
+    try {
+      setBusy(true);
+      setError(null);
+      await api.deleteRun(slotId);
+      await refreshBootstrap();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function overwriteSave(slotNumber: number, slotId: string): Promise<void> {
+    if (!window.confirm(`Overwrite Slot ${slotNumber} with a new game?`)) {
+      return;
+    }
+    try {
+      setBusy(true);
+      setError(null);
+      await api.deleteRun(slotId);
+      prevLogRef.current = [];
+      prevZoneIdRef.current = null;
+      const envelope = await api.newRun({ slotNumber });
+      setToasts([]);
+      setSeenQuestIds(new Set());
+      startTransition(() => {
+        setRun(envelope.run);
+        setStatusText(envelope.run.log[0] ?? "A new descent begins.");
+        setTabletOpen(false);
+        setTabletTab("messages");
+      });
+      pushToasts(envelope.run.log);
+      await refreshBootstrap(true);
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function returnToSaveSlots(): Promise<void> {
+    startTransition(() => {
+      setRun(null);
+      setTabletOpen(false);
+      setInteractResult(null);
+      setSelectedItemId(null);
+      setToasts([]);
+    });
+    prevLogRef.current = [];
+    prevZoneIdRef.current = null;
+    await refreshBootstrap();
   }
 
   async function handleMove(command: "forward" | "back" | "turn-left" | "turn-right"): Promise<void> {
@@ -367,6 +436,16 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const currentExits = zone && run ? describeExits(zone, run.posX, run.posY, run, itemMap) : [];
   const roomNpc: NPC | null = currentRoom?.npcId ? npcMap.get(currentRoom.npcId) ?? null : null;
   const roomTerminal: Terminal | null = currentRoom?.terminalId ? terminalMap.get(currentRoom.terminalId) ?? null : null;
+  const roomContentCards = useMemo(
+    () => buildRoomContentCards({
+      room: currentRoom,
+      combat: run?.combat ?? null,
+      npcMap,
+      terminalMap,
+      propMap,
+    }),
+    [currentRoom, npcMap, propMap, run?.combat, terminalMap]
+  );
 
   return (
     <div className={run ? "app-shell has-run" : "app-shell landing-shell"}>
@@ -382,10 +461,6 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               <p className="intro-copy">{bootstrap?.intro ?? "Routine maintenance shift. Station West, sublevel 3."}</p>
             </div>
             <div className="hero-actions">
-              <button onClick={() => void createRun()} disabled={busy}>Begin!</button>
-              {bootstrap?.saves?.[0] && (
-                <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
-              )}
               {isAdmin && (
                 <button className="btn-secondary" onClick={() => { window.location.href = "/admin"; }}>Admin</button>
               )}
@@ -394,33 +469,97 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <button className="btn-secondary" onClick={onSignOut}>Sign Out</button>
               )}
             </div>
-            {settingsOpen && (
-              <div className="settings-panel">
-                <p className="settings-label">Music</p>
-                <div className="settings-row">
-                  <button
-                    className={`settings-toggle${audio.enabled ? " active" : ""}`}
-                    onClick={audio.toggleEnabled}
-                  >
-                    {audio.enabled ? "On" : "Off"}
+          </header>
+          <section className="slot-picker-panel" aria-label="Save slots">
+            <div className="slot-picker-header">
+              <div>
+                <p className="slot-picker-kicker">Save Archive</p>
+                <h2>Select a slot</h2>
+              </div>
+              <p className="slot-picker-copy">Three fixed slots. Empty slots start a new run. Occupied slots can continue, overwrite, or be cleared.</p>
+            </div>
+            <div className="slot-grid">
+              {slotCards.map(({ slotNumber, save }) => (
+                <article key={slotNumber} className={`slot-card${save ? " occupied" : " empty"}`}>
+                  <div className="slot-card-header">
+                    <span className="slot-card-label">Slot {slotNumber}</span>
+                    <span className={`slot-status slot-status-${save?.status ?? "empty"}`}>
+                      {save?.status ?? "empty"}
+                    </span>
+                  </div>
+                  {save ? (
+                    <>
+                      <div className="slot-card-body">
+                        <p className="slot-room">{save.roomTitle}</p>
+                        <p className="slot-meta">Level {save.level}</p>
+                        <p className="slot-meta">Updated {formatSaveTimestamp(save.updatedAt)}</p>
+                      </div>
+                      <div className="slot-card-actions">
+                        <button onClick={() => void loadSave(save.slotId)} disabled={busy}>Continue</button>
+                        <button className="btn-secondary" onClick={() => void overwriteSave(slotNumber, save.slotId)} disabled={busy}>Overwrite</button>
+                        <button className="btn-secondary" onClick={() => void deleteSave(save.slotId)} disabled={busy}>Delete</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="slot-card-body">
+                        <p className="slot-room">No transmission stored.</p>
+                        <p className="slot-meta">Fresh descent available.</p>
+                      </div>
+                      <div className="slot-card-actions">
+                        <button onClick={() => void createRun(slotNumber)} disabled={busy}>New Game</button>
+                      </div>
+                    </>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+          {error && <p className="error-banner">{error}</p>}
+          {settingsOpen && (
+            <div
+              className="settings-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(false)}
+            >
+              <div className="settings-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="settings-modal-header">
+                  <div>
+                    <p className="settings-label">System Controls</p>
+                    <h2 className="settings-title">Settings</h2>
+                  </div>
+                  <button className="settings-close" onClick={() => setSettingsOpen(false)} aria-label="Close settings">
+                    Close
                   </button>
-                  <input
-                    type="range"
-                    className="settings-slider"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={audio.volume}
-                    onChange={e => audio.setVolume(parseFloat(e.target.value))}
-                    disabled={!audio.enabled}
-                    aria-label="Music volume"
-                  />
-                  <span className="settings-vol-label">{Math.round(audio.volume * 100)}%</span>
+                </div>
+                <div className="settings-panel">
+                  <p className="settings-label">Music</p>
+                  <div className="settings-row">
+                    <button
+                      className={`settings-toggle${audio.enabled ? " active" : ""}`}
+                      onClick={audio.toggleEnabled}
+                    >
+                      {audio.enabled ? "On" : "Off"}
+                    </button>
+                    <input
+                      type="range"
+                      className="settings-slider"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audio.volume}
+                      onChange={e => audio.setVolume(parseFloat(e.target.value))}
+                      disabled={!audio.enabled}
+                      aria-label="Music volume"
+                    />
+                    <span className="settings-vol-label">{Math.round(audio.volume * 100)}%</span>
+                  </div>
                 </div>
               </div>
-            )}
-          </header>
-          {error && <p className="error-banner">{error}</p>}
+            </div>
+          )}
         </main>
       ) : (
         <main className="game-grid">
@@ -430,7 +569,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <p className="death-eyebrow">Contact established</p>
                 <h2 className="death-heading victory-heading">Signal recovered.</h2>
                 <p className="death-sub">{run.log.at(-1) ?? "Transmission confirmed. You are inside the Hollow Star."}</p>
-                <button onClick={() => void createRun()} disabled={busy}>Begin Again</button>
+                <button onClick={() => void returnToSaveSlots()} disabled={busy}>Return to Save Slots</button>
               </div>
             </div>
           )}
@@ -440,10 +579,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <p className="death-eyebrow">Biosign terminated</p>
                 <h2 className="death-heading">You are dead.</h2>
                 <p className="death-sub">{run.log.at(-1) ?? "Your lifesign drops from the station network. No recovery signal."}</p>
-                <button onClick={() => void createRun()} disabled={busy}>Restart</button>
-                {bootstrap?.saves?.[0] && (
-                  <button onClick={() => void loadSave(bootstrap.saves[0].slotId)} disabled={busy}>Load Latest</button>
-                )}
+                <button onClick={() => void returnToSaveSlots()} disabled={busy}>Return to Save Slots</button>
               </div>
             </div>
           )}
@@ -454,17 +590,26 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
             <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
               {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
             </div>
-            {roomNpc && run.mode !== "combat" && (
-              <div className="npc-presence">
-                <img
-                  className="npc-presence-portrait"
-                  src={roomNpc.portraitAssetId ?? "/portraits/npc-placeholder.svg"}
-                  alt=""
-                />
-                <div className="npc-presence-info">
-                  <span className="npc-presence-name">{roomNpc.name}</span>
-                  <span className="npc-presence-role">{roomNpc.role}</span>
-                </div>
+            {roomContentCards.length > 0 && (
+              <div className="room-content-stack" aria-label="Room contents">
+                {roomContentCards.map((card) => (
+                  <article
+                    key={`${card.kind}-${card.title}`}
+                    className={`room-content-card room-content-card--${card.kind}`}
+                    data-kind={card.kind}
+                  >
+                    {card.portraitSrc ? (
+                      <img className="room-content-portrait" src={card.portraitSrc} alt="" />
+                    ) : (
+                      <div className={`room-content-badge room-content-badge--${card.kind}`}>{card.badge}</div>
+                    )}
+                    <div className="room-content-info">
+                      <span className="room-content-label">{card.label}</span>
+                      <span className="room-content-title">{card.title}</span>
+                      <span className="room-content-subtitle">{card.subtitle}</span>
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
             {(roomNpc || roomTerminal) && run.mode !== "combat" && (
@@ -675,6 +820,18 @@ function renderStatusText(text: string, onOpenTablet: (tab: "messages" | "assign
 
 function labelFor(itemMap: Map<string, Item>, itemId: string | null): string {
   return itemId ? itemMap.get(itemId)?.name ?? itemId : "None";
+}
+
+function buildSaveSlots(saves: SaveSummary[]): SlotCard[] {
+  const saveMap = new Map(saves.map((save) => [save.slotNumber, save]));
+  return [1, 2, 3].map((slotNumber) => ({
+    slotNumber,
+    save: saveMap.get(slotNumber) ?? null,
+  }));
+}
+
+function formatSaveTimestamp(value: string): string {
+  return new Date(value).toLocaleString();
 }
 
 function describeExits(zone: Zone, px: number, py: number, run: RunState, itemMap: Map<string, Item>): string[] {

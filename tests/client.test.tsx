@@ -46,7 +46,19 @@ const zone = {
   edges: [],
 };
 
-const bootstrap = {
+const contentZone = {
+  ...zone,
+  rooms: [
+    {
+      ...zone.rooms[0],
+      npcId: "commander_vasek",
+      terminalId: "west_ring_status",
+      prop: "brazier",
+    },
+  ],
+};
+
+const emptyBootstrap = {
   title: "Echoes of the Hollow Star",
   intro: "Descend beneath the Hollow Gate.",
   startX: 0,
@@ -57,6 +69,7 @@ const bootstrap = {
   items: [],
   npcs: [],
   terminals: [],
+  props: [],
   assets: {
     titleSplash: "/title.png",
     wallTexture: "/wall.png",
@@ -67,6 +80,52 @@ const bootstrap = {
     itemIcons: []
   },
   saves: []
+};
+
+const contentBootstrap = {
+  ...emptyBootstrap,
+  zones: [contentZone],
+  npcs: [
+    {
+      id: "commander_vasek",
+      name: "Commander Vasek",
+      role: "Station Commander, West Ring",
+      portraitAssetId: "/portraits/vasek.png",
+      dialogue: [],
+    },
+  ],
+  terminals: [
+    {
+      id: "west_ring_status",
+      title: "West Ring Relay Terminal",
+      logText: "System status nominal.",
+      xpReward: 5,
+    },
+  ],
+  props: [
+    {
+      id: "brazier",
+      name: "Emergency Brazier",
+      description: "A wavering blue flame casts a low emergency glow.",
+      iconLabel: "OBJ",
+    },
+  ],
+};
+
+const occupiedBootstrap = {
+  ...emptyBootstrap,
+  saves: [
+    {
+      slotId: "slot-occupied",
+      slotNumber: 2,
+      mode: "explore",
+      status: "active",
+      roomId: "gate",
+      roomTitle: "Gate",
+      level: 3,
+      updatedAt: "2026-04-01T10:00:00.000Z",
+    },
+  ],
 };
 
 const runEnvelope = {
@@ -124,6 +183,15 @@ const combatEnvelope = {
   }
 };
 
+const defeatEnvelope = {
+  run: {
+    ...runEnvelope.run,
+    mode: "defeat",
+    status: "defeat",
+    log: ["You are dead."]
+  }
+};
+
 function textBody(data: unknown): string {
   return JSON.stringify({ ok: true, data });
 }
@@ -131,33 +199,37 @@ function textBody(data: unknown): string {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.stubGlobal("confirm", vi.fn(() => true));
 });
 
 describe("App", () => {
-  it("shows the landing panel before a run and swaps to the game layout after starting", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => ({
+  it("renders three save slots and starts a new run from an empty slot", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
       text: async () => {
-        if (String(input).includes("bootstrap")) return textBody(bootstrap);
-        return textBody(runEnvelope);
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(emptyBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(runEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
       }
-    })));
+    }));
+    vi.stubGlobal("fetch", fetchMock);
 
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    root.render(<App />);
+    const { container, root } = mountApp();
     await flush();
 
-    expect(container.textContent).toContain("Echoes of the Hollow Star");
-    expect(container.textContent).toContain("Begin!");
+    expect(container.textContent).toContain("Select a slot");
+    expect(container.textContent).toContain("Slot 1");
+    expect(container.textContent).toContain("Slot 2");
+    expect(container.textContent).toContain("Slot 3");
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
-    expect(newRunButton).toBeTruthy();
+    const newGameButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
+    expect(newGameButton).toBeTruthy();
 
-    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    newGameButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
+    const newRunCall = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/game/new-run"));
+    expect(String(newRunCall?.[1]?.body)).toContain("\"slotNumber\":1");
     expect(container.textContent).toContain("Movement");
     expect(container.textContent).toContain("Save");
     expect(container.querySelector("[data-testid='viewport']")).not.toBeNull();
@@ -166,23 +238,135 @@ describe("App", () => {
     container.remove();
   });
 
-  it("maps arrow keys to movement commands including back", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo) => ({
+  it("opens settings in a closable modal instead of expanding the landing header", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
       text: async () => {
-        if (String(input).includes("bootstrap")) return textBody(bootstrap);
-        return textBody(runEnvelope);
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(emptyBootstrap);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
       }
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    root.render(<App />);
+    const { container, root } = mountApp();
     await flush();
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
+    const settingsButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Settings");
+    settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(container.querySelector("[aria-label='Settings']")).not.toBeNull();
+    expect(container.textContent).toContain("System Controls");
+    expect(container.textContent).toContain("Music");
+
+    const closeButton = container.querySelector("[aria-label='Close settings']");
+    closeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(container.querySelector("[aria-label='Settings']")).toBeNull();
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("continues an occupied slot via its run id", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(occupiedBootstrap);
+        if (url.includes("/api/game/run/slot-occupied")) return textBody(runEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const continueButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Continue");
+    continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/api/game/run/slot-occupied"))).toBe(true);
+    expect(container.textContent).toContain("Movement");
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("overwrites an occupied slot after confirmation", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(occupiedBootstrap);
+        if (url.includes("/api/game/run/slot-occupied") && init?.method === "DELETE") return textBody({ deleted: "slot-occupied" });
+        if (url.includes("/api/game/new-run")) return textBody(runEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const overwriteButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Overwrite");
+    overwriteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input).includes("/api/game/run/slot-occupied") && init?.method === "DELETE")).toBe(true);
+    const newRunCall = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/game/new-run"));
+    expect(String(newRunCall?.[1]?.body)).toContain("\"slotNumber\":2");
+    expect(container.textContent).toContain("Movement");
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("deletes an occupied slot and redraws the slot picker", async () => {
+    let bootstrapCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) {
+          bootstrapCalls += 1;
+          return textBody(bootstrapCalls === 1 ? occupiedBootstrap : emptyBootstrap);
+        }
+        if (url.includes("/api/game/run/slot-occupied") && init?.method === "DELETE") return textBody({ deleted: "slot-occupied" });
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const deleteButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Delete");
+    deleteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(container.textContent).toContain("No transmission stored.");
+    expect(container.textContent).toContain("New Game");
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("maps arrow keys to movement commands including back", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(emptyBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(runEnvelope);
+        if (url.includes("/api/game/move")) return textBody(runEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
     newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
@@ -198,21 +382,20 @@ describe("App", () => {
   });
 
   it("surfaces a visible combat panel when a run is in combat", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => ({
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
       text: async () => {
-        if (String(input).includes("bootstrap")) return textBody(bootstrap);
-        return textBody(combatEnvelope);
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(emptyBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(combatEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
       }
-    })));
+    }));
+    vi.stubGlobal("fetch", fetchMock);
 
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    root.render(<App />);
+    const { container, root } = mountApp();
     await flush();
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
     newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
@@ -222,7 +405,109 @@ describe("App", () => {
     root.unmount();
     container.remove();
   });
+
+  it("renders npc, terminal, and room object cards in the room-content stack", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(contentBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(runEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    const stack = container.querySelector("[aria-label='Room contents']");
+    const kinds = [...container.querySelectorAll("[data-kind]")].map((node) => node.getAttribute("data-kind"));
+
+    expect(stack).not.toBeNull();
+    expect(kinds).toEqual(["npc", "terminal", "prop"]);
+    expect(container.textContent).toContain("Commander Vasek");
+    expect(container.textContent).toContain("West Ring Relay Terminal");
+    expect(container.textContent).toContain("Emergency Brazier");
+    expect(container.textContent).not.toContain("brazier");
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps the combat card first while stacking other room contents underneath", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(contentBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(combatEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    const kinds = [...container.querySelectorAll("[data-kind]")].map((node) => node.getAttribute("data-kind"));
+
+    expect(kinds).toEqual(["combat", "npc", "terminal", "prop"]);
+    expect(container.textContent).toContain("Bone Sentinel");
+    expect(container.textContent).toContain("Commander Vasek");
+    expect(container.textContent).toContain("West Ring Relay Terminal");
+    expect(container.textContent).toContain("Emergency Brazier");
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("returns to the save slots from a defeat state without using a latest-save button", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => ({
+      text: async () => {
+        const url = String(input);
+        if (url.includes("bootstrap")) return textBody(emptyBootstrap);
+        if (url.includes("/api/game/new-run")) return textBody(defeatEnvelope);
+        throw new Error(`Unhandled request: ${url} ${init?.method ?? "GET"}`);
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container, root } = mountApp();
+    await flush();
+
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Game");
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(container.textContent).toContain("Return to Save Slots");
+    expect(container.textContent).not.toContain("Load Latest");
+
+    const returnButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Return to Save Slots");
+    returnButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await flush();
+
+    expect(container.textContent).toContain("Select a slot");
+    expect(container.textContent).toContain("Slot 1");
+
+    root.unmount();
+    container.remove();
+  });
 });
+
+function mountApp(): { container: HTMLDivElement; root: ReturnType<typeof createRoot> } {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  root.render(<App />);
+  return { container, root };
+}
 
 async function flush(): Promise<void> {
   for (let index = 0; index < 6; index += 1) {

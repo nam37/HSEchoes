@@ -24,6 +24,7 @@ import {
   type MovePayload,
   type NPC,
   type PlayerState,
+  type PropDef,
   type Quest,
   type QuestDef,
   type RunEnvelope,
@@ -43,6 +44,14 @@ interface MetaRow {
   assets: BootstrapData["assets"];
 }
 
+interface StoredRunRow {
+  slot_id: string;
+  slot_index: number | null;
+  json: string;
+  checkpoint_json: string | null;
+  updated_at: string;
+}
+
 export class GameService {
   private zones!: Map<string, Zone>;
   private enemies!: Map<string, Enemy>;
@@ -52,6 +61,7 @@ export class GameService {
   private messageDefs!: Map<string, MessageDef>;
   private npcs!: Map<string, NPC>;
   private terminals!: Map<string, Terminal>;
+  private props!: Map<string, PropDef>;
   private meta!: MetaRow;
 
   private constructor(
@@ -70,6 +80,7 @@ export class GameService {
     instance.messageDefs = await instance.loadMap<MessageDef>("message");
     instance.npcs        = await instance.loadMap<NPC>("npc");
     instance.terminals   = await instance.loadMap<Terminal>("terminal");
+    instance.props       = await instance.loadMap<PropDef>("prop");
     return instance;
   }
 
@@ -83,6 +94,7 @@ export class GameService {
     this.messageDefs = await this.loadMap<MessageDef>("message");
     this.npcs        = await this.loadMap<NPC>("npc");
     this.terminals   = await this.loadMap<Terminal>("terminal");
+    this.props       = await this.loadMap<PropDef>("prop");
   }
 
   private getZone(zoneId: string): Zone {
@@ -129,46 +141,44 @@ export class GameService {
       items:      [...this.items.values()],
       npcs:       [...this.npcs.values()],
       terminals:  [...this.terminals.values()],
+      props:      [...this.props.values()],
       assets: this.meta.assets,
       saves:  await this.listSaves(userId)
     };
   }
 
   async listSaves(userId: string): Promise<SaveSummary[]> {
-    const rows = await this.sql<Array<{ slot_id: string; json: string; updated_at: string }>>`
-      SELECT slot_id, json, updated_at FROM runs WHERE user_id = ${userId} ORDER BY updated_at DESC
+    const rows = await this.sql<StoredRunRow[]>`
+      SELECT slot_id, slot_index, json, checkpoint_json, updated_at
+      FROM runs
+      WHERE user_id = ${userId}
+      ORDER BY slot_index ASC, updated_at DESC
     `;
-    return rows.map((row) => {
-      const run = JSON.parse(row.json) as RunState;
-      return {
-        slotId:    row.slot_id,
-        mode:      run.mode,
-        status:    run.status,
-        roomId:    run.roomId,
-        updatedAt: row.updated_at
-      };
-    });
+    return rows
+      .map((row) => this.toSaveSummary(row))
+      .sort((left, right) => left.slotNumber - right.slotNumber);
   }
 
   async listAllSaves(): Promise<SaveSummary[]> {
-    const rows = await this.sql<Array<{ slot_id: string; json: string; updated_at: string }>>`
-      SELECT slot_id, json, updated_at FROM runs ORDER BY updated_at DESC
+    const rows = await this.sql<StoredRunRow[]>`
+      SELECT slot_id, slot_index, json, checkpoint_json, updated_at
+      FROM runs
+      ORDER BY updated_at DESC, slot_index ASC
     `;
-    return rows.map((row) => {
-      const run = JSON.parse(row.json) as RunState;
-      return {
-        slotId:    row.slot_id,
-        mode:      run.mode,
-        status:    run.status,
-        roomId:    run.roomId,
-        updatedAt: row.updated_at
-      };
-    });
+    return rows.map((row) => this.toSaveSummary(row));
   }
 
   // ── Run lifecycle ────────────────────────────────────────────────────────
 
-  async createNewRun(userId: string): Promise<RunEnvelope> {
+  async createNewRun(userId: string, slotNumber: number): Promise<RunEnvelope> {
+    this.assertSlotNumber(slotNumber);
+    const existing = await this.sql<Array<{ slot_id: string }>>`
+      SELECT slot_id FROM runs WHERE user_id = ${userId} AND slot_index = ${slotNumber}
+    `;
+    if (existing.length > 0) {
+      throw new Error(`Save slot ${slotNumber} is occupied. Delete or overwrite it first.`);
+    }
+
     const now  = new Date().toISOString();
     const startZone = [...this.zones.values()][0];
     const startRoom = findRoomContaining(startZone, this.meta.startX, this.meta.startY);
@@ -212,7 +222,7 @@ export class GameService {
     }
     this.triggerQuestsForEvent(run, { type: "game_start" });
     this.deliverMessages(run, { type: "game_start" });
-    await this.persistRun(run, userId, true);
+    await this.persistRun(run, userId, slotNumber, true);
 
     // Surface all run-start notifications in the ribbon so none are hidden behind log.at(-1).
     const notifications = run.log.slice(1); // skip the entry-text flavour line
@@ -221,13 +231,33 @@ export class GameService {
   }
 
   async loadRun(slotId: string, userId: string): Promise<RunState> {
-    // Load from checkpoint (last manual save), falling back to auto-save if never manually saved.
-    // Also reset json to the checkpoint so subsequent moves start from the correct position.
-    await this.sql`
-      UPDATE runs SET json = COALESCE(checkpoint_json, json), updated_at = ${new Date().toISOString()}
+    const row = await this.readStoredRun(slotId, userId);
+    const autoSave = this.parseRun(row.json);
+
+    if (autoSave.status !== "active") {
+      return autoSave;
+    }
+
+    const checkpoint = row.checkpoint_json ? this.parseRun(row.checkpoint_json) : autoSave;
+    if (row.checkpoint_json) {
+      await this.sql`
+        UPDATE runs
+        SET json = ${JSON.stringify(checkpoint)}
+        WHERE slot_id = ${slotId} AND user_id = ${userId}
+      `;
+    }
+    return checkpoint;
+  }
+
+  async deleteRun(slotId: string, userId: string): Promise<void> {
+    const rows = await this.sql<Array<{ slot_id: string }>>`
+      DELETE FROM runs
       WHERE slot_id = ${slotId} AND user_id = ${userId}
+      RETURNING slot_id
     `;
-    return this.readRun(slotId, userId);
+    if (rows.length === 0) {
+      throw new Error(`Run '${slotId}' not found.`);
+    }
   }
 
   // ── Movement ─────────────────────────────────────────────────────────────
@@ -398,11 +428,8 @@ export class GameService {
     }
 
     run.log = pushLog(run.log, parts.join(" "));
-    // Don't persist on defeat — DB retains last alive state so Load Latest can restore it
-    if (run.status !== "defeat") {
-      this.touch(run);
-      await this.persistRun(run, userId);
-    }
+    this.touch(run);
+    await this.persistRun(run, userId);
     return { run, message: parts.join(" ") };
   }
 
@@ -438,9 +465,12 @@ export class GameService {
     if (run.mode === "combat") {
       return { run, message: "Cannot save during combat." };
     }
+    this.touch(run);
     // Copy the current auto-save state into checkpoint_json
     await this.sql`
-      UPDATE runs SET checkpoint_json = json WHERE slot_id = ${slotId} AND user_id = ${userId}
+      UPDATE runs
+      SET json = ${JSON.stringify(run)}, checkpoint_json = ${JSON.stringify(run)}, updated_at = ${run.updatedAt}
+      WHERE slot_id = ${slotId} AND user_id = ${userId}
     `;
     return { run, message: "Progress saved." };
   }
@@ -645,12 +675,18 @@ export class GameService {
     return Math.floor(this.random() * (max - min + 1)) + min;
   }
 
-  private async readRun(slotId: string, userId: string): Promise<RunState> {
-    const rows = await this.sql<Array<{ json: string }>>`
-      SELECT json FROM runs WHERE slot_id = ${slotId} AND user_id = ${userId}
+  private async readStoredRun(slotId: string, userId: string): Promise<StoredRunRow> {
+    const rows = await this.sql<StoredRunRow[]>`
+      SELECT slot_id, slot_index, json, checkpoint_json, updated_at
+      FROM runs
+      WHERE slot_id = ${slotId} AND user_id = ${userId}
     `;
     if (rows.length === 0) throw new Error(`Run '${slotId}' not found.`);
-    const run = JSON.parse(rows[0].json) as RunState;
+    return rows[0];
+  }
+
+  private parseRun(serialized: string): RunState {
+    const run = JSON.parse(serialized) as RunState;
     // Migrate older saves that predate these systems
     run.activeQuests           ??= [];
     run.completedQuestIds      ??= [];
@@ -660,12 +696,64 @@ export class GameService {
     return run;
   }
 
-  private async persistRun(run: RunState, userId: string, asCheckpoint = false): Promise<void> {
+  private toSaveSummary(row: StoredRunRow): SaveSummary {
+    const run = this.selectLoadableRun(row);
+    return {
+      slotId: row.slot_id,
+      slotNumber: row.slot_index ?? 0,
+      mode: run.mode,
+      status: run.status,
+      roomId: run.roomId,
+      roomTitle: this.resolveRoomTitle(run),
+      level: run.player.level,
+      updatedAt: run.updatedAt
+    };
+  }
+
+  private selectLoadableRun(row: StoredRunRow): RunState {
+    const autoSave = this.parseRun(row.json);
+    if (autoSave.status !== "active") {
+      return autoSave;
+    }
+    return row.checkpoint_json ? this.parseRun(row.checkpoint_json) : autoSave;
+  }
+
+  private resolveRoomTitle(run: RunState): string {
+    const zone = this.zones.get(run.zoneId);
+    if (!zone) {
+      return run.roomId;
+    }
+    const room = zone.rooms.find((candidate) => candidate.id === run.roomId)
+      ?? findRoomContaining(zone, run.posX, run.posY);
+    return room?.title ?? run.roomId;
+  }
+
+  private assertSlotNumber(slotNumber: number): void {
+    if (!Number.isInteger(slotNumber) || slotNumber < 1 || slotNumber > 3) {
+      throw new Error("Slot number must be 1, 2, or 3.");
+    }
+  }
+
+  private async readRun(slotId: string, userId: string): Promise<RunState> {
+    const row = await this.readStoredRun(slotId, userId);
+    return this.parseRun(row.json);
+  }
+
+  private async persistRun(run: RunState, userId: string, slotNumber?: number, asCheckpoint = false): Promise<void> {
     const j = JSON.stringify(run);
     await this.sql`
-      INSERT INTO runs (slot_id, user_id, json, checkpoint_json, created_at, updated_at)
-      VALUES (${run.slotId}, ${userId}, ${j}, ${asCheckpoint ? j : null}, ${run.createdAt}, ${run.updatedAt})
-      ON CONFLICT (slot_id) DO UPDATE SET json = EXCLUDED.json, updated_at = EXCLUDED.updated_at, user_id = EXCLUDED.user_id
+      INSERT INTO runs (slot_id, user_id, slot_index, json, checkpoint_json, created_at, updated_at)
+      VALUES (${run.slotId}, ${userId}, ${slotNumber ?? null}, ${j}, ${asCheckpoint ? j : null}, ${run.createdAt}, ${run.updatedAt})
+      ON CONFLICT (slot_id) DO UPDATE
+      SET
+        json = EXCLUDED.json,
+        updated_at = EXCLUDED.updated_at,
+        user_id = EXCLUDED.user_id,
+        slot_index = COALESCE(EXCLUDED.slot_index, runs.slot_index),
+        checkpoint_json = CASE
+          WHEN EXCLUDED.checkpoint_json IS NOT NULL THEN EXCLUDED.checkpoint_json
+          ELSE runs.checkpoint_json
+        END
     `;
   }
 

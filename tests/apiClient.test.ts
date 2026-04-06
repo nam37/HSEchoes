@@ -46,8 +46,8 @@ describe("client api", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not force a JSON content type for empty-body posts", async () => {
-    await api.newRun();
+  it("adds a JSON content type for slot-aware new-game requests", async () => {
+    await api.newRun({ slotNumber: 2 });
 
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -55,8 +55,8 @@ describe("client api", () => {
     const headers = new Headers(init?.headers);
 
     expect(init?.method).toBe("POST");
-    expect(init?.body).toBeUndefined();
-    expect(headers.has("Content-Type")).toBe(false);
+    expect(String(init?.body)).toContain("\"slotNumber\":2");
+    expect(headers.get("Content-Type")).toBe("application/json");
   });
 
   it("adds a JSON content type when a request body is present", async () => {
@@ -69,5 +69,18 @@ describe("client api", () => {
 
     expect(init?.body).toContain("forward");
     expect(headers.get("Content-Type")).toBe("application/json");
+  });
+
+  it("does not force a JSON content type for empty-body deletes", async () => {
+    await api.deleteRun("slot-1");
+
+    const fetchMock = vi.mocked(fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = new Headers(init?.headers);
+
+    expect(init?.method).toBe("DELETE");
+    expect(init?.body).toBeUndefined();
+    expect(headers.has("Content-Type")).toBe(false);
   });
 });

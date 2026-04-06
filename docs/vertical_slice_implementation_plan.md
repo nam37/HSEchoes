@@ -336,6 +336,7 @@ This must be completed before any art production work begins.
   `assetId` (references asset registry), and `renderHint` (`billboard` | `mesh`).
 - `ZoneRoom.prop` becomes a `propId` referencing a `PropDef` row.
 - Seed initial prop definitions alongside zone data in `seed.ts`.
+- Even 3D room props will need a 2d image asset to be used in the viewport notfication card.
 
 **Texture sets**
 - Rooms currently hardcode individual texture paths per room instance, leading to repetition.
@@ -348,6 +349,7 @@ This must be completed before any art production work begins.
 - When NPCs are introduced in Phase 5, their `portraitAssetId` should resolve through the asset
   registry. Flag this now so Phase 5 implementation uses the registry from the start rather than
   adding another raw path field.
+- NPC portraits will be used in the interaction modal AND in the viewport notification card
 
 ### 9.0.1 Art spec document (prerequisite)
 
@@ -365,7 +367,7 @@ Before any asset production begins, produce `docs/art_spec.md` defining:
 - Implement per-room texture variation in the 3D viewport renderer — rooms currently share a single
   global texture; wire `ZoneRoom.wallTexture` and `ZoneRoom.floorTexture` through to Three.js
   material assignment.
-- Ceiling color per room is already data-driven; verify it renders correctly at final art quality.
+- Ceiling color per room is already data-driven. We want to convert this to "Room Color" and use this to spade/tint wall, floor, and cleiling textures; verify it renders correctly at final art quality.
 
 ### 9.2 Enemy sprites
 

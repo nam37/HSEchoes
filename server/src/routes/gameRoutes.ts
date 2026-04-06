@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { CombatPayload, InteractPayload, InventoryPayload, MovePayload } from "../../../shared/src/index.js";
+import type { CombatPayload, CreateRunPayload, InteractPayload, InventoryPayload, MovePayload } from "../../../shared/src/index.js";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/authMiddleware.js";
 
 function uid(request: unknown): string {
@@ -11,7 +11,15 @@ export async function registerGameRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/api/game/bootstrap", async (request) => ({ ok: true, data: await app.gameService.getBootstrap(uid(request)) }));
 
-  app.post("/api/game/new-run", async (request) => ({ ok: true, data: await app.gameService.createNewRun(uid(request)) }));
+  app.post<{ Body: CreateRunPayload }>("/api/game/new-run", async (request) => ({
+    ok: true,
+    data: await app.gameService.createNewRun(uid(request), request.body.slotNumber)
+  }));
+
+  app.delete<{ Params: { slotId: string } }>("/api/game/run/:slotId", async (request) => {
+    await app.gameService.deleteRun(request.params.slotId, uid(request));
+    return { ok: true, data: { deleted: request.params.slotId } };
+  });
 
   app.get<{ Params: { slotId: string } }>("/api/game/run/:slotId", async (request) => ({
     ok: true,
