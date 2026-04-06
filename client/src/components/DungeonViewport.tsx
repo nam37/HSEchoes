@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { BootstrapData, CellFace, Direction, RunState, Zone } from "../../../shared/src/index";
-import { findRoomContaining, findZoneEdge, resolveEdgeType } from "../../../shared/src/index";
-import { isPassageBlocked } from "../lib/dungeonUtils";
+import type { BootstrapData, CellFace, Direction, RoomSurfaces, RunState, Zone } from "../../../shared/src/index";
+import { findRoomContaining, findZoneEdge, resolveEdgeType, resolveRoomSurfaces } from "../../../shared/src/index";
 
 interface DungeonViewportProps {
   bootstrap: BootstrapData;
@@ -20,6 +19,8 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const textureLoaderRef = useRef(new THREE.TextureLoader());
+  const textureCacheRef = useRef(new Map<string, THREE.Texture | null>());
+  const textureVariantCacheRef = useRef(new Map<string, THREE.Texture | null>());
 
   useEffect(() => {
     if (!mountRef.current || rendererRef.current) {
@@ -65,6 +66,8 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       window.removeEventListener("resize", resize);
       renderer.setAnimationLoop(null);
       renderer.dispose();
+      disposeTextureCache(textureVariantCacheRef.current);
+      disposeTextureCache(textureCacheRef.current);
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
@@ -92,8 +95,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
     const px = run.posX;
     const py = run.posY;
     const inventorySet = new Set(run.player.inventory);
-    const wallTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.wallTexture);
-    const floorTexture = tryTexture(textureLoaderRef.current, bootstrap.assets.floorTexture);
+    const materialCache = new Map<string, THREE.Material>();
 
     // Sci-fi corridor lighting: bright overhead strips + forward fill
     const ambient = new THREE.AmbientLight("#c8d8e0", 1.1);
@@ -105,20 +107,6 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 
     scene.background = new THREE.Color("#10141a");
     scene.fog = new THREE.FogExp2("#14181e", 0.018);
-
-    const floorMaterial = new THREE.MeshStandardMaterial({
-      color: "#2a2e34",
-      roughness: 0.55,
-      metalness: 0.6,
-      emissive: "#0a0c10",
-    });
-
-    const wallMaterial = new THREE.MeshStandardMaterial({
-      color: "#68747e",
-      roughness: 0.5,
-      metalness: 0.45,
-      emissive: "#141820",
-    });
 
     const doorMaterial = new THREE.MeshStandardMaterial({
       color: "#6888a0",
@@ -162,13 +150,16 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       addSquare(
         scene,
         zone,
+        bootstrap.assets,
         sx,
         sy,
         inventorySet,
         offsetX,
         offsetZ,
-        floorMaterial,
-        wallMaterial,
+        materialCache,
+        textureLoaderRef.current,
+        textureCacheRef.current,
+        textureVariantCacheRef.current,
         doorMaterial,
         gateMaterial,
         relation
@@ -198,17 +189,27 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 function addSquare(
   scene: THREE.Scene,
   zone: Zone,
+  assets: BootstrapData["assets"],
   sx: number,
   sy: number,
   inventory: Set<string>,
   offsetX: number,
   offsetZ: number,
-  floorMaterial: THREE.Material,
-  wallMaterial: THREE.Material,
+  materialCache: Map<string, THREE.Material>,
+  loader: THREE.TextureLoader,
+  textureCache: Map<string, THREE.Texture | null>,
+  textureVariantCache: Map<string, THREE.Texture | null>,
   doorMaterial: THREE.Material,
   gateMaterial: THREE.Material,
   relation: SquareRelation
 ): void {
+  const room = findRoomContaining(zone, sx, sy);
+  if (!room) return;
+  const surfaces = resolveRoomSurfaces(zone, room, assets);
+  const floorMaterial = getSurfaceMaterial("floor", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
+  const wallMaterial = getSurfaceMaterial("wall", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
+  const ceilingMaterial = getSurfaceMaterial("ceiling", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
+
   // Floor
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
@@ -221,17 +222,8 @@ function addSquare(
   scene.add(grid);
 
   // Ceiling
-  const room = findRoomContaining(zone, sx, sy);
-  const ceilingColor = room?.ceilingColor ?? "#3a4048";
-  const ceiling = new THREE.Mesh(
-    new THREE.PlaneGeometry(roomSize, roomSize),
-    new THREE.MeshStandardMaterial({
-      color: ceilingColor,
-      emissive: ceilingColor,
-      emissiveIntensity: 0.4,
-      roughness: 0.9,
-    })
-  );
+  const ceilingColor = surfaces.ceilingColor;
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), ceilingMaterial);
   ceiling.position.set(offsetX, wallHeight, offsetZ);
   ceiling.rotation.x = Math.PI / 2;
   scene.add(ceiling);
@@ -401,6 +393,97 @@ function tryTexture(loader: THREE.TextureLoader, src: string): THREE.Texture | n
   }
 }
 
+function getSurfaceMaterial(
+  surface: "wall" | "floor" | "ceiling",
+  surfaces: RoomSurfaces,
+  assets: BootstrapData["assets"],
+  materialCache: Map<string, THREE.Material>,
+  loader: THREE.TextureLoader,
+  textureCache: Map<string, THREE.Texture | null>,
+  textureVariantCache: Map<string, THREE.Texture | null>
+): THREE.Material {
+  const src =
+    surface === "wall" ? surfaces.wallTexture || assets.wallTexture :
+    surface === "floor" ? surfaces.floorTexture || assets.floorTexture :
+    surfaces.ceilingTexture;
+
+  const repeat = surface === "wall" ? [2, 1] as const : [2, 2] as const;
+  const cacheKey = `${surface}|${src ?? ""}|${surfaces.ceilingColor}`;
+  const cached = materialCache.get(cacheKey);
+  if (cached) return cached;
+
+  const map = src ? getCachedTextureVariant(loader, src, repeat[0], repeat[1], textureCache, textureVariantCache) : null;
+  const material = new THREE.MeshStandardMaterial(
+    surface === "ceiling"
+      ? {
+          color: surfaces.ceilingColor,
+          map: map ?? undefined,
+          roughness: 0.9,
+          metalness: 0.1,
+          emissive: new THREE.Color(surfaces.ceilingColor),
+          emissiveIntensity: map ? 0.28 : 0.4,
+        }
+      : surface === "floor"
+        ? {
+            color: "#d2dae0",
+            map: map ?? undefined,
+            roughness: 0.74,
+            metalness: 0.16,
+            emissive: "#05080c",
+          }
+        : {
+            color: "#c0ccd6",
+            map: map ?? undefined,
+            roughness: 0.68,
+            metalness: 0.18,
+            emissive: "#0b1016",
+          }
+  );
+  materialCache.set(cacheKey, material);
+  return material;
+}
+
+function getCachedTextureVariant(
+  loader: THREE.TextureLoader,
+  src: string,
+  repeatX: number,
+  repeatY: number,
+  textureCache: Map<string, THREE.Texture | null>,
+  textureVariantCache: Map<string, THREE.Texture | null>
+): THREE.Texture | null {
+  const variantKey = `${src}|${repeatX}|${repeatY}`;
+  if (textureVariantCache.has(variantKey)) {
+    return textureVariantCache.get(variantKey) ?? null;
+  }
+
+  const baseTexture = getCachedTexture(loader, src, textureCache);
+  if (!baseTexture) {
+    textureVariantCache.set(variantKey, null);
+    return null;
+  }
+
+  const variant = baseTexture.clone();
+  variant.wrapS = THREE.RepeatWrapping;
+  variant.wrapT = THREE.RepeatWrapping;
+  variant.repeat.set(repeatX, repeatY);
+  variant.colorSpace = THREE.SRGBColorSpace;
+  variant.needsUpdate = true;
+  textureVariantCache.set(variantKey, variant);
+  return variant;
+}
+
+function getCachedTexture(loader: THREE.TextureLoader, src: string, textureCache: Map<string, THREE.Texture | null>): THREE.Texture | null {
+  if (textureCache.has(src)) {
+    return textureCache.get(src) ?? null;
+  }
+  const texture = tryTexture(loader, src);
+  if (texture) {
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }
+  textureCache.set(src, texture);
+  return texture;
+}
+
 function addPassageFrame(
   scene: THREE.Scene,
   position: [number, number, number],
@@ -421,13 +504,13 @@ function addPassageFrame(
   group.add(left, right, top);
 
   const sideW = 3.0;
-  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
+  const leftWall = createWallSegmentMesh(sideW, wallHeight, wallMaterial, 0, sideW / roomSize, 0, 1);
   leftWall.position.set(-(roomSize / 2 - sideW / 2), wallHeight / 2, 0);
-  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(sideW, wallHeight), wallMaterial);
+  const rightWall = createWallSegmentMesh(sideW, wallHeight, wallMaterial, 1 - sideW / roomSize, 1, 0, 1);
   rightWall.position.set(roomSize / 2 - sideW / 2, wallHeight / 2, 0);
 
   const aboveH = wallHeight - 4.2;
-  const aboveWall = new THREE.Mesh(new THREE.PlaneGeometry(4.0, aboveH), wallMaterial);
+  const aboveWall = createWallSegmentMesh(4.0, aboveH, wallMaterial, sideW / roomSize, 1 - sideW / roomSize, 4.2 / wallHeight, 1);
   aboveWall.position.set(0, 4.2 + aboveH / 2, 0);
 
   group.add(leftWall, rightWall, aboveWall);
@@ -516,6 +599,41 @@ function buildGateBarrier(blocked: boolean): THREE.Group {
   return group;
 }
 
+function createWallSegmentMesh(
+  width: number,
+  height: number,
+  material: THREE.Material,
+  uMin: number,
+  uMax: number,
+  vMin: number,
+  vMax: number
+): THREE.Mesh {
+  const geometry = new THREE.PlaneGeometry(width, height);
+  remapPlaneUvs(geometry, uMin, uMax, vMin, vMax);
+  return new THREE.Mesh(geometry, material);
+}
+
+function remapPlaneUvs(
+  geometry: THREE.PlaneGeometry,
+  uMin: number,
+  uMax: number,
+  vMin: number,
+  vMax: number
+): void {
+  const uv = geometry.getAttribute("uv");
+  if (!uv || !(uv instanceof THREE.BufferAttribute)) {
+    return;
+  }
+
+  for (let index = 0; index < uv.count; index += 1) {
+    const u = uv.getX(index);
+    const v = uv.getY(index);
+    uv.setXY(index, THREE.MathUtils.lerp(uMin, uMax, u), THREE.MathUtils.lerp(vMin, vMax, v));
+  }
+
+  uv.needsUpdate = true;
+}
+
 function placeCamera(camera: THREE.PerspectiveCamera, facing: Direction): void {
   camera.position.set(0, 2.15, 0);
   switch (facing) {
@@ -547,5 +665,27 @@ function clearScene(scene: THREE.Scene): void {
   while (scene.children.length > 0) {
     const child = scene.children[0];
     scene.remove(child);
+    disposeObject(child);
   }
+}
+
+function disposeObject(object: THREE.Object3D): void {
+  object.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (mesh.geometry) {
+      mesh.geometry.dispose();
+    }
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach((material) => material.dispose());
+    } else if (mesh.material) {
+      mesh.material.dispose();
+    }
+  });
+}
+
+function disposeTextureCache(cache: Map<string, THREE.Texture | null>): void {
+  for (const texture of cache.values()) {
+    texture?.dispose();
+  }
+  cache.clear();
 }

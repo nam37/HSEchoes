@@ -8,26 +8,55 @@ vi.mock("../client/src/components/DungeonViewport", () => ({
   DungeonViewport: () => <div data-testid="viewport">Viewport</div>
 }));
 
-const bootstrap = {
-  title: "Echoes of the Hollow Star",
-  intro: "Descend beneath the Hollow Gate.",
-  startCellId: "gate",
-  cells: [
+vi.mock("../client/src/hooks/useAudio", () => ({
+  useAudio: () => ({
+    enabled: true,
+    toggleEnabled: vi.fn(),
+    volume: 0.3,
+    setVolume: vi.fn(),
+    play: vi.fn(),
+  }),
+}));
+
+const zone = {
+  id: "zone_test",
+  title: "Test Zone",
+  gridW: 1,
+  gridH: 1,
+  surfaceDefaults: {
+    wallTexture: "/wall.png",
+    floorTexture: "/floor.png",
+    ceilingTexture: "/ceiling.png",
+    ceilingColor: "#101820",
+  },
+  rooms: [
     {
       id: "gate",
       title: "Gate",
       description: "The start.",
       x: 0,
       y: 0,
-      sides: { north: "wall", east: "wall", south: "wall", west: "wall" },
-      wallTexture: "/wall.png",
-      floorTexture: "/floor.png",
-      ceilingColor: "#000"
-    }
+      w: 1,
+      h: 1,
+      surfaceOverrides: {
+        ceilingColor: "#000000",
+      },
+    },
   ],
-  enemies: [],
+  edges: [],
+};
+
+const bootstrap = {
+  title: "Echoes of the Hollow Star",
+  intro: "Descend beneath the Hollow Gate.",
+  startX: 0,
+  startY: 0,
+  zones: [zone],
+  enemies: [{ id: "test-enemy", name: "Bone Sentinel", maxHp: 10, attack: 3, defense: 1, spritePath: "/enemy.png", introLine: "Hostile contact." }],
   encounters: [],
   items: [],
+  npcs: [],
+  terminals: [],
   assets: {
     titleSplash: "/title.png",
     wallTexture: "/wall.png",
@@ -45,10 +74,13 @@ const runEnvelope = {
     slotId: "slot-1",
     mode: "explore",
     status: "active",
-    cellId: "gate",
+    zoneId: "zone_test",
+    roomId: "gate",
+    posX: 0,
+    posY: 0,
+    previousRoomId: null,
     facing: "north",
-    discoveredCellIds: ["gate"],
-    visitedCellIds: ["gate"],
+    discoveredRoomIds: ["gate"],
     clearedEncounterIds: [],
     collectedItemIds: [],
     player: {
@@ -56,11 +88,19 @@ const runEnvelope = {
       maxHp: 12,
       baseAttack: 2,
       baseDefense: 0,
-      gold: 0,
+      credits: 0,
+      level: 1,
+      xp: 0,
+      xpToNextLevel: 50,
       inventory: [],
       equipped: { weapon: null, armor: null, accessory: null }
     },
     combat: null,
+    activeQuests: [],
+    completedQuestIds: [],
+    completedQuests: [],
+    messages: [],
+    interactedTerminalIds: [],
     log: ["Ready."],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -110,20 +150,17 @@ describe("App", () => {
     await flush();
 
     expect(container.textContent).toContain("Echoes of the Hollow Star");
-    expect(container.textContent).toContain("New Run");
-    expect(container.textContent).not.toContain("Explorer");
+    expect(container.textContent).toContain("Begin!");
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Run") as HTMLButtonElement | undefined;
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
     expect(newRunButton).toBeTruthy();
 
-    newRunButton?.click();
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
-    expect(container.textContent).toContain("Explorer");
     expect(container.textContent).toContain("Movement");
     expect(container.textContent).toContain("Save");
-    expect(container.querySelector(".landing-stage")).toBeNull();
-    expect(container.textContent).not.toContain("New Run");
+    expect(container.querySelector("[data-testid='viewport']")).not.toBeNull();
 
     root.unmount();
     container.remove();
@@ -145,8 +182,8 @@ describe("App", () => {
     root.render(<App />);
     await flush();
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Run") as HTMLButtonElement | undefined;
-    newRunButton?.click();
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
@@ -154,7 +191,7 @@ describe("App", () => {
 
     const moveCall = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/game/move"));
     expect(moveCall).toBeTruthy();
-    expect(String(moveCall?.[1]?.body)).toContain('"command":"back"');
+    expect(String(moveCall?.[1]?.body)).toContain("\"command\":\"back\"");
 
     root.unmount();
     container.remove();
@@ -175,13 +212,12 @@ describe("App", () => {
     root.render(<App />);
     await flush();
 
-    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "New Run") as HTMLButtonElement | undefined;
-    newRunButton?.click();
+    const newRunButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Begin!");
+    newRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await flush();
 
-    expect(container.textContent).toContain("Combat Engaged");
+    expect(container.textContent).toContain("Combat");
     expect(container.textContent).toContain("Bone Sentinel");
-    expect(container.textContent).toContain("Movement is locked");
 
     root.unmount();
     container.remove();

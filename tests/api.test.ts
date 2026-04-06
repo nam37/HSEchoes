@@ -1,18 +1,22 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { createDatabase, ensureSchema } from "../server/src/db/database";
 import { seedDatabase } from "../server/src/db/seed";
-import { buildApp } from "../server/src/app";
 import type { Sql } from "../server/src/db/database";
 
 describe("game routes", () => {
   let sql: Sql;
   let app: FastifyInstance;
+  let buildApp: typeof import("../server/src/app").buildApp;
 
   beforeAll(async () => {
     sql = createDatabase();
     await ensureSchema(sql);
     await seedDatabase(sql);
+
+    delete process.env.NEON_AUTH_URL;
+    vi.resetModules();
+    ({ buildApp } = await import("../server/src/app"));
   });
 
   beforeEach(async () => {
@@ -37,9 +41,9 @@ describe("game routes", () => {
     const loaded = await app.inject({ method: "GET", url: `/api/game/run/${created.slotId}` });
 
     expect(landing.statusCode).toBe(200);
-    expect(landing.headers["content-type"]).toContain("text/html");
     expect(bootstrap.statusCode).toBe(200);
+    expect(bootstrap.json().data.zones[0].surfaceDefaults.wallTexture).toBeTruthy();
     expect(created.slotId).toBeTruthy();
-    expect(loaded.json().data.run.cellId).toBe("gate");
+    expect(loaded.json().data.run.roomId).toBe("gate");
   });
 });

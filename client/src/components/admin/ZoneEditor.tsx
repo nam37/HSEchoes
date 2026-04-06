@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EdgeType, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
+import type { EdgeType, RoomSurfaces, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
 import { findRoomContaining } from "../../../../shared/src/index";
 import { RoomSidebar } from "./RoomSidebar";
 
@@ -543,9 +543,6 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
         id: `room_${Date.now()}`,
         x: rx, y: ry, w: rw, h: rh,
         title: "New Room", description: "",
-        wallTexture: "/assets/textures/wall-stone.png",
-        floorTexture: "/assets/textures/floor-granite.png",
-        ceilingColor: "#1a1f2e",
       };
       setDraft((prev) => ({ ...prev, rooms: [...prev.rooms, newRoom] }));
       setSelectedRoom(newRoom);
@@ -572,6 +569,16 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
   function updateRoom(updated: ZoneRoom): void {
     setDraft((prev) => pruneEdges({ ...prev, rooms: prev.rooms.map((r) => r.id === updated.id ? updated : r) }));
     setSelectedRoom(updated);
+  }
+
+  function updateSurfaceDefault<K extends keyof RoomSurfaces>(key: K, value: RoomSurfaces[K]): void {
+    setDraft((prev) => ({
+      ...prev,
+      surfaceDefaults: {
+        ...prev.surfaceDefaults,
+        [key]: value,
+      },
+    }));
   }
 
   function setGridW(val: number): void {
@@ -656,15 +663,34 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
             onMouseLeave={handleMouseLeave}
           />
         </div>
-        {selectedRoom && (
-          <RoomSidebar
-            room={selectedRoom}
-            gridW={draft.gridW}
-            gridH={draft.gridH}
-            onChange={updateRoom}
-            onClose={() => setSelectedRoom(null)}
-          />
-        )}
+        <div className="zone-editor-sidebars">
+          <aside className="zone-sidebar">
+            <div className="zone-sidebar-header">
+              <h3>Zone Defaults</h3>
+            </div>
+            <div className="zone-sidebar-body">
+              <label>Wall Texture<input value={draft.surfaceDefaults.wallTexture} onChange={(e) => updateSurfaceDefault("wallTexture", e.target.value)} /></label>
+              <label>Floor Texture<input value={draft.surfaceDefaults.floorTexture} onChange={(e) => updateSurfaceDefault("floorTexture", e.target.value)} /></label>
+              <label>Ceiling Texture<input value={draft.surfaceDefaults.ceilingTexture ?? ""} onChange={(e) => updateSurfaceDefault("ceilingTexture", e.target.value || undefined)} /></label>
+              <label>Ceiling Tint
+                <div className="zone-surface-row">
+                  <input type="color" value={draft.surfaceDefaults.ceilingColor} onChange={(e) => updateSurfaceDefault("ceilingColor", e.target.value)} style={{ width: "2.5rem", padding: "0.1rem" }} />
+                  <input value={draft.surfaceDefaults.ceilingColor} onChange={(e) => updateSurfaceDefault("ceilingColor", e.target.value)} />
+                </div>
+              </label>
+            </div>
+          </aside>
+          {selectedRoom && (
+            <RoomSidebar
+              zone={draft}
+              room={selectedRoom}
+              gridW={draft.gridW}
+              gridH={draft.gridH}
+              onChange={updateRoom}
+              onClose={() => setSelectedRoom(null)}
+            />
+          )}
+        </div>
       </div>
 
       <div className="zone-editor-legend">

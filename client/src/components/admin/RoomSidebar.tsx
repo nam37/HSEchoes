@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import type { ZoneLink, ZoneRoom } from "../../../../shared/src/index";
+import { resolveRoomSurfaces } from "../../../../shared/src/index";
+import type { RoomSurfaces, Zone, ZoneLink, ZoneRoom } from "../../../../shared/src/index";
 
 interface Props {
+  zone: Zone;
   room: ZoneRoom;
   gridW: number;
   gridH: number;
@@ -9,12 +11,12 @@ interface Props {
   onClose: () => void;
 }
 
-export function RoomSidebar({ room, gridW, gridH, onChange, onClose }: Props): JSX.Element {
+export function RoomSidebar({ zone, room, gridW, gridH, onChange, onClose }: Props): JSX.Element {
   const [local, setLocal] = useState<ZoneRoom>({ ...room });
 
   useEffect(() => {
     setLocal({ ...room });
-  }, [room.id]);
+  }, [room]);
 
   function set<K extends keyof ZoneRoom>(key: K, val: ZoneRoom[K]): void {
     const updated = { ...local, [key]: val };
@@ -30,6 +32,8 @@ export function RoomSidebar({ room, gridW, gridH, onChange, onClose }: Props): J
     if (key === "h") val = Math.min(val, gridH - local.y);
     set(key, val);
   }
+
+   const effectiveSurfaces = resolveRoomSurfaces(zone, local);
 
   return (
     <aside className="zone-sidebar">
@@ -48,12 +52,11 @@ export function RoomSidebar({ room, gridW, gridH, onChange, onClose }: Props): J
           <label>H<input type="number" min={1} max={gridH - local.y} value={local.h} onChange={(e) => setGeom("h", Number(e.target.value))} /></label>
         </div>
 
-        <label>Ceiling Color
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input type="color" value={local.ceilingColor} onChange={(e) => set("ceilingColor", e.target.value)} style={{ width: "2.5rem", padding: "0.1rem" }} />
-            <input value={local.ceilingColor} onChange={(e) => set("ceilingColor", e.target.value)} style={{ flex: 1 }} />
-          </div>
-        </label>
+        <div className="zone-sidebar-section-label">Surface Overrides</div>
+        {renderTextureOverride("Wall Texture", "wallTexture", effectiveSurfaces.wallTexture)}
+        {renderTextureOverride("Floor Texture", "floorTexture", effectiveSurfaces.floorTexture)}
+        {renderTextureOverride("Ceiling Texture", "ceilingTexture", effectiveSurfaces.ceilingTexture ?? "")}
+        {renderColorOverride(effectiveSurfaces)}
         <label>Encounter ID<input value={local.encounterId ?? ""} onChange={(e) => set("encounterId", e.target.value || undefined)} /></label>
         <label>Prop<input value={local.prop ?? ""} onChange={(e) => set("prop", e.target.value || undefined)} /></label>
         <label>Loot (comma-separated IDs)
@@ -102,5 +105,65 @@ export function RoomSidebar({ room, gridW, gridH, onChange, onClose }: Props): J
     const updated: ZoneRoom = { ...local, zoneLink: merged.toZoneId ? merged : undefined };
     setLocal(updated);
     onChange(updated);
+  }
+
+  function setSurfaceOverride(key: keyof RoomSurfaces, value: string | undefined): void {
+    const nextOverrides = { ...(local.surfaceOverrides ?? {}) };
+    if (value === undefined) {
+      delete nextOverrides[key];
+    } else {
+      nextOverrides[key] = value;
+    }
+    const updated: ZoneRoom = {
+      ...local,
+      surfaceOverrides: Object.keys(nextOverrides).length > 0 ? nextOverrides : undefined,
+    };
+    setLocal(updated);
+    onChange(updated);
+  }
+
+  function renderTextureOverride(label: string, key: "wallTexture" | "floorTexture" | "ceilingTexture", effectiveValue: string): JSX.Element {
+    const overrideValue = local.surfaceOverrides?.[key];
+    const inherited = overrideValue === undefined;
+    return (
+      <label>
+        {label}
+        <div className="zone-surface-row">
+          <input
+            value={inherited ? effectiveValue : overrideValue}
+            placeholder={effectiveValue || "No texture"}
+            onChange={(e) => setSurfaceOverride(key, e.target.value.trim() || undefined)}
+            disabled={inherited}
+          />
+          <button type="button" className="zone-surface-toggle" onClick={() => setSurfaceOverride(key, inherited ? effectiveValue || "" : undefined)}>
+            {inherited ? "Override" : "Use Zone"}
+          </button>
+        </div>
+        <span className="zone-surface-meta">
+          Effective: {effectiveValue || "None"} {inherited ? "· inherited" : "· overridden"}
+        </span>
+      </label>
+    );
+  }
+
+  function renderColorOverride(effective: RoomSurfaces): JSX.Element {
+    const overrideValue = local.surfaceOverrides?.ceilingColor;
+    const inherited = overrideValue === undefined;
+    const value = inherited ? effective.ceilingColor : overrideValue;
+    return (
+      <label>
+        Ceiling Tint
+        <div className="zone-surface-row">
+          <input type="color" value={value} onChange={(e) => setSurfaceOverride("ceilingColor", e.target.value)} disabled={inherited} style={{ width: "2.5rem", padding: "0.1rem" }} />
+          <input value={value} onChange={(e) => setSurfaceOverride("ceilingColor", e.target.value || undefined)} disabled={inherited} />
+          <button type="button" className="zone-surface-toggle" onClick={() => setSurfaceOverride("ceilingColor", inherited ? effective.ceilingColor : undefined)}>
+            {inherited ? "Override" : "Use Zone"}
+          </button>
+        </div>
+        <span className="zone-surface-meta">
+          Effective: {effective.ceilingColor} {inherited ? "· inherited" : "· overridden"}
+        </span>
+      </label>
+    );
   }
 }

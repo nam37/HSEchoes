@@ -23,6 +23,15 @@ export interface ZoneLink {
   transitionText?: string;
 }
 
+export interface RoomSurfaces {
+  wallTexture: string;
+  floorTexture: string;
+  ceilingTexture?: string;
+  ceilingColor: string;
+}
+
+export type RoomSurfaceOverrides = Partial<RoomSurfaces>;
+
 /** A named, rectangular region of grid squares. Rooms can be any width/height. */
 export interface ZoneRoom {
   id: string;
@@ -32,9 +41,7 @@ export interface ZoneRoom {
   h: number;  // height in grid squares
   title: string;
   description: string;
-  wallTexture: string;
-  floorTexture: string;
-  ceilingColor: string;
+  surfaceOverrides?: RoomSurfaceOverrides;
   prop?: string;
   discoveryText?: string;
   encounterId?: string;
@@ -43,6 +50,11 @@ export interface ZoneRoom {
   zoneLink?: ZoneLink;
   npcId?: string;
   terminalId?: string;
+  // Legacy fields kept optional so older persisted zone JSON can still be normalized.
+  wallTexture?: string;
+  floorTexture?: string;
+  ceilingTexture?: string;
+  ceilingColor?: string;
 }
 
 /**
@@ -68,8 +80,14 @@ export interface Zone {
   title: string;
   gridW: number;
   gridH: number;
+  surfaceDefaults: RoomSurfaces;
   rooms: ZoneRoom[];
   edges: ZoneEdge[];
+}
+
+export interface ZoneInput extends Omit<Zone, "rooms" | "surfaceDefaults"> {
+  surfaceDefaults?: Partial<RoomSurfaces>;
+  rooms: ZoneRoom[];
 }
 
 // ── NPCs and Terminals ────────────────────────────────────────────────────────
@@ -416,4 +434,101 @@ export function findZoneEdge(zone: Zone, px: number, py: number, dir: Direction)
 
 export function findRoomContaining(zone: Zone, x: number, y: number): ZoneRoom | undefined {
   return zone.rooms.find(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+}
+
+const DEFAULT_CEILING_COLOR = "#3a4048";
+
+export function resolveRoomSurfaces(zone: Zone, room: ZoneRoom, assets?: Pick<AssetManifest, "wallTexture" | "floorTexture">): RoomSurfaces {
+  const overrides = room.surfaceOverrides ?? {};
+  const wallTexture = pickTexturePath(overrides.wallTexture, zone.surfaceDefaults.wallTexture, assets?.wallTexture) ?? "";
+  const floorTexture = pickTexturePath(overrides.floorTexture, zone.surfaceDefaults.floorTexture, assets?.floorTexture) ?? "";
+  const ceilingTexture = pickTexturePath(overrides.ceilingTexture, zone.surfaceDefaults.ceilingTexture);
+  return {
+    wallTexture,
+    floorTexture,
+    ceilingTexture,
+    ceilingColor: overrides.ceilingColor ?? zone.surfaceDefaults.ceilingColor ?? DEFAULT_CEILING_COLOR,
+  };
+}
+
+export function normalizeZoneSurfaces(zone: ZoneInput, assets?: Pick<AssetManifest, "wallTexture" | "floorTexture">): Zone {
+  const wallFallback = assets?.wallTexture ?? "";
+  const floorFallback = assets?.floorTexture ?? "";
+
+  const defaults: RoomSurfaces = {
+    wallTexture: zone.surfaceDefaults?.wallTexture ?? pickCommonValue(zone.rooms, (room) => room.wallTexture) ?? wallFallback,
+    floorTexture: zone.surfaceDefaults?.floorTexture ?? pickCommonValue(zone.rooms, (room) => room.floorTexture) ?? floorFallback,
+    ceilingTexture: zone.surfaceDefaults?.ceilingTexture ?? pickCommonValue(zone.rooms, (room) => room.ceilingTexture),
+    ceilingColor: zone.surfaceDefaults?.ceilingColor ?? pickCommonValue(zone.rooms, (room) => room.ceilingColor) ?? DEFAULT_CEILING_COLOR,
+  };
+
+  return {
+    ...zone,
+    surfaceDefaults: defaults,
+    rooms: zone.rooms.map((room) => {
+      const merged: RoomSurfaceOverrides = {
+        wallTexture: room.surfaceOverrides?.wallTexture ?? room.wallTexture,
+        floorTexture: room.surfaceOverrides?.floorTexture ?? room.floorTexture,
+        ceilingTexture: room.surfaceOverrides?.ceilingTexture ?? room.ceilingTexture,
+        ceilingColor: room.surfaceOverrides?.ceilingColor ?? room.ceilingColor,
+      };
+      const surfaceOverrides = compactSurfaceOverrides({
+        wallTexture: merged.wallTexture !== undefined && merged.wallTexture !== defaults.wallTexture ? merged.wallTexture : undefined,
+        floorTexture: merged.floorTexture !== undefined && merged.floorTexture !== defaults.floorTexture ? merged.floorTexture : undefined,
+        ceilingTexture: merged.ceilingTexture !== defaults.ceilingTexture ? merged.ceilingTexture : undefined,
+        ceilingColor: merged.ceilingColor !== undefined && merged.ceilingColor !== defaults.ceilingColor ? merged.ceilingColor : undefined,
+      });
+      return {
+        id: room.id,
+        x: room.x,
+        y: room.y,
+        w: room.w,
+        h: room.h,
+        title: room.title,
+        description: room.description,
+        surfaceOverrides,
+        prop: room.prop,
+        discoveryText: room.discoveryText,
+        encounterId: room.encounterId,
+        loot: room.loot,
+        victory: room.victory,
+        zoneLink: room.zoneLink,
+        npcId: room.npcId,
+        terminalId: room.terminalId,
+      };
+    }),
+  };
+}
+
+function compactSurfaceOverrides(overrides: RoomSurfaceOverrides): RoomSurfaceOverrides | undefined {
+  const entries = Object.entries(overrides).filter(([, value]) => value !== undefined);
+  return entries.length > 0 ? Object.fromEntries(entries) as RoomSurfaceOverrides : undefined;
+}
+
+function pickTexturePath(...values: Array<string | undefined>): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function pickCommonValue<T>(items: readonly T[], select: (item: T) => string | undefined): string | undefined {
+  const counts = new Map<string, number>();
+  let bestValue: string | undefined;
+  let bestCount = 0;
+
+  for (const item of items) {
+    const value = select(item);
+    if (value === undefined) continue;
+    const count = (counts.get(value) ?? 0) + 1;
+    counts.set(value, count);
+    if (count > bestCount) {
+      bestCount = count;
+      bestValue = value;
+    }
+  }
+
+  return bestValue;
 }

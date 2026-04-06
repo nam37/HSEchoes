@@ -6,6 +6,7 @@ import {
   findZoneEdge,
   forwardDelta,
   MAX_LEVEL,
+  normalizeZoneSurfaces,
   pushLog,
   resolveEdgeType,
   turnLeft,
@@ -687,7 +688,7 @@ export class GameService {
     if (rows.length === 0) throw new Error("No zone found. Run `npm run db:seed`.");
     const map = new Map<string, Zone>();
     for (const row of rows) {
-      const z = JSON.parse(row.json) as Zone;
+      const z = normalizeZoneSurfaces(JSON.parse(row.json) as Zone, this.meta.assets);
       map.set(z.id, z);
     }
     return map;

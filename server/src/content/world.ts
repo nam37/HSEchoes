@@ -1,16 +1,61 @@
-import type { AssetManifest, Enemy, Encounter, Item, MessageDef, NPC, QuestDef, Terminal, Zone } from "../../../shared/src/index.js";
+import { normalizeZoneSurfaces } from "../../../shared/src/index.js";
+import type { AssetManifest, Enemy, Encounter, Item, MessageDef, NPC, QuestDef, Terminal, Zone, ZoneInput } from "../../../shared/src/index.js";
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
 export const assetManifest: AssetManifest = {
   titleSplash:    "/assets/ui/title-splash.png",
-  wallTexture:    "/assets/textures/wall-stone.png",
-  floorTexture:   "/assets/textures/floor-granite.png",
+  wallTexture:    "/assets/textures/wall-maintenance-a.png",
+  floorTexture:   "/assets/textures/floor-station-a.png",
   gateTexture:    "/assets/textures/gate-iron.png",
   panelTexture:   "/assets/ui/panel-parchment.png",
   enemySprites:   ["/assets/sprites/rat-scavenger.png", "/assets/sprites/drowned-acolyte.png", "/assets/sprites/bone-sentinel.png"],
   itemIcons:      ["/assets/ui/icon-rusted-blade.png", "/assets/ui/icon-gate-mail.png", "/assets/ui/icon-moon-charm.png", "/assets/ui/icon-amber-draught.png", "/assets/ui/icon-star-sigil.png"]
 };
+
+const WALL_MAINT_A = "/assets/textures/wall-maintenance-a.png";
+const WALL_MAINT_B = "/assets/textures/wall-maintenance-b.png";
+const FLOOR_STATION_A = "/assets/textures/floor-station-a.png";
+const CEILING_STATION_A = "/assets/textures/ceiling-station-a.png";
+
+const WEST_SURFACES: Zone["surfaceDefaults"] = {
+  wallTexture: WALL_MAINT_A,
+  floorTexture: FLOOR_STATION_A,
+  ceilingTexture: CEILING_STATION_A,
+  ceilingColor: "#17151a",
+};
+
+const INDUSTRIAL_SURFACES: Zone["surfaceDefaults"] = {
+  wallTexture: WALL_MAINT_B,
+  floorTexture: FLOOR_STATION_A,
+  ceilingTexture: CEILING_STATION_A,
+  ceilingColor: "#161318",
+};
+
+const EAST_SURFACES: Zone["surfaceDefaults"] = {
+  wallTexture: WALL_MAINT_B,
+  floorTexture: FLOOR_STATION_A,
+  ceilingTexture: CEILING_STATION_A,
+  ceilingColor: "#1d1010",
+};
+
+const SHIP_SURFACES: Zone["surfaceDefaults"] = {
+  wallTexture: WALL_MAINT_B,
+  floorTexture: FLOOR_STATION_A,
+  ceilingTexture: CEILING_STATION_A,
+  ceilingColor: "#0d1b20",
+};
+
+const SPHERE_SURFACES: Zone["surfaceDefaults"] = {
+  wallTexture: WALL_MAINT_A,
+  floorTexture: FLOOR_STATION_A,
+  ceilingTexture: CEILING_STATION_A,
+  ceilingColor: "#0d1c2a",
+};
+
+function defineZone(zone: ZoneInput): Zone {
+  return normalizeZoneSurfaces(zone, assetManifest);
+}
 
 // ── Items ─────────────────────────────────────────────────────────────────────
 
@@ -66,15 +111,16 @@ export const encounters: Encounter[] = [
 //
 // All rooms are 1×1. Walls are implicit. Only passable edges are stored.
 
-const WALL  = "/assets/textures/wall-stone.png";
-const FLOOR = "/assets/textures/floor-granite.png";
+const WALL  = WALL_MAINT_A;
+const FLOOR = FLOOR_STATION_A;
 const TKEY  = { itemId: "transit_key", failureText: "The bulkhead panel flashes red. A transit key is required." };
 
-export const hollowStarZone: Zone = {
+export const hollowStarZone: Zone = defineZone({
   id: "zone_hollow_star",
   title: "Station West — Maintenance Ring",
   gridW: 5,
   gridH: 5,
+  surfaceDefaults: WEST_SURFACES,
   rooms: [
     { id: "gate",           x: 1, y: 4, w: 1, h: 1, title: "Maintenance Airlock",    description: "Worn decking and stenciled hazard lines lead down into the station's lower maintenance ring. The outer seal has not opened in years.",                                     wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141012", discoveryText: "The airlock cycles behind you with a tired hiss.", npcId: "cdr_vasek" },
     { id: "antechamber",    x: 1, y: 3, w: 1, h: 1, title: "Processing Hub",         description: "A wide junction lined with dark monitors and branching conduits. Three passages lead deeper into the maintenance ring.",                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#17151a", discoveryText: "Your footsteps ring off the deck plating.", terminalId: "proc_hub_terminal" },
@@ -87,8 +133,8 @@ export const hollowStarZone: Zone = {
     { id: "lunar_archive",  x: 0, y: 0, w: 1, h: 2, title: "Navigation Records Room", description: "A tall double-height bay of outdated star charts and crew manifests, all obsolete. The data cores are dead but the shelves rise above head height.",                  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#152030", discoveryText: "Dust drifts from the shelves as you enter.",         loot: ["medkit"] },
     { id: "astral_gallery", x: 1, y: 1, w: 1, h: 1, title: "Observation Mezzanine", description: "A mezzanine catwalk overlooks the service shaft below, its guard rails bent outward. The upper racks hold shadows that shift.",                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#102033", discoveryText: "Movement registers in the high shadows above the railing.", encounterId: "astral_pilgrim" },
     { id: "seal_niche",     x: 2, y: 1, w: 1, h: 1, title: "Ration Cache",           description: "A small recess shelters a locker of emergency rations, sealed against the station's recycled air. The lock is corroded but yields.",                                      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#151a2a", discoveryText: "The locker seal breaks with a sharp crack.",          loot: ["medkit"], prop: "brazier" },
-    { id: "reliquary",      x: 3, y: 1, w: 1, h: 1, title: "Secure Cargo Hold",      description: "A reinforced hold, its blast door wrenched aside from the inside. Equipment manifests are pinned to the walls, most items checked off against a long absence.",            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1628", discoveryText: "A power-on cycle spins up somewhere in the dark.",     encounterId: "reliquary_guardian" },
-    { id: "star_sanctum",   x: 3, y: 0, w: 2, h: 1, title: "Signal Core Chamber",    description: "A wide chamber houses a derelict antenna array, its dish angled toward a fixed point in the dark beyond the station hull. The relay equipment spans the full width of the room.",             wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#101a30", discoveryText: "The array indicators flicker green as you approach.", victory: true },
+    { id: "reliquary",      x: 3, y: 1, w: 1, h: 1, title: "Secure Cargo Hold",      description: "A reinforced hold, its blast door wrenched aside from the inside. Equipment manifests are pinned to the walls, most items checked off against a long absence.",            wallTexture: WALL_MAINT_B, floorTexture: FLOOR, ceilingColor: "#0e1628", discoveryText: "A power-on cycle spins up somewhere in the dark.",     encounterId: "reliquary_guardian" },
+    { id: "star_sanctum",   x: 3, y: 0, w: 2, h: 1, title: "Signal Core Chamber",    description: "A wide chamber houses a derelict antenna array, its dish angled toward a fixed point in the dark beyond the station hull. The relay equipment spans the full width of the room.",             wallTexture: WALL_MAINT_B, floorTexture: FLOOR, ceilingColor: "#101a30", discoveryText: "The array indicators flicker green as you approach.", victory: true },
     { id: "east_threshold", x: 4, y: 2, w: 1, h: 1, title: "East Passage",            description: "A narrow inter-section corridor. The decking changes from maintenance-worn to industrial-grade plating. Beyond, the hum of heavy machinery is audible.",                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#16181e", zoneLink: { toZoneId: "zone_station_industrial", toRoomId: "ind_entry", entryX: 0, entryY: 1, facing: "east", transitionText: "You cross the section boundary into Station Industrial. The machinery is louder here." } }
   ],
   edges: [
@@ -125,15 +171,16 @@ export const hollowStarZone: Zone = {
     // long_corridor(3,2) <-> east_threshold(4,2): v edge at (3,2)
     { x: 3, y: 2, dir: "v", type: "open" }
   ]
-};
+});
 
 // ── Zone: Station Industrial ──────────────────────────────────────────────────
 
-export const stationIndustrialZone: Zone = {
+export const stationIndustrialZone: Zone = defineZone({
   id: "zone_station_industrial",
   title: "Station West — Industrial Section",
   gridW: 5,
   gridH: 3,
+  surfaceDefaults: INDUSTRIAL_SURFACES,
   rooms: [
     { id: "ind_supervisor_office", x: 0, y: 0, w: 1, h: 1, title: "Shift Supervisor's Office",  description: "A cramped office with a terminal still active on the desk. Shift logs, anomaly reports, and a long list of unanswered requisition forms cover every surface.",                                         wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1a1518", discoveryText: "The chair is still warm.", npcId: "ind_supervisor_merrak" },
     { id: "ind_relay_station",     x: 1, y: 0, w: 1, h: 1, title: "Relay Station",              description: "A junction room packed with signal-routing hardware. Most units are functional, but the maintenance log shows a pattern of missing components that no one has explained.",                           wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#171218", discoveryText: "The equipment hums normally, but the component bays have gaps.", terminalId: "ind_relay_log" },
@@ -144,7 +191,7 @@ export const stationIndustrialZone: Zone = {
     { id: "ind_east_approach",     x: 3, y: 1, w: 1, h: 1, title: "Eastern Approach Corridor",  description: "A long corridor connecting the industrial section to the station's eastern blocks. The bulkhead ahead shows recent stress marks — something heavy was recently moved against it.",                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141018" },
     { id: "ind_east_exit",         x: 4, y: 1, w: 1, h: 1, title: "East Section Bulkhead",      description: "The boundary threshold between industrial and the station's eastern operational sections. Through the reinforced door, the layout opens out into dock-adjacent corridors.",                          wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#131018", zoneLink: { toZoneId: "zone_station_east", toRoomId: "east_entry", entryX: 0, entryY: 1, facing: "east", transitionText: "You push through the east bulkhead. The sounds ahead are wrong — alarms, distant impacts. Something is happening in Station East." } },
     { id: "ind_stripped_bay",      x: 1, y: 2, w: 1, h: 1, title: "Stripped Service Bay",       description: "A service bay where three maintenance drones sit in their charging cradles, stripped to their frames. Motor assemblies, guidance units, every neodymium-bearing component — gone. The work was fast and precise.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#161215", discoveryText: "Three drone chassis, emptied with surgical efficiency." },
-    { id: "ind_loading_bay",       x: 2, y: 2, w: 1, h: 1, title: "Loading Bay",                description: "A bay used for staging heavy cargo. The blast door to the external dock interface has been forced from the outside. Boot prints in the dust lead from the forced door toward the interior.",            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#150e12", discoveryText: "Someone came in through the dock interface. Someone from outside.", encounterId: "boarder_ambush" },
+    { id: "ind_loading_bay",       x: 2, y: 2, w: 1, h: 1, title: "Loading Bay",                description: "A bay used for staging heavy cargo. The blast door to the external dock interface has been forced from the outside. Boot prints in the dust lead from the forced door toward the interior.",            wallTexture: WALL_MAINT_A, floorTexture: FLOOR, ceilingColor: "#150e12", discoveryText: "Someone came in through the dock interface. Someone from outside.", encounterId: "boarder_ambush" },
     { id: "ind_holding_cells",     x: 3, y: 2, w: 2, h: 1, title: "Holding Cells",              description: "A wide short-term detention area spanning two cell bays, rarely used. The cell doors are open. Someone left a kit behind — possibly a station worker who was moving fast.",                                                        wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#141018", discoveryText: "The cells are empty. The medkit on the bench has not been claimed.", loot: ["medkit"] },
     { id: "ind_break_room",     x: 3, y: 0, w: 1, h: 1, title: "Crew Break Room",         description: "A small rest area — lockers, a bolted-down table, a coffee dispensary long out of service. Someone is hiding behind the last row of lockers, very still.",                                                                              wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#161318", discoveryText: "A sound from behind the lockers. Not a threat — someone trying very hard not to move.", npcId: "tech_sandor", loot: ["medkit"] },
     { id: "ind_power_junction", x: 4, y: 0, w: 1, h: 1, title: "Power Junction",           description: "A node room for the section's power distribution. Three conduit runs meet here, monitored by draw-recording units. One monitor shows an anomalous historical record that someone annotated by hand.",                                   wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#151318", discoveryText: "The draw monitors are still logging. Something in the record stands out.", terminalId: "ind_power_log", loot: ["medkit"] },
@@ -171,15 +218,16 @@ export const stationIndustrialZone: Zone = {
     { x: 4, y: 0, dir: "h", type: "open" },
     { x: 0, y: 1, dir: "h", type: "open" }
   ]
-};
+});
 
 // ── Zone: Station East — Attack Zone ─────────────────────────────────────────
 
-export const stationEastZone: Zone = {
+export const stationEastZone: Zone = defineZone({
   id: "zone_station_east",
   title: "Station East — Docking Sectors",
   gridW: 4,
   gridH: 3,
+  surfaceDefaults: EAST_SURFACES,
   rooms: [
     { id: "comms_room",      x: 0, y: 0, w: 1, h: 1, title: "Communications Room",     description: "The station's primary communications relay for the eastern section. Screens show fragmented incoming signals and one sustained encrypted burst that the system cannot decode. A live log is still running.",   wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#201010", discoveryText: "The consoles are lit up with alerts. Something has already happened.", terminalId: "east_comms_terminal" },
     { id: "armory_east",     x: 1, y: 0, w: 1, h: 1, title: "East Section Armory",      description: "A small equipment locker room, its cage door hanging open. Most of the weapons have been issued already. One medkit remains on the emergency shelf.",                                                         wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1e1010", discoveryText: "The armory has been raided from the inside — station personnel taking what they could before evacuating.", loot: ["medkit"] },
@@ -187,7 +235,7 @@ export const stationEastZone: Zone = {
     { id: "east_entry",      x: 0, y: 1, w: 1, h: 1, title: "East Section Entry",        description: "The main access corridor into the eastern docking sections. Blast marks on the bulkheads. A body — station security — lies near the far wall. The attack is not over.",                                      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#201414", discoveryText: "The attack reached here before you did." },
     { id: "docking_bay",     x: 1, y: 1, w: 1, h: 1, title: "Docking Bay",               description: "A large pressurised docking bay, currently breached on the far side. Decompression safety systems have sealed the outer doors, but boarders are already on this side of them.",                             wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1e1212", discoveryText: "A figure in unknown armour is moving through the dock. It sees you.", encounterId: "boarder_ambush_2" },
     { id: "breach_corridor", x: 2, y: 1, w: 1, h: 1, title: "Breach Corridor",           description: "A section of corridor that connects the dock to the hull breach point. The walls are scorched and one ceiling panel has collapsed. Whoever forced this route was not concerned about collateral damage.",      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1a1010", discoveryText: "The route ahead is clear, but barely passable." },
-    { id: "hull_breach",     x: 3, y: 1, w: 1, h: 2, title: "Hull Breach Point",         description: "A tall two-section area where the raider vessel physically docked through a forced breach in the station's outer hull. The airlock interface is improvised but functional. Through it, the angular interior of an alien ship is visible.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#181818", discoveryText: "The ship is right there. The breach is open.", zoneLink: { toZoneId: "zone_enemy_ship", toRoomId: "ship_airlock", entryX: 1, entryY: 2, facing: "north", transitionText: "You step through the breach and into the raider. The geometry of the interior is subtly wrong — angles that do not correspond to Aligned construction standards." } },
+    { id: "hull_breach",     x: 3, y: 1, w: 1, h: 2, title: "Hull Breach Point",         description: "A tall two-section area where the raider vessel physically docked through a forced breach in the station's outer hull. The airlock interface is improvised but functional. Through it, the angular interior of an alien ship is visible.",  wallTexture: WALL_MAINT_A, floorTexture: FLOOR, ceilingColor: "#181818", discoveryText: "The ship is right there. The breach is open.", zoneLink: { toZoneId: "zone_enemy_ship", toRoomId: "ship_airlock", entryX: 1, entryY: 2, facing: "north", transitionText: "You step through the breach and into the raider. The geometry of the interior is subtly wrong — angles that do not correspond to Aligned construction standards." } },
     { id: "emergency_bay",   x: 1, y: 2, w: 1, h: 1, title: "Emergency Response Bay",    description: "A staging area for emergency response teams. It has been used — equipment is strewn across the floor, a medkit remains on the kit rack. Whoever was here left in a hurry.",                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1c1010", discoveryText: "Signs of a rapid evacuation. Someone thought ahead enough to leave the medkit.", loot: ["medkit"] },
     { id: "east_security_hub",  x: 3, y: 0, w: 1, h: 1, title: "Security Operations Hub",  description: "The eastern section's security monitoring station. Camera feeds cover every dock approach — most are offline now, but the recording logs are intact. A boarder has taken up a defensive position at the console.",                      wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1e1010", discoveryText: "The screens show chaos. A figure at the console turns as you enter.", encounterId: "boarder_east_security", terminalId: "east_security_log" },
     { id: "east_medbay",        x: 0, y: 2, w: 1, h: 1, title: "Medical Bay",                description: "The section's compact medical bay, supplies half-distributed before the attack. One security officer is propped against the far wall — wounded but conscious. The kit rack near the door still has supplies.",                           wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#1c1010", discoveryText: "A figure against the wall. Alive — barely. Station security uniform.", npcId: "security_chen", loot: ["medkit"] },
@@ -208,17 +256,18 @@ export const stationEastZone: Zone = {
     { x: 2, y: 1, dir: "h", type: "open" },
     { x: 1, y: 2, dir: "v", type: "open" }
   ]
-};
+});
 
 // ── Zone: Enemy Ship ──────────────────────────────────────────────────────────
 
-export const enemyShipZone: Zone = {
+export const enemyShipZone: Zone = defineZone({
   id: "zone_enemy_ship",
   title: "Sphereal Raider Vessel",
   gridW: 3,
   gridH: 3,
+  surfaceDefaults: SHIP_SURFACES,
   rooms: [
-    { id: "ship_bridge",          x: 1, y: 0, w: 1, h: 1, title: "Raider Bridge",              description: "The command deck of the Sphereal vessel. Consoles display navigation data in script you cannot read. At the centre, a transit apparatus pulses with low blue light — the Echo Transit system, still active and primed.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1820", discoveryText: "The transit system is powered. Whatever its destination, it is ready to depart.", zoneLink: { toZoneId: "zone_sphere_arrival", toRoomId: "sphere_transit_point", entryX: 1, entryY: 2, facing: "north", transitionText: "The bridge pulses with blue-white light. You brace. The universe inverts for one impossible instant — and then you are somewhere else entirely." } },
+    { id: "ship_bridge",          x: 1, y: 0, w: 1, h: 1, title: "Raider Bridge",              description: "The command deck of the Sphereal vessel. Consoles display navigation data in script you cannot read. At the centre, a transit apparatus pulses with low blue light — the Echo Transit system, still active and primed.",  wallTexture: WALL_MAINT_A, floorTexture: FLOOR, ceilingColor: "#0c1820", discoveryText: "The transit system is powered. Whatever its destination, it is ready to depart.", zoneLink: { toZoneId: "zone_sphere_arrival", toRoomId: "sphere_transit_point", entryX: 1, entryY: 2, facing: "north", transitionText: "The bridge pulses with blue-white light. You brace. The universe inverts for one impossible instant — and then you are somewhere else entirely." } },
     { id: "ship_hold",            x: 0, y: 1, w: 1, h: 1, title: "Cargo Hold",                 description: "The raider's cargo hold. Sealed containers are stacked along one wall. An active manifest terminal shows the ship's most recent acquisition record — a precise list of components taken from a station that matches the one you just left.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0d1a22", discoveryText: "The hold is organised with military precision. Every container is labelled in the same unreadable script.", terminalId: "ship_cargo_log", loot: ["neodymium_fragment"] },
     { id: "ship_corridor",        x: 1, y: 1, w: 1, h: 1, title: "Main Corridor",              description: "The ship's central passage. The ceiling is lower than station standard and the lighting has a cold blue-green quality that makes everything look clinical. This crew did not consider comfort.",                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1a20", discoveryText: "The corridor smells of recirculated air and something you cannot identify — machinery, or biology, or both.", encounterId: "ship_corridor_fight" },
     { id: "ship_bridge_approach", x: 2, y: 1, w: 1, h: 1, title: "Bridge Approach",            description: "The final corridor before the bridge. A heavy blast door stands partially open. The guard stationed here has not moved since you entered the ship.",                                                                                wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1c22", discoveryText: "The guard at the bridge door is still at their post. They are aware of you.", encounterId: "bridge_guard_fight" },
@@ -236,20 +285,21 @@ export const enemyShipZone: Zone = {
     { x: 1, y: 0, dir: "v", type: "open" },
     { x: 2, y: 0, dir: "h", type: "open" }
   ]
-};
+});
 
 // ── Zone: Sphere Arrival Sector ───────────────────────────────────────────────
 
-export const sphereArrivalZone: Zone = {
+export const sphereArrivalZone: Zone = defineZone({
   id: "zone_sphere_arrival",
   title: "Hollow Star — Arrival Sector",
   gridW: 3,
   gridH: 3,
+  surfaceDefaults: SPHERE_SURFACES,
   rooms: [
-    { id: "sphere_signal_lock",  x: 0, y: 0, w: 2, h: 1, title: "Signal Lock Chamber",         description: "A wide vaulted chamber with walls covered in active displays — navigation data, signal traces, atmospheric readings. The screens show internal geometry on a scale that should not be possible. At the far end, a communications node is broadcasting on an encrypted Aligned frequency.",  wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0a1e30", discoveryText: "The displays show a world inside a world. You are inside the Hollow Star.", victory: true },
+    { id: "sphere_signal_lock",  x: 0, y: 0, w: 2, h: 1, title: "Signal Lock Chamber",         description: "A wide vaulted chamber with walls covered in active displays — navigation data, signal traces, atmospheric readings. The screens show internal geometry on a scale that should not be possible. At the far end, a communications node is broadcasting on an encrypted Aligned frequency.",  wallTexture: WALL_MAINT_B, floorTexture: FLOOR, ceilingColor: "#0a1e30", discoveryText: "The displays show a world inside a world. You are inside the Hollow Star.", victory: true },
     { id: "sphere_observation",  x: 0, y: 1, w: 1, h: 1, title: "Observation Alcove",           description: "A small alcove with a viewport that has been sealed. Through a cracked panel, a faint light is visible — warm, distant, impossibly large. The Bound Core. A terminal is active beside the viewport.",                                                                                    wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1a28", discoveryText: "The light through the cracked panel is not starlight. It is something else entirely.", terminalId: "sphere_arrival_terminal" },
     { id: "sphere_corridor_a",   x: 1, y: 1, w: 1, h: 1, title: "Interior Corridor",            description: "The first corridor of the Hollow Star interior. The construction is ancient — different from any Aligned standard — but maintained. The materials are unfamiliar. The air is breathable but carries a faint metallic taste.",                                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0d1c2a", discoveryText: "You are walking inside the Hollow Star. No Aligned contact has ever done this." },
-    { id: "sphere_junction",     x: 2, y: 1, w: 1, h: 2, title: "First Junction",               description: "A tall junction spanning two sections where multiple passages diverge. The signage is in Sphereal script — unreadable without a translation system. Two routes appear to lead deeper into the Sphere. One leads back.",                                                                                          wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0c1e2c", discoveryText: "The Sphere has infrastructure. This is not a dead shell." },
+    { id: "sphere_junction",     x: 2, y: 1, w: 1, h: 2, title: "First Junction",               description: "A tall junction spanning two sections where multiple passages diverge. The signage is in Sphereal script — unreadable without a translation system. Two routes appear to lead deeper into the Sphere. One leads back.",                                                                                          wallTexture: WALL_MAINT_B, floorTexture: FLOOR, ceilingColor: "#0c1e2c", discoveryText: "The Sphere has infrastructure. This is not a dead shell." },
     { id: "sphere_transit_point",x: 1, y: 2, w: 1, h: 1, title: "Echo Transit Arrival Point",   description: "The arrival point of the Echo Transit event. The transit signature still lingers — a faint shimmer in the air where you materialised. There is no obvious way to return the same way. There is, however, a way forward.",                                                            wallTexture: WALL, floorTexture: FLOOR, ceilingColor: "#0e1a28", discoveryText: "You are here. Inside. The black shell of the Hollow Star is all around you, and you are alive." }
   ],
   edges: [
@@ -259,7 +309,7 @@ export const sphereArrivalZone: Zone = {
     { x: 0, y: 1, dir: "v", type: "open" },  // observation(0,1) ↔ corridor_a(1,1)
     { x: 1, y: 1, dir: "v", type: "open" }   // corridor_a(1,1) ↔ junction(2,1)
   ]
-};
+});
 
 // ── Quests ────────────────────────────────────────────────────────────────────
 
