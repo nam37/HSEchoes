@@ -5,7 +5,7 @@ interface Props {
   initial: Encounter;
   enemies: Enemy[];
   items: Item[];
-  onSave: (enc: Encounter) => Promise<void>;
+  onSave: (enc: Encounter) => Promise<unknown>;
   onClose: () => void;
 }
 

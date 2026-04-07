@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AssetDef, EdgeType, RoomSurfaces, TextureSet, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
+import type { AssetDef, EdgeType, Encounter, Enemy, Item, NPC, PropDef, RoomSurfaces, Terminal, TextureSet, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
 import { findRoomContaining } from "../../../../shared/src/index";
 import { RoomSidebar } from "./RoomSidebar";
 import { buildAssetMap, buildTextureSetMap } from "../../lib/assets";
+import { EnemyEditor } from "./EnemyEditor";
+import { ItemEditor } from "./ItemEditor";
+import { NpcEditor } from "./NpcEditor";
+import { TerminalEditor } from "./TerminalEditor";
+import { PropEditor } from "./PropEditor";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -429,10 +434,85 @@ interface Props {
   zone: Zone;
   assets: AssetDef[];
   textureSets: TextureSet[];
+  enemies: Enemy[];
+  items: Item[];
+  npcs: NPC[];
+  terminals: Terminal[];
+  props: PropDef[];
+  encounters: Encounter[];
+  focusRoomId: string | null;
+  onFocusRoomHandled: () => void;
   onSave: (zone: Zone) => Promise<void>;
+  onSaveEnemy: (enemy: Enemy) => Promise<Enemy>;
+  onSaveItem: (item: Item) => Promise<Item>;
+  onSaveNpc: (npc: NPC) => Promise<NPC>;
+  onSaveTerminal: (terminal: Terminal) => Promise<Terminal>;
+  onSaveProp: (prop: PropDef) => Promise<PropDef>;
+  onSaveEncounter: (encounter: Encounter) => Promise<Encounter>;
 }
 
-export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: Props): JSX.Element {
+type InlineCreateModal =
+  | { kind: "enemy"; roomId: string }
+  | { kind: "item"; roomId: string }
+  | { kind: "npc"; roomId: string }
+  | { kind: "terminal"; roomId: string }
+  | { kind: "prop"; roomId: string }
+  | null;
+
+function newEnemy(): Enemy {
+  return { id: "", name: "", maxHp: 10, attack: 2, defense: 0, spritePath: "spr-enemy-rat-scavenger", introLine: "" };
+}
+
+function newItem(): Item {
+  return { id: "", name: "", slot: "consumable", description: "", iconPath: "icon-prop-placeholder" };
+}
+
+function newNpc(): NPC {
+  return { id: "", name: "", role: "", portraitAssetId: "portrait-npc-placeholder", dialogue: [] };
+}
+
+function newTerminal(): Terminal {
+  return { id: "", title: "", logText: "", xpReward: 5 };
+}
+
+function newProp(): PropDef {
+  return { id: "", name: "", description: "", iconLabel: "OBJ", assetId: "icon-prop-placeholder", renderHint: "billboard" };
+}
+
+function InlineModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }): JSX.Element {
+  return (
+    <div className="admin-modal-backdrop" onClick={onClose}>
+      <div className="admin-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="admin-modal-header">
+          <h3 className="admin-modal-title">{title}</h3>
+          <button className="admin-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="admin-modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export function ZoneEditor({
+  zone: initialZone,
+  assets,
+  textureSets,
+  enemies,
+  items,
+  npcs,
+  terminals,
+  props,
+  encounters,
+  focusRoomId,
+  onFocusRoomHandled,
+  onSave,
+  onSaveEnemy,
+  onSaveItem,
+  onSaveNpc,
+  onSaveTerminal,
+  onSaveProp,
+  onSaveEncounter,
+}: Props): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [draft, setDraft] = useState<Zone>(() => deepClone(initialZone));
   const [tool, setTool] = useState<Tool>("select");
@@ -441,6 +521,7 @@ export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: P
   const [hoverEdge, setHoverEdge] = useState<EdgeCoord | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [inlineCreate, setInlineCreate] = useState<InlineCreateModal>(null);
   const assetMap = useMemo(() => buildAssetMap(assets), [assets]);
   const textureSetMap = useMemo(() => buildTextureSetMap(textureSets), [textureSets]);
 
@@ -451,6 +532,64 @@ export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: P
     if (!ctx) return;
     drawCanvas(ctx, draft, selectedRoom?.id ?? null, dragState, hoverEdge, tool);
   }, [draft, selectedRoom, dragState, hoverEdge, tool]);
+
+  useEffect(() => {
+    if (!focusRoomId) return;
+    const room = draft.rooms.find((candidate) => candidate.id === focusRoomId);
+    if (room) {
+      setSelectedRoom(room);
+      setTool("select");
+    }
+    onFocusRoomHandled();
+  }, [draft.rooms, focusRoomId, onFocusRoomHandled]);
+
+  function updateRoomById(roomId: string, updater: (room: ZoneRoom) => ZoneRoom): void {
+    let nextSelected: ZoneRoom | null = null;
+    setDraft((prev) => pruneEdges({
+      ...prev,
+      rooms: prev.rooms.map((room) => {
+        if (room.id !== roomId) {
+          return room;
+        }
+        const updated = updater(room);
+        nextSelected = updated;
+        return updated;
+      }),
+    }));
+    if (nextSelected) {
+      setSelectedRoom(nextSelected);
+    }
+  }
+
+  async function assignEnemyToRoom(room: ZoneRoom, enemyId: string): Promise<void> {
+    const enemy = enemies.find((candidate) => candidate.id === enemyId);
+    if (!enemy) return;
+    const encounter = await onSaveEncounter(createAutoEncounter(room, enemy, encounters));
+    updateRoomById(room.id, (current) => ({ ...current, encounterId: encounter.id }));
+  }
+
+  async function handleInlineCreateSave(kind: NonNullable<InlineCreateModal>["kind"], roomId: string, value: Enemy | Item | NPC | Terminal | PropDef): Promise<void> {
+    if (kind === "enemy") {
+      const saved = await onSaveEnemy(value as Enemy);
+      const room = draft.rooms.find((candidate) => candidate.id === roomId);
+      if (room) {
+        await assignEnemyToRoom(room, saved.id);
+      }
+    } else if (kind === "item") {
+      const saved = await onSaveItem(value as Item);
+      updateRoomById(roomId, (room) => ({ ...room, loot: [...new Set([...(room.loot ?? []), saved.id])] }));
+    } else if (kind === "npc") {
+      const saved = await onSaveNpc(value as NPC);
+      updateRoomById(roomId, (room) => ({ ...room, npcId: saved.id }));
+    } else if (kind === "terminal") {
+      const saved = await onSaveTerminal(value as Terminal);
+      updateRoomById(roomId, (room) => ({ ...room, terminalId: saved.id }));
+    } else if (kind === "prop") {
+      const saved = await onSaveProp(value as PropDef);
+      updateRoomById(roomId, (room) => ({ ...room, prop: saved.id }));
+    }
+    setInlineCreate(null);
+  }
 
   function canvasPx(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -694,6 +833,18 @@ export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: P
               gridH={draft.gridH}
               assetMap={assetMap}
               textureSetMap={textureSetMap}
+              enemies={enemies}
+              items={items}
+              npcs={npcs}
+              terminals={terminals}
+              props={props}
+              encounters={encounters}
+              onAssignEnemy={(room, enemyId) => { void assignEnemyToRoom(room, enemyId); }}
+              onCreateEnemy={(room) => setInlineCreate({ kind: "enemy", roomId: room.id })}
+              onCreateItem={(room) => setInlineCreate({ kind: "item", roomId: room.id })}
+              onCreateNpc={(room) => setInlineCreate({ kind: "npc", roomId: room.id })}
+              onCreateTerminal={(room) => setInlineCreate({ kind: "terminal", roomId: room.id })}
+              onCreateProp={(room) => setInlineCreate({ kind: "prop", roomId: room.id })}
               onChange={updateRoom}
               onClose={() => setSelectedRoom(null)}
             />
@@ -707,6 +858,51 @@ export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: P
         <span style={{ color: GATE_COLOR }}>╌ gate</span>
         <span style={{ color: "#3a5060" }}>· open (no line)</span>
       </div>
+
+      {inlineCreate?.kind === "enemy" && (
+        <InlineModal title="New Enemy" onClose={() => setInlineCreate(null)}>
+          <EnemyEditor initial={newEnemy()} assets={assets} onSave={(enemy) => handleInlineCreateSave("enemy", inlineCreate.roomId, enemy)} onClose={() => setInlineCreate(null)} />
+        </InlineModal>
+      )}
+      {inlineCreate?.kind === "item" && (
+        <InlineModal title="New Item" onClose={() => setInlineCreate(null)}>
+          <ItemEditor initial={newItem()} assets={assets} onSave={(item) => handleInlineCreateSave("item", inlineCreate.roomId, item)} onClose={() => setInlineCreate(null)} />
+        </InlineModal>
+      )}
+      {inlineCreate?.kind === "npc" && (
+        <InlineModal title="New NPC" onClose={() => setInlineCreate(null)}>
+          <NpcEditor initial={newNpc()} assets={assets} onSave={(npc) => handleInlineCreateSave("npc", inlineCreate.roomId, npc)} onClose={() => setInlineCreate(null)} />
+        </InlineModal>
+      )}
+      {inlineCreate?.kind === "terminal" && (
+        <InlineModal title="New Terminal" onClose={() => setInlineCreate(null)}>
+          <TerminalEditor initial={newTerminal()} onSave={(terminal) => handleInlineCreateSave("terminal", inlineCreate.roomId, terminal)} onClose={() => setInlineCreate(null)} />
+        </InlineModal>
+      )}
+      {inlineCreate?.kind === "prop" && (
+        <InlineModal title="New Prop" onClose={() => setInlineCreate(null)}>
+          <PropEditor initial={newProp()} assets={assets} onSave={(prop) => handleInlineCreateSave("prop", inlineCreate.roomId, prop)} onClose={() => setInlineCreate(null)} />
+        </InlineModal>
+      )}
     </div>
   );
+}
+
+function createAutoEncounter(room: ZoneRoom, enemy: Enemy, encounters: Encounter[]): Encounter {
+  const baseId = `enc_${room.id}_${enemy.id}`.replace(/[^a-z0-9_]+/gi, "_").toLowerCase();
+  let nextId = baseId;
+  let index = 2;
+  while (encounters.some((encounter) => encounter.id === nextId)) {
+    nextId = `${baseId}_${index++}`;
+  }
+  return {
+    id: nextId,
+    enemyId: enemy.id,
+    intro: enemy.introLine || `${enemy.name} blocks the passage.`,
+    victoryText: `${enemy.name} drops and the corridor opens again.`,
+    defeatText: `${enemy.name} leaves you broken on the deck plating.`,
+    canFlee: true,
+    rewardItemIds: [],
+    once: true,
+  };
 }

@@ -2679,6 +2679,10 @@ button:disabled {
   overflow: hidden;
 }
 
+.zone-sidebar--wide {
+  width: 360px;
+}
+
 .zone-sidebar-header {
   display: flex;
   align-items: center;
@@ -2773,6 +2777,171 @@ button:disabled {
 .zone-surface-meta {
   font-size: 0.68rem;
   color: var(--text-dim);
+}
+
+.admin-picker-field {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.45rem;
+  border: 1px solid rgba(108, 163, 196, 0.16);
+  background: rgba(0, 10, 20, 0.45);
+}
+
+.admin-picker-header,
+.admin-picker-actions,
+.admin-asset-usage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.admin-picker-label,
+.admin-usage-title {
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-picker-action,
+.admin-tag-remove {
+  padding: 0.3rem 0.5rem;
+  clip-path: none;
+  font-size: 0.58rem;
+}
+
+.admin-picker-current,
+.admin-tag-list {
+  min-height: 2.4rem;
+}
+
+.admin-picker-search {
+  min-height: 2.2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(108, 163, 196, 0.2);
+  background: rgba(5, 18, 31, 0.88);
+  color: var(--text);
+}
+
+.admin-picker-list,
+.admin-usage-entries {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.admin-picker-option,
+.admin-usage-entry--button {
+  padding: 0;
+  text-align: left;
+  clip-path: none;
+  border: 1px solid rgba(108, 163, 196, 0.18);
+  background: rgba(4, 13, 24, 0.86);
+}
+
+.admin-picker-option-card {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+}
+
+.admin-picker-option-card.compact {
+  padding: 0.35rem 0.5rem;
+}
+
+.admin-picker-preview {
+  width: 2.2rem;
+  height: 2.2rem;
+  object-fit: cover;
+  border: 1px solid rgba(108, 163, 196, 0.22);
+  background: rgba(0, 10, 20, 0.9);
+}
+
+.admin-picker-preview--text {
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  color: var(--accent);
+}
+
+.admin-picker-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.admin-picker-title {
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.admin-picker-subtitle,
+.admin-picker-meta,
+.admin-picker-empty,
+.admin-picker-empty-row,
+.admin-usage-empty,
+.admin-asset-field-path {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.admin-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.35rem 0.22rem 0.55rem;
+  border: 1px solid rgba(108, 163, 196, 0.22);
+  background: rgba(0, 20, 38, 0.8);
+  font-size: 0.72rem;
+}
+
+.admin-usage-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-usage-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(108, 163, 196, 0.16);
+  background: rgba(4, 13, 24, 0.86);
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.admin-advanced-panel {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-advanced-panel summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.admin-asset-usage-list {
+  display: grid;
+  gap: 0.35rem;
 }
 
 /* ── Status ribbon inline action ─────────────────────────────────────────── */

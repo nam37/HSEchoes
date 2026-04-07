@@ -10,11 +10,13 @@ import type {
   InteractResult,
   InventoryPayload,
   Item,
+  NPC,
   MovePayload,
   PropDef,
   QuestDef,
   RunEnvelope,
   SaveSummary,
+  Terminal,
   TextureSet,
   Zone
 } from "../../shared/src/index";
@@ -66,6 +68,8 @@ export interface WorldContent {
   enemies: Enemy[];
   encounters: Encounter[];
   items: Item[];
+  npcs: NPC[];
+  terminals: Terminal[];
   quests: QuestDef[];
   props: PropDef[];
   assets: AssetDef[];
@@ -113,8 +117,14 @@ export const api = {
   adminDeleteEnemy: (id: string) => request<{ deleted: string }>(`/api/admin/world/enemies/${id}`, { method: "DELETE" }),
   adminUpsertItem: (id: string, item: Item) => request<Item>(`/api/admin/world/items/${id}`, { method: "PUT", body: JSON.stringify(item) }),
   adminDeleteItem: (id: string) => request<{ deleted: string }>(`/api/admin/world/items/${id}`, { method: "DELETE" }),
+  adminUpsertNpc: (id: string, npc: NPC) => request<NPC>(`/api/admin/world/npcs/${id}`, { method: "PUT", body: JSON.stringify(npc) }),
+  adminDeleteNpc: (id: string) => request<{ deleted: string }>(`/api/admin/world/npcs/${id}`, { method: "DELETE" }),
+  adminUpsertTerminal: (id: string, terminal: Terminal) => request<Terminal>(`/api/admin/world/terminals/${id}`, { method: "PUT", body: JSON.stringify(terminal) }),
+  adminDeleteTerminal: (id: string) => request<{ deleted: string }>(`/api/admin/world/terminals/${id}`, { method: "DELETE" }),
   adminUpsertEncounter: (id: string, enc: Encounter) => request<Encounter>(`/api/admin/world/encounters/${id}`, { method: "PUT", body: JSON.stringify(enc) }),
   adminDeleteEncounter: (id: string) => request<{ deleted: string }>(`/api/admin/world/encounters/${id}`, { method: "DELETE" }),
+  adminUpsertProp: (id: string, prop: PropDef) => request<PropDef>(`/api/admin/world/props/${id}`, { method: "PUT", body: JSON.stringify(prop) }),
+  adminDeleteProp: (id: string) => request<{ deleted: string }>(`/api/admin/world/props/${id}`, { method: "DELETE" }),
   adminUpsertQuest: (id: string, quest: QuestDef) => request<QuestDef>(`/api/admin/world/quests/${id}`, { method: "PUT", body: JSON.stringify(quest) }),
   adminDeleteQuest: (id: string) => request<{ deleted: string }>(`/api/admin/world/quests/${id}`, { method: "DELETE" }),
   adminReload: () => request<{ reloaded: boolean }>("/api/admin/reload", { method: "POST" }),

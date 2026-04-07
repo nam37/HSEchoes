@@ -3,7 +3,7 @@ import type { QuestDef, QuestObjectiveType, QuestTriggerType } from "../../../..
 
 interface Props {
   initial: QuestDef;
-  onSave: (quest: QuestDef) => Promise<void>;
+  onSave: (quest: QuestDef) => Promise<unknown>;
   onClose: () => void;
 }
 

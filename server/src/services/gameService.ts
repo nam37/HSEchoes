@@ -117,6 +117,8 @@ export class GameService {
     enemies: Enemy[];
     encounters: Encounter[];
     items: Item[];
+    npcs: NPC[];
+    terminals: Terminal[];
     quests: QuestDef[];
     props: PropDef[];
     assets: AssetDef[];
@@ -127,6 +129,8 @@ export class GameService {
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()],
+      npcs:       [...this.npcs.values()],
+      terminals:  [...this.terminals.values()],
       quests:     [...this.quests.values()],
       props:      [...this.props.values()],
       assets:     [...this.assets.values()],

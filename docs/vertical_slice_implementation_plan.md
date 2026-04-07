@@ -367,6 +367,50 @@ Before any asset production begins, produce `docs/art_spec.md` defining:
 
 ---
 
+## Phase 9.5 — Admin Authoring Pass
+
+*Goal: Make room and content authoring usable before the art-heavy production phases begin.*
+
+### 9.5.1 Room-first authoring
+
+- Expand the `/admin` map room sidebar so it becomes the primary placement surface for room content:
+  `npcId`, `terminalId`, `encounterId`, `prop`, and `loot`.
+- Replace default raw ID entry with searchable pickers that show names, previews, and validated
+  references.
+- Keep raw ID editing available only in an advanced/debug section.
+
+### 9.5.2 Inline create-and-link
+
+- Every room-link picker supports inline create from the room context:
+  - NPC picker can create a new NPC and link it immediately
+  - Terminal picker can create a new terminal and link it immediately
+  - Enemy flow can create a new enemy inline
+  - Loot picker can create a new item inline and add it immediately
+  - Prop picker can create a new prop inline and link it immediately
+- Inline create uses the same persisted object model as the dedicated admin tabs.
+
+### 9.5.3 NPC and terminal admin coverage
+
+- Add full NPC CRUD to admin with fields: `id`, `name`, `role`, `portraitAssetId`, `dialogue[]`.
+- Add full terminal CRUD to admin with fields: `id`, `title`, `logText`, `xpReward`.
+- Add dedicated NPC and Terminal tabs alongside the existing object editors.
+
+### 9.5.4 Encounter convenience layer
+
+- Add an `Add Enemy to Room` flow in the room sidebar.
+- Selecting an enemy from the room sidebar auto-creates a normal `EncounterDef` row and links the
+  room to it.
+- This is a UI convenience only; the underlying encounter model remains unchanged.
+
+### 9.5.5 Asset picking and usage views
+
+- Replace freeform art-bearing fields in enemy, item, NPC, and prop editors with asset pickers that
+  show preview thumbnails.
+- Add usage views for NPCs, terminals, enemies, items, props, and assets so authors can see what is
+  linked where and navigate back into the room editor.
+
+---
+
 ## Phase 10 — Room and World Visual Pass
 
 *Goal: Replace flat placeholder surfaces with final art in the 3D viewport and bring the map and
@@ -515,7 +559,8 @@ covers sound effects and any remaining audio polish.
 | 6 | Zone content and story | High | ✅ Done |
 | 7 | Polish and slice completion | Medium | 🔶 Partial (7.4 responsive, 7.6 tweaks) |
 | 8 | Save slot system | Medium | ✅ Done |
-| 9 | Asset data infrastructure | Medium | ⬜ Not started |
+| 9 | Asset data infrastructure | Medium | ✅ Done |
+| 9.5 | Admin authoring pass | Medium | ✅ Done |
 | 10 | Room and world visual pass | High | ⬜ Not started |
 | 11 | Character and entity art | High | ⬜ Not started |
 | 12 | Audio pass | Medium | ⬜ Not started (music fully done; SFX not started) |
@@ -534,7 +579,7 @@ covers sound effects and any remaining audio polish.
 - NPC portraitAssetId field and dialogue modal portrait slot: ✅ done — Phase 9/11 prereq
 - Viewport room-content card overlay system: ✅ done — Phase 10 prereq
 - Music playback system with settings control: ✅ done — Phase 12 partial
-- Asset registry, TextureSet formalization, prop asset IDs: ⬜ Phase 9
+- Asset registry, TextureSet formalization, prop asset IDs: ✅ Phase 9
 
 Next Steps:
 - Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in

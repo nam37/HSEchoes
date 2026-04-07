@@ -6,9 +6,10 @@ const ASSET_TYPES: Array<AssetType | "all"> = ["all", "texture", "sprite", "port
 
 interface AssetBrowserProps {
   assets: AssetDef[];
+  usageByAssetId?: Map<string, Array<{ label: string; meta?: string }>>;
 }
 
-export function AssetBrowser({ assets }: AssetBrowserProps): JSX.Element {
+export function AssetBrowser({ assets, usageByAssetId }: AssetBrowserProps): JSX.Element {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<AssetType | "all">("all");
   const deferredQuery = useDeferredValue(query);
@@ -63,6 +64,7 @@ export function AssetBrowser({ assets }: AssetBrowserProps): JSX.Element {
                 <th>Asset ID</th>
                 <th>Type</th>
                 <th>Path</th>
+                <th>Used By</th>
               </tr>
             </thead>
             <tbody>
@@ -80,6 +82,17 @@ export function AssetBrowser({ assets }: AssetBrowserProps): JSX.Element {
                     <span className={`admin-asset-badge admin-asset-badge--${asset.type}`}>{asset.type}</span>
                   </td>
                   <td className="admin-asset-path">{asset.path}</td>
+                  <td>
+                    <div className="admin-asset-usage-list">
+                      {(usageByAssetId?.get(asset.id) ?? []).slice(0, 4).map((entry) => (
+                        <div key={`${entry.label}-${entry.meta ?? ""}`} className="admin-asset-usage-item">
+                          <span>{entry.label}</span>
+                          {entry.meta && <span>{entry.meta}</span>}
+                        </div>
+                      ))}
+                      {((usageByAssetId?.get(asset.id)?.length ?? 0) === 0) && <span className="admin-asset-type-label">unused</span>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
