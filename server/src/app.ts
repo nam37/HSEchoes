@@ -41,6 +41,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Serve public subdirectories
   await registerSubdirRoute(app, "/music",     path.join(clientDistRoot, "music"));
   await registerSubdirRoute(app, "/portraits", path.join(clientDistRoot, "portraits"));
+  await registerSubdirRoute(app, "/textures",  path.join(clientDistRoot, "textures"));
+  await registerSubdirRoute(app, "/sprites",   path.join(clientDistRoot, "sprites"));
+  await registerSubdirRoute(app, "/icons",     path.join(clientDistRoot, "icons"));
 
   // Serve built client assets
   app.get<{ Params: { "*": string } }>("/assets/*", async (request, reply) => {

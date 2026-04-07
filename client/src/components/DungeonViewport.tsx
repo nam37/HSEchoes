@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { BootstrapData, CellFace, Direction, RoomSurfaces, RunState, Zone } from "../../../shared/src/index";
+import type { AssetDef, BootstrapData, CellFace, Direction, ResolvedRoomSurfaces, RunState, TextureSet, Zone } from "../../../shared/src/index";
 import { findRoomContaining, findZoneEdge, resolveEdgeType, resolveRoomSurfaces } from "../../../shared/src/index";
+import { resolveAssetPath } from "../lib/assets";
 
 interface DungeonViewportProps {
   bootstrap: BootstrapData;
   run: RunState;
+  assetMap: Map<string, AssetDef>;
+  textureSetMap: Map<string, TextureSet>;
 }
 
 const roomSize = 10;
@@ -13,7 +16,7 @@ const wallHeight = 5;
 
 type SquareRelation = "current" | Direction | "outer";
 
-export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.Element {
+export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: DungeonViewportProps): JSX.Element {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -150,7 +153,8 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
       addSquare(
         scene,
         zone,
-        bootstrap.assets,
+        assetMap,
+        textureSetMap,
         sx,
         sy,
         inventorySet,
@@ -168,7 +172,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 
     if (run.combat) {
       const enemy = bootstrap.enemies.find((entry) => entry.id === run.combat?.enemyId);
-      const sprite = enemy ? tryTexture(textureLoaderRef.current, enemy.spritePath) : null;
+      const sprite = enemy ? tryTexture(textureLoaderRef.current, resolveAssetPath(enemy.spritePath, assetMap)) : null;
       const material = new THREE.SpriteMaterial({
         color: "#80ccff",
         map: sprite ?? undefined,
@@ -181,7 +185,7 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 
     placeCamera(camera, run.facing);
     renderer.render(scene, camera);
-  }, [bootstrap, run]);
+  }, [assetMap, bootstrap, run, textureSetMap]);
 
   return <div className="viewport-shell" ref={mountRef} aria-label="Dungeon viewport" />;
 }
@@ -189,7 +193,8 @@ export function DungeonViewport({ bootstrap, run }: DungeonViewportProps): JSX.E
 function addSquare(
   scene: THREE.Scene,
   zone: Zone,
-  assets: BootstrapData["assets"],
+  assetMap: Map<string, AssetDef>,
+  textureSetMap: Map<string, TextureSet>,
   sx: number,
   sy: number,
   inventory: Set<string>,
@@ -205,10 +210,10 @@ function addSquare(
 ): void {
   const room = findRoomContaining(zone, sx, sy);
   if (!room) return;
-  const surfaces = resolveRoomSurfaces(zone, room, assets);
-  const floorMaterial = getSurfaceMaterial("floor", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
-  const wallMaterial = getSurfaceMaterial("wall", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
-  const ceilingMaterial = getSurfaceMaterial("ceiling", surfaces, assets, materialCache, loader, textureCache, textureVariantCache);
+  const surfaces = resolveRoomSurfaces(zone, room, { assetMap, textureSetMap });
+  const floorMaterial = getSurfaceMaterial("floor", surfaces, materialCache, loader, textureCache, textureVariantCache);
+  const wallMaterial = getSurfaceMaterial("wall", surfaces, materialCache, loader, textureCache, textureVariantCache);
+  const ceilingMaterial = getSurfaceMaterial("ceiling", surfaces, materialCache, loader, textureCache, textureVariantCache);
 
   // Floor
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMaterial);
@@ -387,7 +392,9 @@ function addSquare(
 
 function tryTexture(loader: THREE.TextureLoader, src: string): THREE.Texture | null {
   try {
-    return loader.load(src);
+    const texture = loader.load(src);
+    configureTextureSampling(texture);
+    return texture;
   } catch {
     return null;
   }
@@ -395,16 +402,15 @@ function tryTexture(loader: THREE.TextureLoader, src: string): THREE.Texture | n
 
 function getSurfaceMaterial(
   surface: "wall" | "floor" | "ceiling",
-  surfaces: RoomSurfaces,
-  assets: BootstrapData["assets"],
+  surfaces: ResolvedRoomSurfaces,
   materialCache: Map<string, THREE.Material>,
   loader: THREE.TextureLoader,
   textureCache: Map<string, THREE.Texture | null>,
   textureVariantCache: Map<string, THREE.Texture | null>
 ): THREE.Material {
   const src =
-    surface === "wall" ? surfaces.wallTexture || assets.wallTexture :
-    surface === "floor" ? surfaces.floorTexture || assets.floorTexture :
+    surface === "wall" ? surfaces.wallTexture :
+    surface === "floor" ? surfaces.floorTexture :
     surfaces.ceilingTexture;
 
   const repeat = surface === "wall" ? [2, 1] as const : [2, 2] as const;
@@ -478,10 +484,16 @@ function getCachedTexture(loader: THREE.TextureLoader, src: string, textureCache
   }
   const texture = tryTexture(loader, src);
   if (texture) {
-    texture.colorSpace = THREE.SRGBColorSpace;
+    configureTextureSampling(texture);
   }
   textureCache.set(src, texture);
   return texture;
+}
+
+function configureTextureSampling(texture: THREE.Texture): void {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestMipmapNearestFilter;
 }
 
 function addPassageFrame(

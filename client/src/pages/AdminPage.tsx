@@ -7,13 +7,14 @@ import { ItemEditor } from "../components/admin/ItemEditor";
 import { EncounterEditor } from "../components/admin/EncounterEditor";
 import { QuestEditor } from "../components/admin/QuestEditor";
 import { ZoneEditor } from "../components/admin/ZoneEditor";
+import { AssetBrowser } from "../components/admin/AssetBrowser";
 
 interface AdminPageProps {
   userEmail: string | null;
   onSignOut: () => Promise<void>;
 }
 
-type Tab = "overview" | "map" | "zones" | "enemies" | "items" | "encounters" | "quests" | "users";
+type Tab = "overview" | "map" | "zones" | "assets" | "enemies" | "items" | "encounters" | "quests" | "users";
 
 type AdminModal =
   | { kind: "enemy"; enemy: Enemy }
@@ -23,11 +24,11 @@ type AdminModal =
   | null;
 
 function newEnemy(): Enemy {
-  return { id: "", name: "", maxHp: 10, attack: 2, defense: 0, spritePath: "/enemies/default.png", introLine: "" };
+  return { id: "", name: "", maxHp: 10, attack: 2, defense: 0, spritePath: "/assets/sprites/rat-scavenger.png", introLine: "" };
 }
 
 function newItem(): Item {
-  return { id: "", name: "", slot: "consumable", description: "", iconPath: "/icons/default.png" };
+  return { id: "", name: "", slot: "consumable", description: "", iconPath: "/icons/icon-prop-placeholder.svg" };
 }
 
 function newEncounter(): Encounter {
@@ -199,7 +200,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
       {error && <p className="error-banner">{error}</p>}
 
       <div className="admin-tabs">
-        {(["overview", "map", "zones", "enemies", "items", "encounters", "quests", "users"] as Tab[]).map((t) => (
+        {(["overview", "map", "zones", "assets", "enemies", "items", "encounters", "quests", "users"] as Tab[]).map((t) => (
           <button key={t} className={`admin-tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -230,6 +231,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
                       <div className="admin-stat-card"><p className="stat-value">{totalRooms}</p><p className="stat-label">Rooms</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{world.enemies.length}</p><p className="stat-label">Enemies</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{world.items.length}</p><p className="stat-label">Items</p></div>
+                      <div className="admin-stat-card"><p className="stat-value">{world.assets.length}</p><p className="stat-label">Assets</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{world.encounters.length}</p><p className="stat-label">Encounters</p></div>
                       <div className="admin-stat-card"><p className="stat-value">{(world.quests ?? []).length}</p><p className="stat-label">Quests</p></div>
                     </div>
@@ -277,7 +279,7 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
                     ))}
                   </select>
                 </div>
-                <ZoneEditor key={activeZone.id} zone={activeZone} onSave={saveZone} />
+                <ZoneEditor key={activeZone.id} zone={activeZone} assets={world.assets} textureSets={world.textureSets} onSave={saveZone} />
               </section>
             ) : <p className="admin-empty">No zones found.</p>)}
 
@@ -301,6 +303,16 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
                   </table>
                 </div>
                 <p className="admin-hint" style={{ marginTop: "0.75rem" }}>Zone layout is defined in code. Use the Map tab to inspect rooms.</p>
+              </section>
+            )}
+
+            {tab === "assets" && world && (
+              <section className="admin-section">
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Asset Registry ({world.assets.length})</h2>
+                  <p className="admin-hint">Read-only registry view for current paths, types, and thumbnails.</p>
+                </div>
+                <AssetBrowser assets={world.assets} />
               </section>
             )}
 

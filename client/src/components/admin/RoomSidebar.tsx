@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { resolveRoomSurfaces } from "../../../../shared/src/index";
-import type { RoomSurfaces, Zone, ZoneLink, ZoneRoom } from "../../../../shared/src/index";
+import type { AssetDef, RoomSurfaces, TextureSet, Zone, ZoneLink, ZoneRoom } from "../../../../shared/src/index";
 
 interface Props {
   zone: Zone;
   room: ZoneRoom;
   gridW: number;
   gridH: number;
+  assetMap: Map<string, AssetDef>;
+  textureSetMap: Map<string, TextureSet>;
   onChange: (room: ZoneRoom) => void;
   onClose: () => void;
 }
 
-export function RoomSidebar({ zone, room, gridW, gridH, onChange, onClose }: Props): JSX.Element {
+export function RoomSidebar({ zone, room, gridW, gridH, assetMap, textureSetMap, onChange, onClose }: Props): JSX.Element {
   const [local, setLocal] = useState<ZoneRoom>({ ...room });
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function RoomSidebar({ zone, room, gridW, gridH, onChange, onClose }: Pro
     set(key, val);
   }
 
-   const effectiveSurfaces = resolveRoomSurfaces(zone, local);
+   const effectiveSurfaces = resolveRoomSurfaces(zone, local, { assetMap, textureSetMap });
 
   return (
     <aside className="zone-sidebar">
@@ -53,6 +55,7 @@ export function RoomSidebar({ zone, room, gridW, gridH, onChange, onClose }: Pro
         </div>
 
         <div className="zone-sidebar-section-label">Surface Overrides</div>
+        {renderTextureSetOverride()}
         {renderTextureOverride("Wall Texture", "wallTexture", effectiveSurfaces.wallTexture)}
         {renderTextureOverride("Floor Texture", "floorTexture", effectiveSurfaces.floorTexture)}
         {renderTextureOverride("Ceiling Texture", "ceilingTexture", effectiveSurfaces.ceilingTexture ?? "")}
@@ -120,6 +123,31 @@ export function RoomSidebar({ zone, room, gridW, gridH, onChange, onClose }: Pro
     };
     setLocal(updated);
     onChange(updated);
+  }
+
+  function renderTextureSetOverride(): JSX.Element {
+    const overrideValue = local.surfaceOverrides?.textureSetId;
+    const inherited = overrideValue === undefined;
+    const effectiveValue = local.surfaceOverrides?.textureSetId ?? local.textureSetId ?? zone.surfaceDefaults.textureSetId ?? "";
+    return (
+      <label>
+        Texture Set
+        <div className="zone-surface-row">
+          <input
+            value={inherited ? effectiveValue : overrideValue}
+            placeholder={effectiveValue || "No texture set"}
+            onChange={(e) => setSurfaceOverride("textureSetId", e.target.value.trim() || undefined)}
+            disabled={inherited}
+          />
+          <button type="button" className="zone-surface-toggle" onClick={() => setSurfaceOverride("textureSetId", inherited ? effectiveValue || "" : undefined)}>
+            {inherited ? "Override" : "Use Zone"}
+          </button>
+        </div>
+        <span className="zone-surface-meta">
+          Effective: {effectiveValue || "None"} {inherited ? "· inherited" : "· overridden"}
+        </span>
+      </label>
+    );
   }
 
   function renderTextureOverride(label: string, key: "wallTexture" | "floorTexture" | "ceilingTexture", effectiveValue: string): JSX.Element {

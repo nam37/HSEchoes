@@ -1,5 +1,6 @@
 import type {
   ApiResult,
+  AssetDef,
   BootstrapData,
   CombatPayload,
   CreateRunPayload,
@@ -10,9 +11,11 @@ import type {
   InventoryPayload,
   Item,
   MovePayload,
+  PropDef,
   QuestDef,
   RunEnvelope,
   SaveSummary,
+  TextureSet,
   Zone
 } from "../../shared/src/index";
 
@@ -64,6 +67,9 @@ export interface WorldContent {
   encounters: Encounter[];
   items: Item[];
   quests: QuestDef[];
+  props: PropDef[];
+  assets: AssetDef[];
+  textureSets: TextureSet[];
 }
 
 export const api = {

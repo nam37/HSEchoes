@@ -28,6 +28,7 @@ function getNewLogEntries(prevLog: string[], newLog: string[]): string[] {
   return newLog.slice(idx + 1);
 }
 import { api } from "./lib/api";
+import { buildAssetMap, buildTextureSetMap, resolveAssetPath } from "./lib/assets";
 import { buildRoomContentCards } from "./lib/roomContentCards";
 import { DungeonViewport } from "./components/DungeonViewport";
 import { MapPanel } from "./components/MapPanel";
@@ -127,6 +128,8 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const npcMap = useMemo(() => new Map((bootstrap?.npcs ?? []).map((npc) => [npc.id, npc])), [bootstrap]);
   const terminalMap = useMemo(() => new Map((bootstrap?.terminals ?? []).map((t) => [t.id, t])), [bootstrap]);
   const propMap = useMemo(() => new Map((bootstrap?.props ?? []).map((prop) => [prop.id, prop])), [bootstrap]);
+  const assetMap = useMemo(() => buildAssetMap(bootstrap?.assets ?? []), [bootstrap?.assets]);
+  const textureSetMap = useMemo(() => buildTextureSetMap(bootstrap?.textureSets ?? []), [bootstrap?.textureSets]);
   const selectedItem = selectedItemId ? itemMap.get(selectedItemId) ?? null : null;
   const slotCards = useMemo(() => buildSaveSlots(bootstrap?.saves ?? []), [bootstrap?.saves]);
 
@@ -443,8 +446,9 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       npcMap,
       terminalMap,
       propMap,
+      assetMap,
     }),
-    [currentRoom, npcMap, propMap, run?.combat, terminalMap]
+    [assetMap, currentRoom, npcMap, propMap, run?.combat, terminalMap]
   );
 
   return (
@@ -586,7 +590,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
           {error && <p className="error-banner inline-error">{error}</p>}
 
           <section className="stage-panel">
-            {bootstrap && run ? <DungeonViewport bootstrap={bootstrap} run={run} /> : <div className="viewport-shell loading">Lighting the vault...</div>}
+            {bootstrap && run ? <DungeonViewport bootstrap={bootstrap} run={run} assetMap={assetMap} textureSetMap={textureSetMap} /> : <div className="viewport-shell loading">Lighting the vault...</div>}
             <div className={`status-ribbon${statusFlash ? " status-ribbon--zone" : ""}`}>
               {renderStatusText(statusText, (tab) => { setTabletTab(tab); setTabletOpen(true); })}
             </div>
@@ -599,7 +603,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                     data-kind={card.kind}
                   >
                     {card.portraitSrc ? (
-                      <img className="room-content-portrait" src={card.portraitSrc} alt="" />
+                      <img className="room-content-portrait pixel-art-asset" src={card.portraitSrc} alt="" />
                     ) : (
                       <div className={`room-content-badge room-content-badge--${card.kind}`}>{card.badge}</div>
                     )}
@@ -673,7 +677,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 {interactResult.kind === "npc" && (
                   <>
                     {interactResult.npcPortrait && (
-                      <img className="interact-portrait" src={interactResult.npcPortrait} alt={interactResult.npcName} />
+                      <img className="interact-portrait pixel-art-asset" src={resolveAssetPath(interactResult.npcPortrait, assetMap)} alt={interactResult.npcName} />
                     )}
                     <p className="interact-eyebrow">{interactResult.npcRole}</p>
                     <h2 className="interact-heading">{interactResult.npcName}</h2>
@@ -758,7 +762,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                     ].filter(Boolean).join(" ")}
                     onClick={() => setSelectedItemId(item.id)}
                   >
-                    <img src={item.iconPath} alt="" />
+                    <img className="pixel-art-asset" src={resolveAssetPath(item.iconPath, assetMap)} alt="" />
                     <span>{item.name}</span>
                   </button>
                 )) ?? <p>No items yet.</p>}

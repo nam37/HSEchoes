@@ -1,4 +1,5 @@
-import type { CombatState, NPC, PropDef, Terminal, ZoneRoom } from "../../../shared/src/index";
+import type { AssetDef, CombatState, NPC, PropDef, Terminal, ZoneRoom } from "../../../shared/src/index";
+import { resolveAssetPath } from "./assets";
 
 export type RoomContentCardKind = "combat" | "npc" | "terminal" | "prop";
 
@@ -17,6 +18,7 @@ interface BuildRoomContentCardsArgs {
   npcMap: Map<string, NPC>;
   terminalMap: Map<string, Terminal>;
   propMap: Map<string, PropDef>;
+  assetMap: Map<string, AssetDef>;
 }
 
 export function buildRoomContentCards({
@@ -25,6 +27,7 @@ export function buildRoomContentCards({
   npcMap,
   terminalMap,
   propMap,
+  assetMap,
 }: BuildRoomContentCardsArgs): RoomContentCard[] {
   const cards: RoomContentCard[] = [];
 
@@ -46,7 +49,7 @@ export function buildRoomContentCards({
         label: "Live Contact",
         title: npc.name,
         subtitle: npc.role,
-        portraitSrc: npc.portraitAssetId ?? "/portraits/npc-placeholder.svg",
+        portraitSrc: resolveAssetPath(npc.portraitAssetId, assetMap),
       });
     }
   }
@@ -72,7 +75,8 @@ export function buildRoomContentCards({
         label: "Room Object",
         title: prop.name,
         subtitle: prop.description ?? "Environmental object detected.",
-        badge: prop.iconLabel ?? "OBJ",
+        portraitSrc: prop.assetId ? resolveAssetPath(prop.assetId, assetMap) : undefined,
+        badge: prop.assetId ? undefined : prop.iconLabel ?? "OBJ",
       });
     }
   }

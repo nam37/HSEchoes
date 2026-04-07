@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Sql } from "../db/database.js";
 import {
   ADVANCEMENT_TABLE,
+  type AssetDef,
   findRoomContaining,
   findZoneEdge,
   forwardDelta,
@@ -32,6 +33,7 @@ import {
   type SaveSummary,
   type TabletMessage,
   type Terminal,
+  type TextureSet,
   type Zone,
   type ZoneRoom
 } from "../../../shared/src/index.js";
@@ -41,7 +43,6 @@ interface MetaRow {
   intro: string;
   startX: number;
   startY: number;
-  assets: BootstrapData["assets"];
 }
 
 interface StoredRunRow {
@@ -62,6 +63,8 @@ export class GameService {
   private npcs!: Map<string, NPC>;
   private terminals!: Map<string, Terminal>;
   private props!: Map<string, PropDef>;
+  private assets!: Map<string, AssetDef>;
+  private textureSets!: Map<string, TextureSet>;
   private meta!: MetaRow;
 
   private constructor(
@@ -81,6 +84,8 @@ export class GameService {
     instance.npcs        = await instance.loadMap<NPC>("npc");
     instance.terminals   = await instance.loadMap<Terminal>("terminal");
     instance.props       = await instance.loadMap<PropDef>("prop");
+    instance.assets      = await instance.loadMap<AssetDef>("asset");
+    instance.textureSets = await instance.loadMap<TextureSet>("textureset");
     return instance;
   }
 
@@ -95,6 +100,8 @@ export class GameService {
     this.npcs        = await this.loadMap<NPC>("npc");
     this.terminals   = await this.loadMap<Terminal>("terminal");
     this.props       = await this.loadMap<PropDef>("prop");
+    this.assets      = await this.loadMap<AssetDef>("asset");
+    this.textureSets = await this.loadMap<TextureSet>("textureset");
   }
 
   private getZone(zoneId: string): Zone {
@@ -105,13 +112,25 @@ export class GameService {
 
   // ── World data access for admin ──────────────────────────────────────────
 
-  async getWorldData(): Promise<{ zones: Zone[]; enemies: Enemy[]; encounters: Encounter[]; items: Item[]; quests: QuestDef[] }> {
+  async getWorldData(): Promise<{
+    zones: Zone[];
+    enemies: Enemy[];
+    encounters: Encounter[];
+    items: Item[];
+    quests: QuestDef[];
+    props: PropDef[];
+    assets: AssetDef[];
+    textureSets: TextureSet[];
+  }> {
     return {
       zones:      [...this.zones.values()],
       enemies:    [...this.enemies.values()],
       encounters: [...this.encounters.values()],
       items:      [...this.items.values()],
-      quests:     [...this.quests.values()]
+      quests:     [...this.quests.values()],
+      props:      [...this.props.values()],
+      assets:     [...this.assets.values()],
+      textureSets:[...this.textureSets.values()]
     };
   }
 
@@ -142,7 +161,8 @@ export class GameService {
       npcs:       [...this.npcs.values()],
       terminals:  [...this.terminals.values()],
       props:      [...this.props.values()],
-      assets: this.meta.assets,
+      assets:     [...this.assets.values()],
+      textureSets:[...this.textureSets.values()],
       saves:  await this.listSaves(userId)
     };
   }
@@ -776,7 +796,7 @@ export class GameService {
     if (rows.length === 0) throw new Error("No zone found. Run `npm run db:seed`.");
     const map = new Map<string, Zone>();
     for (const row of rows) {
-      const z = normalizeZoneSurfaces(JSON.parse(row.json) as Zone, this.meta.assets);
+      const z = normalizeZoneSurfaces(JSON.parse(row.json) as Zone);
       map.set(z.id, z);
     }
     return map;

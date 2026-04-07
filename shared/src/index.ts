@@ -24,13 +24,27 @@ export interface ZoneLink {
 }
 
 export interface RoomSurfaces {
+  textureSetId?: string;
+  wallTexture?: string;
+  floorTexture?: string;
+  ceilingTexture?: string;
+  ceilingColor: string;
+}
+
+export type RoomSurfaceOverrides = Partial<RoomSurfaces>;
+
+export interface ResolvedRoomSurfaces {
   wallTexture: string;
   floorTexture: string;
   ceilingTexture?: string;
   ceilingColor: string;
 }
 
-export type RoomSurfaceOverrides = Partial<RoomSurfaces>;
+export interface TextureSet {
+  id: string;
+  wallAssetId: string;
+  floorAssetId: string;
+}
 
 /** A named, rectangular region of grid squares. Rooms can be any width/height. */
 export interface ZoneRoom {
@@ -51,6 +65,7 @@ export interface ZoneRoom {
   npcId?: string;
   terminalId?: string;
   // Legacy fields kept optional so older persisted zone JSON can still be normalized.
+  textureSetId?: string;
   wallTexture?: string;
   floorTexture?: string;
   ceilingTexture?: string;
@@ -121,18 +136,21 @@ export interface PropDef {
   name: string;
   description?: string;
   iconLabel?: string;
+  assetId?: string;
+  renderHint?: "billboard" | "mesh" | "none";
 }
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
-export interface AssetManifest {
-  titleSplash: string;
-  wallTexture: string;
-  floorTexture: string;
-  gateTexture: string;
-  panelTexture: string;
-  enemySprites: string[];
-  itemIcons: string[];
+export type AssetType = "texture" | "sprite" | "portrait" | "icon" | "audio" | "mesh";
+
+export interface AssetDef {
+  id: string;
+  path: string;
+  type: AssetType;
+  width?: number;
+  height?: number;
+  format?: string;
 }
 
 // ── Entities ──────────────────────────────────────────────────────────────────
@@ -326,7 +344,8 @@ export interface BootstrapData {
   npcs: NPC[];
   terminals: Terminal[];
   props: PropDef[];
-  assets: AssetManifest;
+  assets: AssetDef[];
+  textureSets: TextureSet[];
   saves: SaveSummary[];
 }
 
@@ -453,26 +472,56 @@ export function findRoomContaining(zone: Zone, x: number, y: number): ZoneRoom |
 
 const DEFAULT_CEILING_COLOR = "#3a4048";
 
-export function resolveRoomSurfaces(zone: Zone, room: ZoneRoom, assets?: Pick<AssetManifest, "wallTexture" | "floorTexture">): RoomSurfaces {
+interface SurfaceResolutionOptions {
+  assetMap?: Map<string, AssetDef>;
+  textureSetMap?: Map<string, TextureSet>;
+  fallbackWallTexture?: string;
+  fallbackFloorTexture?: string;
+}
+
+export function resolveRoomSurfaces(
+  zone: Zone,
+  room: ZoneRoom,
+  options?: SurfaceResolutionOptions
+): ResolvedRoomSurfaces {
   const overrides = room.surfaceOverrides ?? {};
-  const wallTexture = pickTexturePath(overrides.wallTexture, zone.surfaceDefaults.wallTexture, assets?.wallTexture) ?? "";
-  const floorTexture = pickTexturePath(overrides.floorTexture, zone.surfaceDefaults.floorTexture, assets?.floorTexture) ?? "";
-  const ceilingTexture = pickTexturePath(overrides.ceilingTexture, zone.surfaceDefaults.ceilingTexture);
+  const wallTexture = pickTexturePath(
+    resolveTextureAssetPath(overrides.textureSetId ?? room.textureSetId, "wall", options),
+    overrides.wallTexture,
+    room.wallTexture,
+    resolveTextureAssetPath(zone.surfaceDefaults.textureSetId, "wall", options),
+    zone.surfaceDefaults.wallTexture,
+    options?.fallbackWallTexture
+  ) ?? "";
+  const floorTexture = pickTexturePath(
+    resolveTextureAssetPath(overrides.textureSetId ?? room.textureSetId, "floor", options),
+    overrides.floorTexture,
+    room.floorTexture,
+    resolveTextureAssetPath(zone.surfaceDefaults.textureSetId, "floor", options),
+    zone.surfaceDefaults.floorTexture,
+    options?.fallbackFloorTexture
+  ) ?? "";
+  const ceilingTexture = pickTexturePath(
+    overrides.ceilingTexture,
+    room.ceilingTexture,
+    zone.surfaceDefaults.ceilingTexture
+  );
   return {
     wallTexture,
     floorTexture,
     ceilingTexture,
-    ceilingColor: overrides.ceilingColor ?? zone.surfaceDefaults.ceilingColor ?? DEFAULT_CEILING_COLOR,
+    ceilingColor: overrides.ceilingColor
+      ?? room.ceilingColor
+      ?? zone.surfaceDefaults.ceilingColor
+      ?? DEFAULT_CEILING_COLOR,
   };
 }
 
-export function normalizeZoneSurfaces(zone: ZoneInput, assets?: Pick<AssetManifest, "wallTexture" | "floorTexture">): Zone {
-  const wallFallback = assets?.wallTexture ?? "";
-  const floorFallback = assets?.floorTexture ?? "";
-
+export function normalizeZoneSurfaces(zone: ZoneInput): Zone {
   const defaults: RoomSurfaces = {
-    wallTexture: zone.surfaceDefaults?.wallTexture ?? pickCommonValue(zone.rooms, (room) => room.wallTexture) ?? wallFallback,
-    floorTexture: zone.surfaceDefaults?.floorTexture ?? pickCommonValue(zone.rooms, (room) => room.floorTexture) ?? floorFallback,
+    textureSetId: zone.surfaceDefaults?.textureSetId ?? pickCommonValue(zone.rooms, (room) => room.textureSetId),
+    wallTexture: zone.surfaceDefaults?.wallTexture ?? pickCommonValue(zone.rooms, (room) => room.wallTexture),
+    floorTexture: zone.surfaceDefaults?.floorTexture ?? pickCommonValue(zone.rooms, (room) => room.floorTexture),
     ceilingTexture: zone.surfaceDefaults?.ceilingTexture ?? pickCommonValue(zone.rooms, (room) => room.ceilingTexture),
     ceilingColor: zone.surfaceDefaults?.ceilingColor ?? pickCommonValue(zone.rooms, (room) => room.ceilingColor) ?? DEFAULT_CEILING_COLOR,
   };
@@ -482,12 +531,14 @@ export function normalizeZoneSurfaces(zone: ZoneInput, assets?: Pick<AssetManife
     surfaceDefaults: defaults,
     rooms: zone.rooms.map((room) => {
       const merged: RoomSurfaceOverrides = {
+        textureSetId: room.surfaceOverrides?.textureSetId ?? room.textureSetId,
         wallTexture: room.surfaceOverrides?.wallTexture ?? room.wallTexture,
         floorTexture: room.surfaceOverrides?.floorTexture ?? room.floorTexture,
         ceilingTexture: room.surfaceOverrides?.ceilingTexture ?? room.ceilingTexture,
         ceilingColor: room.surfaceOverrides?.ceilingColor ?? room.ceilingColor,
       };
       const surfaceOverrides = compactSurfaceOverrides({
+        textureSetId: merged.textureSetId !== undefined && merged.textureSetId !== defaults.textureSetId ? merged.textureSetId : undefined,
         wallTexture: merged.wallTexture !== undefined && merged.wallTexture !== defaults.wallTexture ? merged.wallTexture : undefined,
         floorTexture: merged.floorTexture !== undefined && merged.floorTexture !== defaults.floorTexture ? merged.floorTexture : undefined,
         ceilingTexture: merged.ceilingTexture !== defaults.ceilingTexture ? merged.ceilingTexture : undefined,
@@ -518,6 +569,24 @@ export function normalizeZoneSurfaces(zone: ZoneInput, assets?: Pick<AssetManife
 function compactSurfaceOverrides(overrides: RoomSurfaceOverrides): RoomSurfaceOverrides | undefined {
   const entries = Object.entries(overrides).filter(([, value]) => value !== undefined);
   return entries.length > 0 ? Object.fromEntries(entries) as RoomSurfaceOverrides : undefined;
+}
+
+function resolveTextureAssetPath(
+  textureSetId: string | undefined,
+  surface: "wall" | "floor",
+  options?: SurfaceResolutionOptions
+): string | undefined {
+  if (!textureSetId) {
+    return undefined;
+  }
+
+  const textureSet = options?.textureSetMap?.get(textureSetId);
+  if (!textureSet) {
+    return undefined;
+  }
+
+  const assetId = surface === "wall" ? textureSet.wallAssetId : textureSet.floorAssetId;
+  return options?.assetMap?.get(assetId)?.path;
 }
 
 function pickTexturePath(...values: Array<string | undefined>): string | undefined {

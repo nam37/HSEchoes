@@ -3373,3 +3373,68 @@ button:disabled {
   opacity: 0.45;
   line-height: 1;
 }
+
+.pixel-art-asset {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.admin-assets-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.admin-assets-search {
+  flex: 1 1 20rem;
+  min-height: 2.6rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(108, 163, 196, 0.28);
+  background: rgba(5, 18, 31, 0.88);
+  color: var(--text);
+}
+
+.admin-asset-thumb {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: cover;
+  border: 1px solid rgba(108, 163, 196, 0.28);
+  background: rgba(4, 13, 24, 0.92);
+}
+
+.admin-asset-badge,
+.admin-asset-type-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid rgba(108, 163, 196, 0.24);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-asset-badge--texture,
+.admin-asset-badge--sprite,
+.admin-asset-badge--portrait,
+.admin-asset-badge--icon {
+  color: var(--accent);
+}
+
+.admin-asset-badge--audio {
+  color: #ffd27a;
+}
+
+.admin-asset-badge--mesh {
+  color: #ff9f7a;
+}
+
+.admin-asset-path {
+  word-break: break-all;
+  font-family: "Lucida Console", "Courier New", monospace;
+  color: rgba(168, 216, 240, 0.86);
+}

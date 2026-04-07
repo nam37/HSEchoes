@@ -12,8 +12,7 @@ export async function seedDatabase(sql: Sql): Promise<void> {
       title: worldSeed.title,
       intro: worldSeed.intro,
       startX: worldSeed.startX,
-      startY: worldSeed.startY,
-      assets: worldSeed.assets
+      startY: worldSeed.startY
     })})
   `;
 
@@ -44,6 +43,12 @@ export async function seedDatabase(sql: Sql): Promise<void> {
   }
   for (const prop of worldSeed.props) {
     await sql`INSERT INTO world_data (kind, id, json) VALUES ('prop', ${prop.id}, ${JSON.stringify(prop)})`;
+  }
+  for (const asset of worldSeed.assets) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('asset', ${asset.id}, ${JSON.stringify(asset)})`;
+  }
+  for (const textureSet of worldSeed.textureSets) {
+    await sql`INSERT INTO world_data (kind, id, json) VALUES ('textureset', ${textureSet.id}, ${JSON.stringify(textureSet)})`;
   }
 }
 

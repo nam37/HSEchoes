@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { EdgeType, RoomSurfaces, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AssetDef, EdgeType, RoomSurfaces, TextureSet, Zone, ZoneEdge, ZoneRoom } from "../../../../shared/src/index";
 import { findRoomContaining } from "../../../../shared/src/index";
 import { RoomSidebar } from "./RoomSidebar";
+import { buildAssetMap, buildTextureSetMap } from "../../lib/assets";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -426,10 +427,12 @@ function drawCanvas(
 
 interface Props {
   zone: Zone;
+  assets: AssetDef[];
+  textureSets: TextureSet[];
   onSave: (zone: Zone) => Promise<void>;
 }
 
-export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
+export function ZoneEditor({ zone: initialZone, assets, textureSets, onSave }: Props): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [draft, setDraft] = useState<Zone>(() => deepClone(initialZone));
   const [tool, setTool] = useState<Tool>("select");
@@ -438,6 +441,8 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
   const [hoverEdge, setHoverEdge] = useState<EdgeCoord | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const assetMap = useMemo(() => buildAssetMap(assets), [assets]);
+  const textureSetMap = useMemo(() => buildTextureSetMap(textureSets), [textureSets]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -669,8 +674,9 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
               <h3>Zone Defaults</h3>
             </div>
             <div className="zone-sidebar-body">
-              <label>Wall Texture<input value={draft.surfaceDefaults.wallTexture} onChange={(e) => updateSurfaceDefault("wallTexture", e.target.value)} /></label>
-              <label>Floor Texture<input value={draft.surfaceDefaults.floorTexture} onChange={(e) => updateSurfaceDefault("floorTexture", e.target.value)} /></label>
+              <label>Texture Set<input value={draft.surfaceDefaults.textureSetId ?? ""} onChange={(e) => updateSurfaceDefault("textureSetId", e.target.value || undefined)} /></label>
+              <label>Wall Texture<input value={draft.surfaceDefaults.wallTexture ?? ""} onChange={(e) => updateSurfaceDefault("wallTexture", e.target.value || undefined)} /></label>
+              <label>Floor Texture<input value={draft.surfaceDefaults.floorTexture ?? ""} onChange={(e) => updateSurfaceDefault("floorTexture", e.target.value || undefined)} /></label>
               <label>Ceiling Texture<input value={draft.surfaceDefaults.ceilingTexture ?? ""} onChange={(e) => updateSurfaceDefault("ceilingTexture", e.target.value || undefined)} /></label>
               <label>Ceiling Tint
                 <div className="zone-surface-row">
@@ -686,6 +692,8 @@ export function ZoneEditor({ zone: initialZone, onSave }: Props): JSX.Element {
               room={selectedRoom}
               gridW={draft.gridW}
               gridH={draft.gridH}
+              assetMap={assetMap}
+              textureSetMap={textureSetMap}
               onChange={updateRoom}
               onClose={() => setSelectedRoom(null)}
             />
