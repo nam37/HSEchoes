@@ -480,7 +480,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 <p className="slot-picker-kicker">Save Archive</p>
                 <h2>Select a slot</h2>
               </div>
-              <p className="slot-picker-copy">Three fixed slots. Empty slots start a new run. Occupied slots can continue, overwrite, or be cleared.</p>
+              {/* <p className="slot-picker-copy">Three fixed slots. Empty slots start a new run. Occupied slots can continue, overwrite, or be cleared.</p> */}
             </div>
             <div className="slot-grid">
               {slotCards.map(({ slotNumber, save }) => (
@@ -622,7 +622,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                 onClick={() => void handleInteract()}
                 disabled={busy}
               >
-                {roomNpc ? `Talk to ${roomNpc.name}` : `Access Terminal`}
+                {roomNpc ? `▶ Talk to ${roomNpc.name}` : `▶ Access Terminal`}
               </button>
             )}
             {toasts.length > 0 && (
