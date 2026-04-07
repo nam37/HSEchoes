@@ -304,121 +304,199 @@ language and UX need to change.
 
 ---
 
-## Phase 9 — Visual Polish
+## Phase 9 — Asset Data Infrastructure
 
-*Goal: Replace all placeholder and absent visual assets with final art, and bring the 3D viewport
-and UI to a shippable standard.*
+*Goal: Establish the data plumbing that all art production depends on. No raw path strings in entity
+data; every visual asset is registered, typed, and referenced by ID.*
 
 ### Context
 
-The current build uses flat colored planes in the 3D viewport, missing enemy sprites in combat,
-placeholder item icons, a functional-but-bare mini-map, and text-only death/victory screens. While
-the data model carries the right field names (`spritePath`, `iconPath`, `wallTexture`, `floorTexture`,
-`prop`, etc.), those fields are currently raw path strings hardcoded in `world.ts` and seeded as
-opaque JSON blobs. Phase 9 is not just an art drop — it requires schema and data structure work
-before any art can be properly assigned or swapped.
+The current build's data model already has several pieces in place — `PropDef` (kind: `prop`) is
+seeded and referenced by rooms, `surfaceDefaults` / `surfaceOverrides` handles zone texture
+inheritance, and NPC `portraitAssetId` is wired into the interaction modal and viewport card.
+What is still missing is a formal asset registry that ties all of these together, so that swapping
+or adding art is a data operation rather than a code change. Phase 9 completes that infrastructure
+before any art production begins.
 
-### 9.0 Asset data infrastructure (prerequisite)
-
-This must be completed before any art production work begins.
-
-**Asset registry**
-- Add `kind: 'asset'` rows to `world_data`: each row has an `id`, `path`, `type`
-  (`texture` | `sprite` | `portrait` | `icon` | `mesh`), and metadata (dimensions, format).
-- Entity JSON (`Item`, `Enemy`, `ZoneRoom`, `NPC`, etc.) references asset ids rather than raw
-  paths. This makes swapping art a data operation with no code changes required.
-- Server resolves asset ids to paths at bootstrap time and returns a flat path map to the client.
-- Deprecate the current hardcoded `AssetManifest` in favour of this dynamic registry.
-
-**Prop definitions**
-- `ZoneRoom.prop` is currently a freeform magic string (`"brazier"`, etc.) with no backing data.
-- Add `kind: 'prop'` to `world_data`: each `PropDef` has `id`, `displayName`, `description`,
-  `assetId` (references asset registry), and `renderHint` (`billboard` | `mesh`).
-- `ZoneRoom.prop` becomes a `propId` referencing a `PropDef` row.
-- Seed initial prop definitions alongside zone data in `seed.ts`.
-- Even 3D room props will need a 2d image asset to be used in the viewport notfication card.
-
-**Texture sets**
-- Rooms currently hardcode individual texture paths per room instance, leading to repetition.
-- Define a `TextureSet` type: `{ id, wallAssetId, floorAssetId, ceilingColor }`.
-- Add `kind: 'textureset'` to `world_data`.
-- `ZoneRoom` references a `textureSetId` rather than individual paths. Per-room overrides remain
-  possible but are the exception, not the rule.
-
-**NPC portrait field**
-- When NPCs are introduced in Phase 5, their `portraitAssetId` should resolve through the asset
-  registry. Flag this now so Phase 5 implementation uses the registry from the start rather than
-  adding another raw path field.
-- NPC portraits will be used in the interaction modal AND in the viewport notification card
-
-### 9.0.1 Art spec document (prerequisite)
+### 9.1 Art specification document
 
 Before any asset production begins, produce `docs/art_spec.md` defining:
 - Canonical sprite resolution: **256×256px** for enemies, NPC portraits, room textures, and props
 - Scaling method: nearest-neighbor (`image-rendering: pixelated`) throughout
-- File formats per asset category (see `docs/art_spec.md` for the full breakdown)
+- File format per asset category: `.png` for sprites/portraits/icons; `.jpg` or `.png` for tiling
+  textures; `.mp3` / `.ogg` for audio
 - Color palette constraints and tone guidelines tied to the setting bible
-- Texture tile dimensions for wall/floor assets
+- Tile dimensions for wall/floor texture assets
+- Naming convention for asset IDs and file paths
 
-### 9.1 Room textures
+### 9.2 Asset registry
 
-- Produce final wall, floor, and ceiling textures for each room type (maintenance corridor, flooded
-  section, secure hold, signal chamber, etc.).
-- Implement per-room texture variation in the 3D viewport renderer — rooms currently share a single
-  global texture; wire `ZoneRoom.wallTexture` and `ZoneRoom.floorTexture` through to Three.js
-  material assignment.
-- Ceiling color per room is already data-driven. We want to convert this to "Room Color" and use this to spade/tint wall, floor, and cleiling textures; verify it renders correctly at final art quality. This will allow us to give visual variation even when using the same texture images.
+- Add `kind: 'asset'` rows to `world_data`. Each row has an `id`, `path`, `type`
+  (`texture` | `sprite` | `portrait` | `icon` | `audio` | `mesh`), and optional metadata
+  (dimensions, format notes).
+- Entity JSON (`Item`, `Enemy`, `ZoneRoom`, `NPC`, `PropDef`, etc.) references asset IDs rather
+  than raw path strings. Swapping art requires only a data row update, no code change.
+- Server resolves asset IDs → paths at bootstrap time and returns a flat `assetMap` to the client.
+- Deprecate the current hardcoded `AssetManifest` in favour of this dynamic registry.
+- Add `kind: 'asset'` to the admin panel as a read-only asset browser (list view with type
+  filter, id, path, and preview thumbnail). Editing asset paths should be possible but clearly
+  marked as advanced / destructive.
 
-### 9.2 Enemy sprites
+### 9.3 Texture set formalization
 
-- Produce sprite art for each enemy: Vermin Cluster, Corroded Unit, Station Drifter, Security
-  Automaton, and any enemies added in Phase 6.
-- Add a sprite display region to the combat banner — `Enemy.spritePath` is defined but currently
-  unused in the UI.
+- The zone surface system (`surfaceDefaults` / `surfaceOverrides`) is already implemented and
+  working. This phase formalizes it as a first-class data type.
+- Define a `TextureSet` type: `{ id, wallAssetId, floorAssetId, ceilingColor }`.
+- Add `kind: 'textureset'` to `world_data` and seed one row per zone surface variant.
+- `Zone.surfaceDefaults` and `ZoneRoom.surfaceOverrides` reference a `textureSetId` rather than
+  raw path fields. Per-room individual overrides remain possible for exceptional cases.
+- Migrate the existing `WALL_MAINT_A`, `WALL_MAINT_B`, etc. constants in `world.ts` to seeded
+  `TextureSet` rows. The constants become IDs rather than path strings.
 
-### 9.3 NPC portraits
+### 9.4 Prop asset linking
 
-- Produce portrait art for each NPC introduced in Phase 5 (Station Boss and any others).
-- Wire portraits into the dialogue panel component (Phase 5).
-- Portrait dimensions and style guide to be defined before asset production begins.
+- `PropDef` is already seeded with `id`, `name`, `description`, and `iconLabel`. This phase adds
+  the asset dimension.
+- Add `assetId` (references asset registry) and `renderHint` (`billboard` | `mesh` | `none`) to
+  `PropDef`.
+- The 2D `assetId` is used in the viewport room-content card (already rendered as a card overlay).
+- The `renderHint` determines how the prop is rendered in the 3D viewport when 3D prop rendering
+  is implemented (Phase 11).
+- Produce placeholder prop icon assets (simple silhouettes are sufficient at this stage) and wire
+  them into the room-content card so the card has an image rather than a text badge.
 
-### 9.4 Item icons
+---
 
-- Produce final icons for all items: Maintenance Hook, Impact Plating, Transit Key, Station Medkit,
-  Service Blade, Signal Core, and any items added in Phase 6.
-- All `Item.iconPath` values currently point to placeholder PNG stubs.
+## Phase 10 — Room and World Visual Pass
 
-### 9.5 Room prop sprites
+*Goal: Replace flat placeholder surfaces with final art in the 3D viewport and bring the map and
+UI chrome to a shippable standard.*
 
-- Rooms have a `prop` field (e.g. `"brazier"`) defined in zone data but props are not rendered.
-- Produce sprite or mesh assets for each prop type used across all zones.
-- Implement prop rendering in the 3D viewport (billboard sprite or simple mesh).
+### 10.1 Room texture art
 
-### 9.6 3D viewport geometry
+- Produce final wall and floor texture tiles for each surface variant used across the five zones:
+  `wall-maint-a`, `wall-maint-b`, `floor-station-a`, and any additional types added in Phase 6.
+- Each texture tile: 256×256px, seamlessly tileable.
+
+### 10.2 Room tinting system
+
+- The `ceilingColor` field is per-room and already data-driven. Extend it to function as a
+  **room color** that tints wall, floor, and ceiling surfaces rather than only coloring the
+  ceiling plane.
+- Implement tint as a Three.js material color multiplier so the same texture tiles read differently
+  across zones and room types. This gives visual variation without requiring unique texture art per
+  room.
+
+### 10.3 Viewport geometry enhancements
 
 - Add door frame geometry at passable edges (currently a flat opening with no frame).
-- Vary ceiling height or treatment between room types where atmospherically appropriate.
-- Add prop mesh stubs at marked prop positions (terminals, crates, derelict equipment).
+- Vary ceiling height between room types where atmospherically appropriate (e.g. corridors vs.
+  vaulted chambers).
+- Verify that the tinting system renders correctly against final texture art at target quality.
 
-### 9.7 Mini-map visual pass
+### 10.4 Mini-map visual pass
 
-- Replace solid colored grid cells with outlined room shapes.
+- Replace solid colored grid cells with outlined room shapes that respect actual room dimensions
+  (`w` and `h` values are already in room data).
 - Add zone name header above the map.
-- Add a distinct player position marker (directional arrow or icon).
-- Color-code room states: undiscovered / discovered / current.
+- Add a distinct player position marker (directional arrow or facing indicator).
+- Color-code room states: undiscovered (hidden) / discovered / current room.
 
-### 9.8 UI icon set
+### 10.5 UI chrome and HUD icons
 
-- Produce small icon assets for stat labels (HP, credits, level, XP, attack, defense).
-- Add mode indicator icons (explore, combat, victory, defeat) to the status ribbon or HUD.
+- Produce small icon assets for stat labels: HP, credits, level, XP, attack, defense.
+- Add mode indicator icons to the status ribbon or HUD (explore, combat, victory, defeat).
+- Review and tighten all button affordances — "Talk to NPC" and "Access Terminal" interactive
+  buttons are currently easy to miss and should be visually elevated.
 
-### 9.9 Death and victory screen art
+---
 
-- Add a background image or illustrated element to the death modal (red-tinted wreckage or
-  darkness).
-- Add a background image or illustrated element to the victory modal (signal transmission,
-  distant Hollow Star).
-- Keep the existing text and button layout; art goes behind or alongside it.
+## Phase 11 — Character and Entity Art
+
+*Goal: Replace all placeholder sprites and portraits with final art, and wire them into the
+UI components that already exist for them.*
+
+### 11.1 Enemy sprites
+
+- Produce sprite art for each enemy in the roster: Vermin Cluster, Corroded Unit, Station Drifter,
+  Security Automaton, Boarder, and any enemies added in Phase 6.
+- All sprites: 256×256px, transparent background, nearest-neighbor scaling.
+- Add a sprite display region to the combat banner — `Enemy.spritePath` is defined but currently
+  unused in the combat UI.
+
+### 11.2 NPC portraits
+
+- Produce portrait art for each NPC: Commander Vasek and any NPCs added in Phase 5.
+- All portraits: 256×256px, consistent framing (head and shoulders, facing roughly forward).
+- The dialogue modal portrait slot and viewport room-content card portrait slot are already
+  implemented and waiting for real art.
+
+### 11.3 Item icons
+
+- Produce final icons for all items: Maintenance Hook, Impact Plating, Transit Key, Station
+  Medkit, Service Blade, Signal Core, Sphereal Sidearm, and any items added in Phase 6.
+- All icons: 32×32px or 64×64px depending on display context; pixel-art style.
+- All `Item.iconPath` values currently point to placeholder stubs.
+
+### 11.4 Prop sprites and 3D rendering
+
+- Produce 2D icon art for each `PropDef` entry (24 props across five zones) to display in the
+  viewport room-content card overlay (already implemented).
+- Implement prop billboard rendering in the 3D viewport using the `renderHint` field set in
+  Phase 9.4 — a sprite facing the camera at the room's prop position.
+- Props with `renderHint: 'mesh'` can be deferred; billboard sprites are sufficient for the slice.
+
+---
+
+## Phase 12 — Audio Pass
+
+*Goal: Complete the audio experience beyond the music tracks already implemented.*
+
+### Context
+
+Music playback is fully implemented — title, exploration, combat, death, and credits tracks load
+from `/music/`, cross-fade on state change, and are controlled by the Settings overlay. This phase
+covers sound effects and any remaining audio polish.
+
+### 12.1 Sound effects
+
+- Identify the key interaction points that benefit from audio feedback: footstep on room entry,
+  door/airlock transition, combat hit, combat defeat, item pickup, terminal access, level-up.
+- Produce or source short SFX assets for each (`.mp3` format, registered in the asset registry
+  added in Phase 9.2).
+- Implement an SFX playback layer separate from the music channel so effects and music coexist
+  without interrupting each other.
+
+### 12.2 Audio settings expansion
+
+- Extend the Settings overlay to include separate Music and SFX volume sliders (currently a single
+  volume control exists for music only).
+- Persist audio preferences to localStorage alongside the existing music toggle.
+
+---
+
+## Phase 13 — Death, Victory, and End Screens
+
+*Goal: Give the major narrative endpoints visual weight appropriate for a shipped game.*
+
+### 13.1 Death screen art
+
+- Add a background image or illustrated element to the death modal (red-tinted wreckage, darkness,
+  a cracked visor).
+- Keep the existing text and button layout; art sits behind or alongside it.
+
+### 13.2 Victory / Echo Transit screen art
+
+- Add a background image or illustrated element to the victory modal (signal transmission burst,
+  the Hollow Star viewed from inside, Aligned Forces emblem).
+- This is the narrative climax of the vertical slice — it deserves more visual weight than the
+  current plain modal.
+
+### 13.3 Credits screen
+
+- Implement a scrolling credits screen triggered after the victory modal is dismissed.
+- Play the End Credits music track (already exists in the audio system) during the scroll.
+- Credits list: project title, key contributors, tooling, and any asset attributions.
 
 
 
@@ -429,21 +507,33 @@ Before any asset production begins, produce `docs/art_spec.md` defining:
 
 | Phase | Description | Complexity | Priority |
 |-------|-------------|------------|----------|
-| 1 | Foundation cleanup | Low | Immediate |
+| 1 | Foundation cleanup | Low | ✅ Done |
 | 2 | Character advancement | Medium | High |
 | 3 | Quest system | High | High |
 | 4 | Tablet system | High | High |
 | 5 | NPCs and dialogue | Medium | Medium |
 | 6 | Zone content and story | High | High |
 | 7 | Polish and slice completion | Medium | Final |
-| 8 | Save slot system | Medium | Post-slice |
-| 9 | Visual polish | High | Post-slice |
+| 8 | Save slot system | Medium | ✅ Done |
+| 9 | Asset data infrastructure | Medium | Post-slice prereq |
+| 10 | Room and world visual pass | High | Post-slice |
+| 11 | Character and entity art | High | Post-slice |
+| 12 | Audio pass | Medium | Post-slice |
+| 13 | Death, victory, and end screens | Low | Post-slice |
 
 Phases 1–4 are purely systemic and can be built before any new content exists.
 Phases 5–6 require both systems and authored content in parallel.
 Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
-Phase 8 is post-slice production readiness and does not block the vertical slice.
-Phase 9 is final polish and not needed for functional testing.
+Phase 8 is complete. Phase 9 must precede all art production work (Phases 10–13).
+Phases 10–13 are post-slice and do not block functional testing of the vertical slice.
+
+**Partially complete (in progress or partially done):**
+- Surface texture system (surfaceDefaults / surfaceOverrides): ✅ done
+- PropDef system (kind: prop, seeded, wired to rooms): ✅ done
+- NPC portraitAssetId field and dialogue modal portrait slot: ✅ done
+- Viewport room-content card overlay system: ✅ done
+- Music playback system with settings control: ✅ done
+- Asset registry, TextureSet formalization, prop asset IDs: ⬜ Phase 9
 
 Next Steps:
 - Future reference: tablet progression and post-slice tablet upgrade concepts are tracked in
