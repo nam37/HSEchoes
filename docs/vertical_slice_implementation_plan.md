@@ -505,34 +505,35 @@ covers sound effects and any remaining audio polish.
 
 ## Implementation Order Summary
 
-| Phase | Description | Complexity | Priority |
-|-------|-------------|------------|----------|
-| 1 | Foundation cleanup | Low | ✅ Done |
-| 2 | Character advancement | Medium | High |
-| 3 | Quest system | High | High |
-| 4 | Tablet system | High | High |
-| 5 | NPCs and dialogue | Medium | Medium |
-| 6 | Zone content and story | High | High |
-| 7 | Polish and slice completion | Medium | Final |
+| Phase | Description | Complexity | Status |
+|-------|-------------|------------|--------|
+| 1 | Foundation cleanup | Low | ✅ Done (1.2 equipment scroll: minor gap) |
+| 2 | Character advancement | Medium | ✅ Done |
+| 3 | Quest system | High | ✅ Done (3.6 zone editor drag/resize: partial) |
+| 4 | Tablet system | High | ✅ Done |
+| 5 | NPCs and dialogue | Medium | ✅ Done |
+| 6 | Zone content and story | High | ✅ Done |
+| 7 | Polish and slice completion | Medium | 🔶 Partial (7.4 responsive, 7.6 tweaks) |
 | 8 | Save slot system | Medium | ✅ Done |
-| 9 | Asset data infrastructure | Medium | Post-slice prereq |
-| 10 | Room and world visual pass | High | Post-slice |
-| 11 | Character and entity art | High | Post-slice |
-| 12 | Audio pass | Medium | Post-slice |
-| 13 | Death, victory, and end screens | Low | Post-slice |
+| 9 | Asset data infrastructure | Medium | ⬜ Not started |
+| 10 | Room and world visual pass | High | ⬜ Not started |
+| 11 | Character and entity art | High | ⬜ Not started |
+| 12 | Audio pass | Medium | ⬜ Not started (music fully done; SFX not started) |
+| 13 | Death, victory, and end screens | Low | ⬜ Not started |
 
-Phases 1–4 are purely systemic and can be built before any new content exists.
-Phases 5–6 require both systems and authored content in parallel.
-Phase 7 is final integration and cannot begin until Phases 1–6 are substantially complete.
-Phase 8 is complete. Phase 9 must precede all art production work (Phases 10–13).
-Phases 10–13 are post-slice and do not block functional testing of the vertical slice.
+**Phase 7 remaining gaps:**
+- 7.4 Responsive layout — needs formal testing on laptop-sized viewports; equipment panel overflow not fully verified
+- 7.6 Small tweaks — interact/terminal button visibility; tablet message paragraph spacing; room size variety in zone maps
 
-**Partially complete (in progress or partially done):**
-- Surface texture system (surfaceDefaults / surfaceOverrides): ✅ done
-- PropDef system (kind: prop, seeded, wired to rooms): ✅ done
-- NPC portraitAssetId field and dialogue modal portrait slot: ✅ done
-- Viewport room-content card overlay system: ✅ done
-- Music playback system with settings control: ✅ done
+**Phase 3 remaining gap:**
+- 3.6 Zone editor — drag-to-move and drag-to-resize rooms not confirmed implemented; numeric x/y/w/h sidebar inputs status unknown
+
+**Completed ahead of their phase (already in codebase):**
+- Surface texture system (surfaceDefaults / surfaceOverrides): ✅ done — Phase 9/10 prereq
+- PropDef system (kind: prop, seeded, wired to rooms): ✅ done — Phase 9 prereq
+- NPC portraitAssetId field and dialogue modal portrait slot: ✅ done — Phase 9/11 prereq
+- Viewport room-content card overlay system: ✅ done — Phase 10 prereq
+- Music playback system with settings control: ✅ done — Phase 12 partial
 - Asset registry, TextureSet formalization, prop asset IDs: ⬜ Phase 9
 
 Next Steps:
