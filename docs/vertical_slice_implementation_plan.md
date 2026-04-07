@@ -354,7 +354,7 @@ This must be completed before any art production work begins.
 ### 9.0.1 Art spec document (prerequisite)
 
 Before any asset production begins, produce `docs/art_spec.md` defining:
-- Canonical sprite resolution: **256×256px** for enemies, NPC portraits, and props
+- Canonical sprite resolution: **256×256px** for enemies, NPC portraits, room textures, and props
 - Scaling method: nearest-neighbor (`image-rendering: pixelated`) throughout
 - File formats per asset category (see `docs/art_spec.md` for the full breakdown)
 - Color palette constraints and tone guidelines tied to the setting bible
