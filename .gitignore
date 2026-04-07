@@ -5,3 +5,6 @@ coverage/
 data/
 *.log
 .env
+.env.local
+docs/music/
+docs/textures/

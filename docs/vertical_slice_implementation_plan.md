@@ -367,7 +367,7 @@ Before any asset production begins, produce `docs/art_spec.md` defining:
 - Implement per-room texture variation in the 3D viewport renderer — rooms currently share a single
   global texture; wire `ZoneRoom.wallTexture` and `ZoneRoom.floorTexture` through to Three.js
   material assignment.
-- Ceiling color per room is already data-driven. We want to convert this to "Room Color" and use this to spade/tint wall, floor, and cleiling textures; verify it renders correctly at final art quality.
+- Ceiling color per room is already data-driven. We want to convert this to "Room Color" and use this to spade/tint wall, floor, and cleiling textures; verify it renders correctly at final art quality. This will allow us to give visual variation even when using the same texture images.
 
 ### 9.2 Enemy sprites
 
