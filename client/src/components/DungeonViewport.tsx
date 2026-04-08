@@ -419,34 +419,63 @@ function getSurfaceMaterial(
   if (cached) return cached;
 
   const map = src ? getCachedTextureVariant(loader, src, repeat[0], repeat[1], textureCache, textureVariantCache) : null;
+  const tintColor = getRoomTintColor(surface, surfaces.ceilingColor);
   const material = new THREE.MeshStandardMaterial(
     surface === "ceiling"
       ? {
-          color: surfaces.ceilingColor,
+          color: tintColor,
           map: map ?? undefined,
           roughness: 0.9,
           metalness: 0.1,
-          emissive: new THREE.Color(surfaces.ceilingColor),
+          emissive: tintColor.clone(),
           emissiveIntensity: map ? 0.28 : 0.4,
         }
       : surface === "floor"
         ? {
-            color: "#d2dae0",
+            color: tintColor,
             map: map ?? undefined,
             roughness: 0.74,
             metalness: 0.16,
-            emissive: "#05080c",
+            emissive: tintColor.clone().multiplyScalar(0.08),
           }
         : {
-            color: "#c0ccd6",
+            color: tintColor,
             map: map ?? undefined,
             roughness: 0.68,
             metalness: 0.18,
-            emissive: "#0b1016",
+            emissive: tintColor.clone().multiplyScalar(0.1),
           }
   );
   materialCache.set(cacheKey, material);
   return material;
+}
+
+function getRoomTintColor(surface: "wall" | "floor" | "ceiling", roomColor: string): THREE.Color {
+  const source = new THREE.Color(roomColor);
+  const hsl = { h: 0, s: 0, l: 0 };
+  source.getHSL(hsl);
+
+  const boosted = new THREE.Color().setHSL(
+    hsl.h,
+    Math.max(hsl.s, 0.45),
+    surface === "wall"
+      ? Math.max(hsl.l, 0.48)
+      : surface === "floor"
+        ? Math.max(hsl.l, 0.42)
+        : Math.max(hsl.l, 0.58)
+  );
+
+  const neutral =
+    surface === "wall" ? new THREE.Color("#dbe5ee")
+    : surface === "floor" ? new THREE.Color("#b8c4ce")
+    : new THREE.Color("#f6f9ff");
+
+  const mix =
+    surface === "wall" ? 0.82
+    : surface === "floor" ? 0.68
+    : 0.9;
+
+  return neutral.lerp(boosted, mix);
 }
 
 function getCachedTextureVariant(

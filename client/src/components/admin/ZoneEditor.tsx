@@ -817,7 +817,7 @@ export function ZoneEditor({
               <label>Wall Texture<input value={draft.surfaceDefaults.wallTexture ?? ""} onChange={(e) => updateSurfaceDefault("wallTexture", e.target.value || undefined)} /></label>
               <label>Floor Texture<input value={draft.surfaceDefaults.floorTexture ?? ""} onChange={(e) => updateSurfaceDefault("floorTexture", e.target.value || undefined)} /></label>
               <label>Ceiling Texture<input value={draft.surfaceDefaults.ceilingTexture ?? ""} onChange={(e) => updateSurfaceDefault("ceilingTexture", e.target.value || undefined)} /></label>
-              <label>Ceiling Tint
+              <label>Room Tint
                 <div className="zone-surface-row">
                   <input type="color" value={draft.surfaceDefaults.ceilingColor} onChange={(e) => updateSurfaceDefault("ceilingColor", e.target.value)} style={{ width: "2.5rem", padding: "0.1rem" }} />
                   <input value={draft.surfaceDefaults.ceilingColor} onChange={(e) => updateSurfaceDefault("ceilingColor", e.target.value)} />

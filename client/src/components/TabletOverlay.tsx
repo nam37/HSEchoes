@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { Quest, TabletMessage, Zone, ZoneRoom, RunState } from "../../../shared/src/index";
 import { findRoomContaining, resolveEdgeType } from "../../../shared/src/index";
+import { DirectionalMarker } from "./DirectionalMarker";
 
 type Tab = "messages" | "assignments" | "map";
 
@@ -199,7 +200,6 @@ function faceBorder(face: CellFace): string {
   }
 }
 
-const FACING_CHAR: Record<string, string> = { north: "▲", east: "▶", south: "▼", west: "◀" };
 const CELL = 48;
 
 function MapTab({ zone, zones, run }: { zone: Zone; zones: Zone[]; run: RunState }): JSX.Element {
@@ -317,7 +317,7 @@ function ZoneDetail({ zone, run }: { zone: Zone; run: RunState }): JSX.Element {
           className={current ? "full-map-cell current" : discovered ? "full-map-cell discovered" : "full-map-cell hidden"}
           style={style}
         >
-          {current && <span className="full-map-facing">{FACING_CHAR[run.facing]}</span>}
+          {current && <DirectionalMarker direction={run.facing} className="full-map-facing" />}
           {discovered && isRoomOrigin && !current && (
             <span className="full-map-label">{room!.title}</span>
           )}

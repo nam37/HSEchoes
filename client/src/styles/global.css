@@ -827,37 +827,93 @@ button:disabled {
 }
 
 /* Minimap */
-.map-grid {
+.mini-map-panel {
   display: grid;
-  gap: 1px;
-  margin-top: 0.5rem;
+  gap: 0.65rem;
 }
 
-.map-cell {
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  font-size: 8px;
+.mini-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.mini-map-zone {
+  font-family: 'Kensmark', 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--accent);
-  background: rgba(0, 6, 16, 0.92);
-  transition: background 0.1s;
 }
 
-.map-cell.hidden {
-  background: rgba(0, 3, 10, 0.96);
-  border-color: transparent !important;
+.mini-map-progress {
+  font-size: 0.7rem;
+  color: var(--text-dim);
 }
 
-.map-cell.discovered {
-  background: rgba(0, 18, 38, 0.85);
+.mini-map-frame {
+  overflow: auto;
+  padding: 0.35rem;
+  border: 1px solid rgba(0, 180, 240, 0.16);
+  background: rgba(0, 6, 16, 0.82);
 }
 
-.map-cell.current {
-  background: rgba(0, 45, 72, 0.92);
-  color: var(--accent-strong);
-  font-size: 9px;
-  box-shadow: inset 0 0 5px rgba(0, 212, 255, 0.35);
+.mini-map-canvas {
+  display: block;
+}
+
+.mini-map-room {
+  fill: rgba(0, 22, 42, 0.88);
+  stroke: rgba(0, 200, 240, 0.18);
+  stroke-width: 1;
+}
+
+.mini-map-room.discovered {
+  fill: rgba(0, 22, 42, 0.88);
+  stroke: rgba(0, 200, 240, 0.18);
+}
+
+.mini-map-room.current {
+  fill: rgba(0, 48, 80, 0.92);
+  stroke: rgba(64, 234, 255, 0.35);
+}
+
+.mini-map-edge {
+  fill: none;
+  stroke-linecap: square;
+  stroke-width: 2;
+}
+
+.mini-map-edge--wall {
+  stroke: rgba(0, 200, 240, 0.82);
+}
+
+.mini-map-edge--door {
+  stroke: rgba(255, 170, 0, 0.85);
+  stroke-dasharray: 5 3;
+}
+
+.mini-map-edge--gate {
+  stroke: rgba(64, 120, 255, 0.9);
+  stroke-dasharray: 2 3;
+}
+
+.mini-map-marker-ring {
+  fill: rgba(2, 18, 34, 0.96);
+  stroke: rgba(0, 212, 255, 0.65);
+  stroke-width: 1.5;
+}
+
+.mini-map-marker-svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
+}
+
+.mini-map-marker-svg polygon {
+  fill: var(--accent-strong);
 }
 
 .room-copy {
@@ -3418,9 +3474,13 @@ button:disabled {
 }
 
 .full-map-facing {
-  font-size: 14px;
-  color: var(--accent-strong);
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
+}
+
+.full-map-facing polygon {
+  fill: var(--accent-strong);
 }
 
 .full-map-label {

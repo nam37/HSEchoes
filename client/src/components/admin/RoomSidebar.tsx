@@ -276,7 +276,7 @@ export function RoomSidebar({
     const inherited = overrideValue === undefined;
     const value = inherited ? effective.ceilingColor : overrideValue;
     return (
-      <label>Ceiling Tint
+      <label>Room Tint
         <div className="zone-surface-row">
           <input type="color" value={value} onChange={(event) => setSurfaceOverride("ceilingColor", event.target.value)} disabled={inherited} style={{ width: "2.5rem", padding: "0.1rem" }} />
           <input value={value} onChange={(event) => setSurfaceOverride("ceilingColor", event.target.value || undefined)} disabled={inherited} />
