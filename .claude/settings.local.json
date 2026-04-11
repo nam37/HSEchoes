@@ -35,7 +35,21 @@
       "Bash(curl -s -X POST \"$NEON_AUTH_URL/sign-in/email\" -H \"Content-Type: application/json\" -H \"Origin: http://localhost:5173\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"nam037@gmail.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"k25gpfTpVLG4TEP\"\"\"\"}' --env-file .env)",
       "Bash(TOKEN=\"bTrfqsjJCVrvEof80vgDe3JAuNMFGQxG.8%2Ba50EOh5eRV0NHfBymt3cVioL4WA81t7jKZ4fWEk%2Fk%3D\")",
       "Bash(curl -s http://localhost:8787/api/auth/session -H \"Authorization: Bearer $TOKEN\")",
-      "Bash(curl -s http://localhost:8787/api/game/bootstrap -H \"Authorization: Bearer $TOKEN\")"
+      "Bash(curl -s http://localhost:8787/api/game/bootstrap -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(unzip -l Kensmark_03-Bold-Slant.zip)",
+      "Bash(unzip -o Kensmark_03-Bold-Slant.zip \"Kensmark-Bold-Slant/*.ttf\" -d /tmp/kensmark)",
+      "Bash(cp /tmp/kensmark/Kensmark-Bold-Slant/*.ttf C:/ClineProjects/HSEchoes/client/public/)",
+      "Bash(curl -s -X POST http://localhost:8787/api/auth/sign-in -H \"Content-Type: application/json\" -H \"Origin: http://localhost:5173\" -d '{\"\"email\"\":\"\"nam037@gmail.com\"\",\"\"password\"\":\"\"k25gpfTpVLG4TEP\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8787/api/auth/sign-in -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test@test.com\"\",\"\"password\"\":\"\"test\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8787/api/auth/sign-in -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"nam037@gmail.com\"\",\"\"password\"\":\"\"test\"\"}\")",
+      "Bash(curl -s -X POST http://localhost:8787/api/auth/sign-in -H \"Content-Type: application/json\" -H \"Origin: http://localhost:5173\" -d \"{\"\"email\"\":\"\"nam037@gmail.com\"\",\"\"password\"\":\"\"test123\"\"}\")",
+      "Bash(python3 -c \":*)",
+      "Bash(timeout 8 bash -c 'npm run dev:server 2>&1 | head -30')",
+      "Bash(timeout 12 bash -c 'npm run dev:server 2>&1 | grep -E \"\"\\(listening|Error|error\\)\"\" | head -5')",
+      "Bash(timeout 15 bash -c 'npm run dev:server 2>&1')",
+      "Bash(curl -s -X POST http://localhost:8787/api/admin/reload -H \"Authorization: Bearer dev\")",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const p=''server/src/index.ts''; const c=fs.readFileSync\\(p,''utf8''\\); fs.writeFileSync\\(p,c\\);\")",
+      "Bash(find /c/ClineProjects/HSEchoes -name *ablet*verlay* -o -name *tablet*)"
     ]
   }
 }

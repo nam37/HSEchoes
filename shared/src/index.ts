@@ -137,6 +137,7 @@ export interface PropDef {
   description?: string;
   iconLabel?: string;
   assetId?: string;
+  modelAssetId?: string;
   renderHint?: "billboard" | "mesh" | "none";
 }
 
@@ -162,6 +163,7 @@ export interface Enemy {
   attack: number;
   defense: number;
   spritePath: string;
+  modelAssetId?: string;
   introLine: string;
 }
 
@@ -182,6 +184,7 @@ export interface Item {
   slot: ItemSlot;
   description: string;
   iconPath: string;
+  modelAssetId?: string;
   attackBonus?: number;
   defenseBonus?: number;
   healAmount?: number;

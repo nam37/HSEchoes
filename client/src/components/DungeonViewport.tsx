@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { AssetDef, BootstrapData, CellFace, Direction, ResolvedRoomSurfaces, RunState, TextureSet, Zone } from "../../../shared/src/index";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { AssetDef, BootstrapData, CellFace, Direction, PropDef, ResolvedRoomSurfaces, RunState, TextureSet, Zone, ZoneRoom } from "../../../shared/src/index";
 import { findRoomContaining, findZoneEdge, resolveEdgeType, resolveRoomSurfaces } from "../../../shared/src/index";
 import { resolveAssetPath } from "../lib/assets";
 
@@ -22,8 +23,12 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const textureLoaderRef = useRef(new THREE.TextureLoader());
+  const gltfLoaderRef = useRef(new GLTFLoader());
   const textureCacheRef = useRef(new Map<string, THREE.Texture | null>());
   const textureVariantCacheRef = useRef(new Map<string, THREE.Texture | null>());
+  const modelTemplateCacheRef = useRef(new Map<string, THREE.Object3D | null>());
+  const pendingModelLoadsRef = useRef(new Map<string, Promise<THREE.Object3D | null>>());
+  const sceneBuildIdRef = useRef(0);
 
   useEffect(() => {
     if (!mountRef.current || rendererRef.current) {
@@ -71,6 +76,8 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
       renderer.dispose();
       disposeTextureCache(textureVariantCacheRef.current);
       disposeTextureCache(textureCacheRef.current);
+      disposeModelTemplateCache(modelTemplateCacheRef.current);
+      pendingModelLoadsRef.current.clear();
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
@@ -89,16 +96,19 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
     }
 
     clearScene(scene);
+    const buildId = ++sceneBuildIdRef.current;
 
     const zone: Zone | undefined = bootstrap.zones.find(z => z.id === run.zoneId) ?? bootstrap.zones[0];
     if (!zone) {
       return;
     }
+    const propMap = new Map(bootstrap.props.map((prop) => [prop.id, prop]));
 
     const px = run.posX;
     const py = run.posY;
     const inventorySet = new Set(run.player.inventory);
     const materialCache = new Map<string, THREE.Material>();
+    const visibleRooms = new Map<string, ZoneRoom>();
 
     // Sci-fi corridor lighting: bright overhead strips + forward fill
     const ambient = new THREE.AmbientLight("#c8d8e0", 1.1);
@@ -125,6 +135,8 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
       emissive: "#0e1e30",
     });
 
+    placeCamera(camera, run.facing);
+
     // Render a 5×5 grid around the player (up to 25 cells; void cells skipped below).
     // The 4 direct cardinal neighbours get their own relation so the back-face skip works.
     // Everything else in the grid is "outer" — all 4 faces resolved via resolveEdgeType.
@@ -145,9 +157,11 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
 
     for (const { sx, sy, relation } of renderSquares) {
       // Only render squares that are in a known room
-      if (!findRoomContaining(zone, sx, sy)) {
+      const room = findRoomContaining(zone, sx, sy);
+      if (!room) {
         continue;
       }
+      visibleRooms.set(room.id, room);
       const offsetX = (sx - px) * roomSize;
       const offsetZ = (sy - py) * roomSize;
       addSquare(
@@ -170,6 +184,29 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
       );
     }
 
+    for (const room of visibleRooms.values()) {
+      const prop = room.prop ? propMap.get(room.prop) : undefined;
+      if (!prop || prop.renderHint === "none") {
+        continue;
+      }
+      renderRoomProp(
+        scene,
+        room,
+        prop,
+        px,
+        py,
+        assetMap,
+        camera,
+        textureLoaderRef.current,
+        gltfLoaderRef.current,
+        textureCacheRef.current,
+        modelTemplateCacheRef.current,
+        pendingModelLoadsRef.current,
+        buildId,
+        sceneBuildIdRef
+      );
+    }
+
     if (run.combat) {
       const enemy = bootstrap.enemies.find((entry) => entry.id === run.combat?.enemyId);
       const sprite = enemy ? tryTexture(textureLoaderRef.current, resolveAssetPath(enemy.spritePath, assetMap)) : null;
@@ -183,7 +220,6 @@ export function DungeonViewport({ bootstrap, run, assetMap, textureSetMap }: Dun
       scene.add(billboard);
     }
 
-    placeCamera(camera, run.facing);
     renderer.render(scene, camera);
   }, [assetMap, bootstrap, run, textureSetMap]);
 
@@ -239,21 +275,6 @@ function addSquare(
     const ceilLight = new THREE.PointLight(ceilingColor, 18, 22, 1.6);
     ceilLight.position.set(offsetX, wallHeight - 0.3, offsetZ);
     scene.add(ceilLight);
-  }
-
-  // Prop — render in any visible cell (not just current) so it's seen from adjacent rooms
-  if (room?.prop) {
-    const prop = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 2, 1.5),
-      new THREE.MeshStandardMaterial({
-        color: "#485060",
-        roughness: 0.55,
-        metalness: 0.7,
-        emissive: "#141820",
-      })
-    );
-    prop.position.set(offsetX, 1, offsetZ - 1);
-    scene.add(prop);
   }
 
   // Terminal — wall-mounted console with glowing screen, visible from adjacent rooms
@@ -390,6 +411,207 @@ function addSquare(
   }
 }
 
+function renderRoomProp(
+  scene: THREE.Scene,
+  room: ZoneRoom,
+  prop: PropDef,
+  px: number,
+  py: number,
+  assetMap: Map<string, AssetDef>,
+  camera: THREE.PerspectiveCamera,
+  textureLoader: THREE.TextureLoader,
+  gltfLoader: GLTFLoader,
+  textureCache: Map<string, THREE.Texture | null>,
+  modelTemplateCache: Map<string, THREE.Object3D | null>,
+  pendingModelLoads: Map<string, Promise<THREE.Object3D | null>>,
+  buildId: number,
+  sceneBuildIdRef: React.MutableRefObject<number>
+): void {
+  const modelPath = resolveModelAssetPath(prop.modelAssetId, assetMap);
+  if (modelPath) {
+    void addRoomPropModel(
+      scene,
+      room,
+      prop,
+      px,
+      py,
+      gltfLoader,
+      modelPath,
+      modelTemplateCache,
+      pendingModelLoads,
+      buildId,
+      sceneBuildIdRef,
+      () => addRoomPropBillboard(scene, room, prop, px, py, assetMap, camera, textureLoader, textureCache)
+    );
+    return;
+  }
+
+  addRoomPropBillboard(scene, room, prop, px, py, assetMap, camera, textureLoader, textureCache);
+}
+
+async function addRoomPropModel(
+  scene: THREE.Scene,
+  room: ZoneRoom,
+  prop: PropDef,
+  px: number,
+  py: number,
+  loader: GLTFLoader,
+  src: string,
+  modelTemplateCache: Map<string, THREE.Object3D | null>,
+  pendingModelLoads: Map<string, Promise<THREE.Object3D | null>>,
+  buildId: number,
+  sceneBuildIdRef: React.MutableRefObject<number>,
+  fallback: () => void
+): Promise<void> {
+  const template = await getCachedModelTemplate(loader, src, modelTemplateCache, pendingModelLoads);
+  if (buildId !== sceneBuildIdRef.current) {
+    return;
+  }
+  if (!template) {
+    fallback();
+    return;
+  }
+
+  const instance = createDetachedModelInstance(template);
+  placeRoomPropModel(instance, room, prop, px, py);
+  if (buildId !== sceneBuildIdRef.current) {
+    disposeObject(instance);
+    return;
+  }
+  scene.add(instance);
+}
+
+function addRoomPropBillboard(
+  scene: THREE.Scene,
+  room: ZoneRoom,
+  prop: PropDef,
+  px: number,
+  py: number,
+  assetMap: Map<string, AssetDef>,
+  camera: THREE.PerspectiveCamera,
+  loader: THREE.TextureLoader,
+  textureCache: Map<string, THREE.Texture | null>
+): void {
+  const propTexture = getPropTexture(prop.assetId, assetMap, loader, textureCache);
+  const billboard = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6, 1.6),
+    new THREE.MeshBasicMaterial({
+      map: propTexture,
+      transparent: true,
+      alphaTest: 0.15,
+      side: THREE.DoubleSide,
+    })
+  );
+  const anchor = getRoomPropAnchor(room, prop.id, px, py);
+  billboard.position.copy(anchor);
+  billboard.lookAt(camera.position.x, billboard.position.y, camera.position.z);
+  scene.add(billboard);
+}
+
+function getRoomPropAnchor(room: ZoneRoom, propId: string, px: number, py: number): THREE.Vector3 {
+  const roomCenterX = ((room.x + (room.w - 1) / 2) - px) * roomSize;
+  const roomCenterZ = ((room.y + (room.h - 1) / 2) - py) * roomSize;
+  const northWallZ = (room.y - py) * roomSize - roomSize / 2;
+
+  if (propId === "coolant_pool") {
+    return new THREE.Vector3(roomCenterX, 0.08, roomCenterZ);
+  }
+
+  return new THREE.Vector3(roomCenterX, 0.95, northWallZ + 0.55);
+}
+
+function placeRoomPropModel(instance: THREE.Object3D, room: ZoneRoom, prop: PropDef, px: number, py: number): void {
+  const bounds = new THREE.Box3().setFromObject(instance);
+  const size = bounds.getSize(new THREE.Vector3());
+  const targetWidth = prop.id === "coolant_pool" ? roomSize * Math.max(0.6, room.w * 0.75) : roomSize * Math.min(0.38 * room.w, 0.8);
+  const targetDepth = prop.id === "coolant_pool" ? roomSize * Math.max(0.6, room.h * 0.75) : roomSize * 0.26;
+  const targetHeight = prop.id === "coolant_pool" ? 0.35 : 2.3;
+  const scale = Math.min(
+    targetWidth / Math.max(size.x, 0.001),
+    targetDepth / Math.max(size.z, 0.001),
+    targetHeight / Math.max(size.y, 0.001)
+  );
+  instance.scale.multiplyScalar(scale);
+  instance.updateMatrixWorld(true);
+
+  const scaledBounds = new THREE.Box3().setFromObject(instance);
+  const scaledSize = scaledBounds.getSize(new THREE.Vector3());
+  const anchor = getRoomPropAnchor(room, prop.id, px, py);
+
+  let targetX = anchor.x;
+  let targetZ = anchor.z;
+  if (prop.id !== "coolant_pool") {
+    targetZ += scaledSize.z / 2;
+  }
+
+  const center = scaledBounds.getCenter(new THREE.Vector3());
+  instance.position.x += targetX - center.x;
+  instance.position.y += -scaledBounds.min.y;
+  instance.position.z += targetZ - center.z;
+}
+
+function resolveModelAssetPath(assetId: string | undefined, assetMap: Map<string, AssetDef>): string | undefined {
+  if (!assetId) {
+    return undefined;
+  }
+  const asset = assetMap.get(assetId);
+  if (asset?.type === "mesh") {
+    return asset.path;
+  }
+  return assetId.startsWith("/") ? assetId : undefined;
+}
+
+async function getCachedModelTemplate(
+  loader: GLTFLoader,
+  src: string,
+  modelTemplateCache: Map<string, THREE.Object3D | null>,
+  pendingModelLoads: Map<string, Promise<THREE.Object3D | null>>
+): Promise<THREE.Object3D | null> {
+  if (modelTemplateCache.has(src)) {
+    return modelTemplateCache.get(src) ?? null;
+  }
+
+  const pending = pendingModelLoads.get(src);
+  if (pending) {
+    return pending;
+  }
+
+  const load = loader
+    .loadAsync(src)
+    .then((gltf) => {
+      const template = gltf.scene;
+      modelTemplateCache.set(src, template);
+      pendingModelLoads.delete(src);
+      return template;
+    })
+    .catch(() => {
+      modelTemplateCache.set(src, null);
+      pendingModelLoads.delete(src);
+      return null;
+    });
+
+  pendingModelLoads.set(src, load);
+  return load;
+}
+
+function createDetachedModelInstance(template: THREE.Object3D): THREE.Object3D {
+  const clone = template.clone(true);
+  clone.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (mesh.isMesh) {
+      mesh.geometry = mesh.geometry.clone();
+      if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map((material) => material.clone());
+      } else if (mesh.material) {
+        mesh.material = mesh.material.clone();
+      }
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+    }
+  });
+  return clone;
+}
+
 function tryTexture(loader: THREE.TextureLoader, src: string): THREE.Texture | null {
   try {
     const texture = loader.load(src);
@@ -516,6 +738,53 @@ function getCachedTexture(loader: THREE.TextureLoader, src: string, textureCache
     configureTextureSampling(texture);
   }
   textureCache.set(src, texture);
+  return texture;
+}
+
+function getPropTexture(
+  assetId: string | undefined,
+  assetMap: Map<string, AssetDef>,
+  loader: THREE.TextureLoader,
+  textureCache: Map<string, THREE.Texture | null>
+): THREE.Texture {
+  const path = assetId ? resolveAssetPath(assetId, assetMap) : "";
+  const asset = path ? getCachedTexture(loader, path, textureCache) : null;
+  return asset ?? getFallbackQuestionTexture(textureCache);
+}
+
+function getFallbackQuestionTexture(textureCache: Map<string, THREE.Texture | null>): THREE.Texture {
+  const cacheKey = "__prop-fallback-question__";
+  const cached = textureCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    const fallback = new THREE.Texture();
+    textureCache.set(cacheKey, fallback);
+    return fallback;
+  }
+
+  context.clearRect(0, 0, 128, 128);
+  context.fillStyle = "#06101a";
+  context.fillRect(20, 20, 88, 88);
+  context.strokeStyle = "#00d4ff";
+  context.lineWidth = 4;
+  context.strokeRect(20, 20, 88, 88);
+  context.fillStyle = "#7fe7ff";
+  context.font = "bold 72px monospace";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("?", 64, 68);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  configureTextureSampling(texture);
+  texture.needsUpdate = true;
+  textureCache.set(cacheKey, texture);
   return texture;
 }
 
@@ -727,6 +996,15 @@ function disposeObject(object: THREE.Object3D): void {
 function disposeTextureCache(cache: Map<string, THREE.Texture | null>): void {
   for (const texture of cache.values()) {
     texture?.dispose();
+  }
+  cache.clear();
+}
+
+function disposeModelTemplateCache(cache: Map<string, THREE.Object3D | null>): void {
+  for (const template of cache.values()) {
+    if (template) {
+      disposeObject(template);
+    }
   }
   cache.clear();
 }

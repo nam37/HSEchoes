@@ -5,6 +5,18 @@ import type { Zone, Enemy, Encounter, Item, NPC, PropDef, QuestDef, Terminal } f
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireAdmin);
 
+  async function persistWorldEntity<T>(kind: string, id: string, entity: T): Promise<{ ok: true; data: T }> {
+    await app.gameService.upsertWorldEntity(kind, id, entity);
+    await app.gameService.reload();
+    return { ok: true, data: entity };
+  }
+
+  async function removeWorldEntity(kind: string, id: string): Promise<{ ok: true; data: { deleted: string } }> {
+    await app.gameService.deleteWorldEntity(kind, id);
+    await app.gameService.reload();
+    return { ok: true, data: { deleted: id } };
+  }
+
   app.get("/api/admin/stats", async () => {
     const saves = await app.gameService.listAllSaves();
     return {
@@ -40,104 +52,88 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   app.put<{ Params: { id: string }; Body: Zone }>("/api/admin/world/zones/:id", async (request) => {
     const { id } = request.params;
     const zone = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("zone", id, zone);
-    return { ok: true, data: zone };
+    return persistWorldEntity("zone", id, zone);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/zones/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("zone", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("zone", request.params.id);
   });
 
   // Enemies
   app.put<{ Params: { id: string }; Body: Enemy }>("/api/admin/world/enemies/:id", async (request) => {
     const { id } = request.params;
     const enemy = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("enemy", id, enemy);
-    return { ok: true, data: enemy };
+    return persistWorldEntity("enemy", id, enemy);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/enemies/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("enemy", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("enemy", request.params.id);
   });
 
   // Items
   app.put<{ Params: { id: string }; Body: Item }>("/api/admin/world/items/:id", async (request) => {
     const { id } = request.params;
     const item = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("item", id, item);
-    return { ok: true, data: item };
+    return persistWorldEntity("item", id, item);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/items/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("item", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("item", request.params.id);
   });
 
   // NPCs
   app.put<{ Params: { id: string }; Body: NPC }>("/api/admin/world/npcs/:id", async (request) => {
     const { id } = request.params;
     const npc = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("npc", id, npc);
-    return { ok: true, data: npc };
+    return persistWorldEntity("npc", id, npc);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/npcs/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("npc", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("npc", request.params.id);
   });
 
   // Terminals
   app.put<{ Params: { id: string }; Body: Terminal }>("/api/admin/world/terminals/:id", async (request) => {
     const { id } = request.params;
     const terminal = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("terminal", id, terminal);
-    return { ok: true, data: terminal };
+    return persistWorldEntity("terminal", id, terminal);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/terminals/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("terminal", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("terminal", request.params.id);
   });
 
   // Encounters
   app.put<{ Params: { id: string }; Body: Encounter }>("/api/admin/world/encounters/:id", async (request) => {
     const { id } = request.params;
     const encounter = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("encounter", id, encounter);
-    return { ok: true, data: encounter };
+    return persistWorldEntity("encounter", id, encounter);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/encounters/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("encounter", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("encounter", request.params.id);
   });
 
   // Props
   app.put<{ Params: { id: string }; Body: PropDef }>("/api/admin/world/props/:id", async (request) => {
     const { id } = request.params;
     const prop = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("prop", id, prop);
-    return { ok: true, data: prop };
+    return persistWorldEntity("prop", id, prop);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/props/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("prop", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("prop", request.params.id);
   });
 
   // Quests
   app.put<{ Params: { id: string }; Body: QuestDef }>("/api/admin/world/quests/:id", async (request) => {
     const { id } = request.params;
     const quest = { ...request.body, id };
-    await app.gameService.upsertWorldEntity("quest", id, quest);
-    return { ok: true, data: quest };
+    return persistWorldEntity("quest", id, quest);
   });
 
   app.delete<{ Params: { id: string } }>("/api/admin/world/quests/:id", async (request) => {
-    await app.gameService.deleteWorldEntity("quest", request.params.id);
-    return { ok: true, data: { deleted: request.params.id } };
+    return removeWorldEntity("quest", request.params.id);
   });
 
   // Reload in-memory cache from DB

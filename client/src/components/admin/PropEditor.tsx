@@ -60,6 +60,15 @@ export function PropEditor({ initial, assets, usage = [], onSave, onClose }: Pro
             onChange={(value) => setField("assetId", value)}
           />
         </div>
+        <div className="span-2">
+          <AssetPickerField
+            label="Prop Model"
+            value={prop.modelAssetId}
+            assets={assets}
+            types={["mesh"]}
+            onChange={(value) => setField("modelAssetId", value)}
+          />
+        </div>
         <label className="span-2">Description<textarea value={prop.description ?? ""} onChange={(event) => setField("description", event.target.value || undefined)} /></label>
       </div>
       <UsageList title={`Linked Rooms (${usage.length})`} entries={usage} />

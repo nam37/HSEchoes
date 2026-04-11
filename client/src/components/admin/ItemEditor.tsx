@@ -56,6 +56,15 @@ export function ItemEditor({ initial, assets, usage = [], onSave, onClose }: Pro
             onChange={(value) => setField("iconPath", value ?? "")}
           />
         </div>
+        <div className="span-2">
+          <AssetPickerField
+            label="Model Asset"
+            value={item.modelAssetId}
+            assets={assets}
+            types={["mesh"]}
+            onChange={(value) => setField("modelAssetId", value)}
+          />
+        </div>
         <label>Attack Bonus<input type="number" value={item.attackBonus ?? ""} onChange={(e) => setField("attackBonus", e.target.value ? Number(e.target.value) : undefined)} /></label>
         <label>Defense Bonus<input type="number" value={item.defenseBonus ?? ""} onChange={(e) => setField("defenseBonus", e.target.value ? Number(e.target.value) : undefined)} /></label>
         <label>Heal Amount<input type="number" value={item.healAmount ?? ""} onChange={(e) => setField("healAmount", e.target.value ? Number(e.target.value) : undefined)} /></label>

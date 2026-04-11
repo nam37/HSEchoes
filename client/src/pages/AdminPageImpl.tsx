@@ -692,19 +692,32 @@ function buildUsageModel(world: WorldContent | null, focusRoom: (zoneId: string,
   for (const enemy of world.enemies) {
     const assetRef = world.assets.find((asset) => asset.id === enemy.spritePath || asset.path === enemy.spritePath)?.id;
     if (assetRef) pushUsage(usage.assets, assetRef, { label: `Enemy: ${enemy.name}`, meta: enemy.id });
+    if (enemy.modelAssetId) {
+      const modelRef = world.assets.find((asset) => asset.id === enemy.modelAssetId || asset.path === enemy.modelAssetId)?.id;
+      if (modelRef) pushUsage(usage.assets, modelRef, { label: `Enemy Model: ${enemy.name}`, meta: enemy.id });
+    }
   }
   for (const item of world.items) {
     const assetRef = world.assets.find((asset) => asset.id === item.iconPath || asset.path === item.iconPath)?.id;
     if (assetRef) pushUsage(usage.assets, assetRef, { label: `Item: ${item.name}`, meta: item.id });
+    if (item.modelAssetId) {
+      const modelRef = world.assets.find((asset) => asset.id === item.modelAssetId || asset.path === item.modelAssetId)?.id;
+      if (modelRef) pushUsage(usage.assets, modelRef, { label: `Item Model: ${item.name}`, meta: item.id });
+    }
   }
   for (const npc of world.npcs) {
     const assetRef = world.assets.find((asset) => asset.id === npc.portraitAssetId || asset.path === npc.portraitAssetId)?.id;
     if (assetRef) pushUsage(usage.assets, assetRef, { label: `NPC: ${npc.name}`, meta: npc.id });
   }
   for (const prop of world.props) {
-    if (!prop.assetId) continue;
-    const assetRef = world.assets.find((asset) => asset.id === prop.assetId || asset.path === prop.assetId)?.id;
-    if (assetRef) pushUsage(usage.assets, assetRef, { label: `Prop: ${prop.name}`, meta: prop.id });
+    if (prop.assetId) {
+      const assetRef = world.assets.find((asset) => asset.id === prop.assetId || asset.path === prop.assetId)?.id;
+      if (assetRef) pushUsage(usage.assets, assetRef, { label: `Prop: ${prop.name}`, meta: prop.id });
+    }
+    if (prop.modelAssetId) {
+      const modelRef = world.assets.find((asset) => asset.id === prop.modelAssetId || asset.path === prop.modelAssetId)?.id;
+      if (modelRef) pushUsage(usage.assets, modelRef, { label: `Prop Model: ${prop.name}`, meta: prop.id });
+    }
   }
   for (const textureSet of world.textureSets) {
     pushUsage(usage.assets, textureSet.wallAssetId, { label: `Texture Set: ${textureSet.id}`, meta: "Wall surface" });

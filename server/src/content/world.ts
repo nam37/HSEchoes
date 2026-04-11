@@ -17,13 +17,30 @@ export const assets: AssetDef[] = [
   { id: "spr-enemy-rat-scavenger", path: "/assets/sprites/rat-scavenger.png", type: "sprite", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "spr-enemy-drowned-acolyte", path: "/assets/sprites/drowned-acolyte.png", type: "sprite", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "spr-enemy-bone-sentinel", path: "/assets/sprites/bone-sentinel.png", type: "sprite", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "spr-enemy-sphereal-raider", path: "/sprites/sphereal-raider.png", type: "sprite", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "portrait-npc-placeholder", path: "/portraits/npc-placeholder.svg", type: "portrait", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "svg" },
+  { id: "portrait-vasek", path: "/portraits/portrait-vasek.png", type: "portrait", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "portrait-merrak", path: "/portraits/portrait-merrak.png", type: "portrait", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "icon-item-rusted-blade", path: "/assets/ui/icon-rusted-blade.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "icon-item-gate-mail", path: "/assets/ui/icon-gate-mail.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "icon-item-moon-charm", path: "/assets/ui/icon-moon-charm.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "icon-medkit", path: "/assets/ui/icon-amber-draught.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: "icon-signal-core", path: "/assets/ui/icon-star-sigil.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-item-service-blade", path: "/icons/icon-item-service-blade.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-item-signal-core", path: "/icons/icon-item-signal-core.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-item-neodymium-fragment", path: "/icons/icon-item-neodymium-fragment.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
   { id: PROP_PLACEHOLDER_ASSET_ID, path: "/icons/icon-prop-placeholder.svg", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "svg" },
+  { id: "icon-prop-coolant-pooling", path: "/icons/icon-prop-coolant-pooling.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-prop-emergency-brazier", path: "/icons/icon-prop-emergency-brazier.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-prop-open-service-shaft", path: "/icons/icon-prop-open-service-shaft.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-prop-outdated-storage-cores", path: "/icons/icon-prop-outdated-storage-cores.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "icon-prop-star-chart-archive", path: "/icons/icon-prop-star-chart-archive.png", type: "icon", width: ASSET_DIMENSION, height: ASSET_DIMENSION, format: "png" },
+  { id: "mesh-prop-coolant-pooling", path: "/assets/models/props/coolant-pooling.glb", type: "mesh", format: "glb" },
+  { id: "mesh-prop-emergency-brazier", path: "/assets/models/props/emergency-brazier.glb", type: "mesh", format: "glb" },
+  { id: "mesh-prop-outdated-storage-cores", path: "/assets/models/props/outdated-storage-cores.glb", type: "mesh", format: "glb" },
+  { id: "mesh-prop-outdated-storage-cores-variant", path: "/assets/models/props/outdated-storage-cores-variant.glb", type: "mesh", format: "glb" },
+  { id: "mesh-item-neodymium-fragment", path: "/assets/models/items/neodymium-fragment.glb", type: "mesh", format: "glb" },
+  { id: "mesh-enemy-corroded-unit", path: "/assets/models/enemies/corroded-unit.glb", type: "mesh", format: "glb" },
   { id: "audio-title-1", path: "/music/Echoes_of_the_Hollow_Star-Title-1.mp3", type: "audio", format: "mp3" },
   { id: "audio-explore-1", path: "/music/Echoes_of_the_Hollow_Star-Exploration-1.mp3", type: "audio", format: "mp3" },
   { id: "audio-explore-2", path: "/music/Echoes_of_the_Hollow_Star-Exploration-2.mp3", type: "audio", format: "mp3" },
@@ -93,21 +110,21 @@ export const items: Item[] = [
   { id: "impact_plating",   name: "Impact Plating",    slot: "armor",     description: "Salvaged hull-panel sections lashed into a rough vest. Turns aside glancing hits.",           iconPath: "/assets/ui/icon-gate-mail.png",   defenseBonus: 1 },
   { id: "transit_key",      name: "Transit Key",       slot: "accessory", description: "A magnetic access fob that unlocks sealed bulkhead passages in this sector.",               iconPath: "/assets/ui/icon-moon-charm.png",  defenseBonus: 1, keyItem: true },
   { id: "medkit",           name: "Station Medkit",    slot: "consumable", description: "A standard-issue field kit. Restores 4 HP.",                                                iconPath: "/assets/ui/icon-amber-draught.png", healAmount: 4 },
-  { id: "service_blade",    name: "Service Blade",     slot: "weapon",    description: "A cutting tool from the maintenance lockers, sharpened to an edge that means business.",     iconPath: "/assets/ui/icon-rusted-blade.png", attackBonus: 2 },
-  { id: "signal_core",      name: "Signal Core",       slot: "accessory", description: "A compact relay unit still broadcasting on an encrypted Aligned frequency.",                iconPath: "/assets/ui/icon-star-sigil.png",  attackBonus: 1, keyItem: true },
+  { id: "service_blade",    name: "Service Blade",     slot: "weapon",    description: "A cutting tool from the maintenance lockers, sharpened to an edge that means business.",     iconPath: "icon-item-service-blade", attackBonus: 2 },
+  { id: "signal_core",      name: "Signal Core",       slot: "accessory", description: "A compact relay unit still broadcasting on an encrypted Aligned frequency.",                iconPath: "icon-item-signal-core",  attackBonus: 1, keyItem: true },
   { id: "sphereal_sidearm",     name: "Sphereal Sidearm",      slot: "weapon",    description: "A compact directed-energy weapon recovered from a fallen boarder. The trigger feels strange under your fingers, but the output is unmistakable.", iconPath: "/assets/ui/icon-rusted-blade.png", attackBonus: 3 },
-  { id: "neodymium_fragment",   name: "Neodymium Fragment",    slot: "accessory", description: "A dense metallic component stripped from the raider's drive assembly. Something about its composition is unusual — it reads as neodymium on your scanner.", iconPath: "/assets/ui/icon-star-sigil.png", keyItem: true }
+  { id: "neodymium_fragment",   name: "Neodymium Fragment",    slot: "accessory", description: "A dense metallic component stripped from the raider's drive assembly. Something about its composition is unusual — it reads as neodymium on your scanner.", iconPath: "icon-item-neodymium-fragment", modelAssetId: "mesh-item-neodymium-fragment", keyItem: true }
 ];
 
 // ── Enemies ───────────────────────────────────────────────────────────────────
 
 export const enemies: Enemy[] = [
   { id: "rat_scavenger",   name: "Vermin Cluster",      maxHp: 6,  attack: 2, defense: 0, spritePath: "/assets/sprites/rat-scavenger.png",  introLine: "Something small and fast skitters out of the broken storage racks." },
-  { id: "drowned_acolyte", name: "Corroded Unit",       maxHp: 8,  attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A malfunctioning maintenance drone drags itself upright from the flooded deck." },
+  { id: "drowned_acolyte", name: "Corroded Unit",       maxHp: 8,  attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", modelAssetId: "mesh-enemy-corroded-unit", introLine: "A malfunctioning maintenance drone drags itself upright from the flooded deck." },
   { id: "ashen_pilgrim",   name: "Station Drifter",     maxHp: 10, attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A figure in degraded EVA gear moves between the racks with unsettling purpose." },
   { id: "bone_sentinel",   name: "Security Automaton",  maxHp: 12, attack: 4, defense: 1, spritePath: "/assets/sprites/bone-sentinel.png",  introLine: "An old security unit powers up in the dark, its optical array locking onto you." },
   { id: "feral_service_bot", name: "Feral Service Drone", maxHp: 8,  attack: 3, defense: 1, spritePath: "/assets/sprites/drowned-acolyte.png", introLine: "A maintenance drone lurches out of its charging bay, actuators sparking, operational protocols gone." },
-  { id: "sphereal_boarder",  name: "Sphereal Raider",     maxHp: 14, attack: 5, defense: 2, spritePath: "/assets/sprites/bone-sentinel.png",   introLine: "A figure in angular combat plating steps from the shadows. The armour design is unlike anything in Aligned inventory." },
+  { id: "sphereal_boarder",  name: "Sphereal Raider",     maxHp: 14, attack: 5, defense: 2, spritePath: "spr-enemy-sphereal-raider",   introLine: "A figure in angular combat plating steps from the shadows. The armour design is unlike anything in Aligned inventory." },
   { id: "sphereal_elite",    name: "Sphereal Combat Unit", maxHp: 18, attack: 6, defense: 3, spritePath: "/assets/sprites/bone-sentinel.png",   introLine: "A heavily armoured figure blocks the passage. Its visor is opaque. It does not speak." }
 ];
 
@@ -497,7 +514,7 @@ export const npcs: NPC[] = [
     id: "cdr_vasek",
     name: "Commander Vasek",
     role: "Station Commander, West Ring",
-    portraitAssetId: assetPath("portrait-npc-placeholder"),
+    portraitAssetId: "portrait-vasek",
     dialogue: [
       {
         id: "vasek_01",
@@ -519,6 +536,7 @@ export const npcs: NPC[] = [
     id: "ind_supervisor_merrak",
     name: "Supervisor Merrak",
     role: "Industrial Shift Supervisor",
+    portraitAssetId: "portrait-merrak",
     dialogue: [
       {
         id: "merrak_01",
@@ -844,7 +862,18 @@ export const props: PropDef[] = [
   { id: "comm_node",         name: "Aligned Comm Node",         description: "A communications node broadcasting on an encrypted Aligned frequency. The signal is strong. It has been waiting.",                               iconLabel: "COM" },
 ].map((prop) => ({
   ...prop,
-  assetId: PROP_PLACEHOLDER_ASSET_ID,
+  assetId: ({
+    brazier: "icon-prop-emergency-brazier",
+    storage_cores: "icon-prop-outdated-storage-cores",
+    coolant_pool: "icon-prop-coolant-pooling",
+    service_shaft: "icon-prop-open-service-shaft",
+    chart_archive: "icon-prop-star-chart-archive",
+  } satisfies Partial<Record<string, string>>)[prop.id] ?? PROP_PLACEHOLDER_ASSET_ID,
+  modelAssetId: ({
+    brazier: "mesh-prop-emergency-brazier",
+    storage_cores: "mesh-prop-outdated-storage-cores",
+    coolant_pool: "mesh-prop-coolant-pooling",
+  } satisfies Partial<Record<string, string>>)[prop.id],
   renderHint: "billboard" as const,
 }));
 

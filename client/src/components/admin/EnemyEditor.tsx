@@ -52,6 +52,15 @@ export function EnemyEditor({ initial, assets, usage = [], onSave, onClose }: Pr
             onChange={(value) => setField("spritePath", value ?? "")}
           />
         </div>
+        <div className="span-2">
+          <AssetPickerField
+            label="Model Asset"
+            value={enemy.modelAssetId}
+            assets={assets}
+            types={["mesh"]}
+            onChange={(value) => setField("modelAssetId", value)}
+          />
+        </div>
         <label className="span-2">Intro Line<textarea value={enemy.introLine} onChange={(e) => setField("introLine", e.target.value)} /></label>
       </div>
       <UsageList title={`Used In (${usage.length})`} entries={usage} />
