@@ -1646,6 +1646,14 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.settings-kicker {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .settings-close {
   min-width: auto;
   padding-inline: 0.9rem;
@@ -1667,6 +1675,27 @@ button:disabled {
   flex-direction: column;
   gap: 0.55rem;
   width: min(24rem, 100%);
+}
+
+.exit-confirm-modal {
+  width: min(30rem, 100%);
+}
+
+.exit-confirm-panel {
+  width: 100%;
+}
+
+.exit-confirm-copy {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.exit-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
 }
 
 .settings-label {

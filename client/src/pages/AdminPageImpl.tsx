@@ -60,6 +60,21 @@ const TABS: Tab[] = ["overview", "map", "zones", "assets", "enemies", "items", "
 const DEFAULT_ENEMY_ASSET = "spr-enemy-rat-scavenger";
 const DEFAULT_ICON_ASSET = "icon-prop-placeholder";
 const DEFAULT_PORTRAIT_ASSET = "portrait-npc-placeholder";
+const ADMIN_TAB_KEY = "ehs-admin-tab";
+const ADMIN_ZONE_KEY = "ehs-admin-zone";
+
+function readStoredValue(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredAdminTab(): Tab {
+  const value = readStoredValue(ADMIN_TAB_KEY);
+  return value && TABS.includes(value as Tab) ? value as Tab : "overview";
+}
 
 function newEnemy(): Enemy {
   return { id: "", name: "", maxHp: 10, attack: 2, defense: 0, spritePath: DEFAULT_ENEMY_ASSET, introLine: "" };
@@ -104,7 +119,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX.Element {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(() => readStoredAdminTab());
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [runs, setRuns] = useState<SaveSummary[]>([]);
   const [world, setWorld] = useState<WorldContent | null>(null);
@@ -114,10 +129,30 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<AdminModal>(null);
   const [reloadMsg, setReloadMsg] = useState<string | null>(null);
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(() => readStoredValue(ADMIN_ZONE_KEY));
   const [focusedRoomId, setFocusedRoomId] = useState<string | null>(null);
 
   useEffect(() => { void loadData(); }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ADMIN_TAB_KEY, tab);
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [tab]);
+
+  useEffect(() => {
+    try {
+      if (selectedZoneId) {
+        sessionStorage.setItem(ADMIN_ZONE_KEY, selectedZoneId);
+      } else {
+        sessionStorage.removeItem(ADMIN_ZONE_KEY);
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [selectedZoneId]);
 
   async function loadData(): Promise<void> {
     try {
@@ -151,6 +186,16 @@ export default function AdminPage({ userEmail, onSignOut }: AdminPageProps): JSX
   const usage = useMemo(() => buildUsageModel(world, focusRoom), [world, focusRoom]);
   const activeZone = world?.zones.find((zone) => zone.id === selectedZoneId) ?? world?.zones[0];
   const totalRooms = world?.zones.reduce((sum, zone) => sum + zone.rooms.length, 0) ?? 0;
+
+  useEffect(() => {
+    if (!world) {
+      return;
+    }
+    if (selectedZoneId && world.zones.some((zone) => zone.id === selectedZoneId)) {
+      return;
+    }
+    setSelectedZoneId(world.zones[0]?.id ?? null);
+  }, [selectedZoneId, world]);
 
   async function handleDeleteRun(slotId: string): Promise<void> {
     if (!confirm(`Delete run ${slotId}?`)) return;

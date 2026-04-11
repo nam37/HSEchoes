@@ -435,6 +435,7 @@ function renderRoomProp(
       prop,
       px,
       py,
+      camera,
       gltfLoader,
       modelPath,
       modelTemplateCache,
@@ -455,6 +456,7 @@ async function addRoomPropModel(
   prop: PropDef,
   px: number,
   py: number,
+  camera: THREE.PerspectiveCamera,
   loader: GLTFLoader,
   src: string,
   modelTemplateCache: Map<string, THREE.Object3D | null>,
@@ -473,7 +475,7 @@ async function addRoomPropModel(
   }
 
   const instance = createDetachedModelInstance(template);
-  placeRoomPropModel(instance, room, prop, px, py);
+  placeRoomPropModel(instance, room, prop, px, py, camera);
   if (buildId !== sceneBuildIdRef.current) {
     disposeObject(instance);
     return;
@@ -520,7 +522,14 @@ function getRoomPropAnchor(room: ZoneRoom, propId: string, px: number, py: numbe
   return new THREE.Vector3(roomCenterX, 0.95, northWallZ + 0.55);
 }
 
-function placeRoomPropModel(instance: THREE.Object3D, room: ZoneRoom, prop: PropDef, px: number, py: number): void {
+function placeRoomPropModel(
+  instance: THREE.Object3D,
+  room: ZoneRoom,
+  prop: PropDef,
+  px: number,
+  py: number,
+  camera: THREE.PerspectiveCamera
+): void {
   const bounds = new THREE.Box3().setFromObject(instance);
   const size = bounds.getSize(new THREE.Vector3());
   const targetWidth = prop.id === "coolant_pool" ? roomSize * Math.max(0.6, room.w * 0.75) : roomSize * Math.min(0.38 * room.w, 0.8);
@@ -536,18 +545,60 @@ function placeRoomPropModel(instance: THREE.Object3D, room: ZoneRoom, prop: Prop
 
   const scaledBounds = new THREE.Box3().setFromObject(instance);
   const scaledSize = scaledBounds.getSize(new THREE.Vector3());
-  const anchor = getRoomPropAnchor(room, prop.id, px, py);
+  const target = getRoomPropModelTarget(room, prop.id, px, py, camera, scaledSize);
+  const center = scaledBounds.getCenter(new THREE.Vector3());
+  instance.position.x += target.x - center.x;
+  instance.position.y += -scaledBounds.min.y;
+  instance.position.z += target.z - center.z;
+  instance.position.y += getRoomPropFloorLift(prop.id);
+}
 
-  let targetX = anchor.x;
-  let targetZ = anchor.z;
-  if (prop.id !== "coolant_pool") {
-    targetZ += scaledSize.z / 2;
+function getRoomPropModelTarget(
+  room: ZoneRoom,
+  propId: string,
+  px: number,
+  py: number,
+  camera: THREE.PerspectiveCamera,
+  size: THREE.Vector3
+): THREE.Vector3 {
+  const roomCenterX = ((room.x + (room.w - 1) / 2) - px) * roomSize;
+  const roomCenterZ = ((room.y + (room.h - 1) / 2) - py) * roomSize;
+  const bounds = getRoomFloorBounds(room, px, py);
+  const inset = propId === "coolant_pool" ? 0.45 : 0.18;
+  const halfX = Math.min(size.x / 2, roomSize / 2 - inset);
+  const halfZ = Math.min(size.z / 2, roomSize / 2 - inset);
+  const forward = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+
+  let targetX = roomCenterX;
+  let targetZ = roomCenterZ;
+
+  if (Math.abs(forward.z) >= Math.abs(forward.x)) {
+    targetZ = forward.z < 0
+      ? bounds.minZ + inset + halfZ
+      : bounds.maxZ - inset - halfZ;
+  } else {
+    targetX = forward.x < 0
+      ? bounds.minX + inset + halfX
+      : bounds.maxX - inset - halfX;
   }
 
-  const center = scaledBounds.getCenter(new THREE.Vector3());
-  instance.position.x += targetX - center.x;
-  instance.position.y += -scaledBounds.min.y;
-  instance.position.z += targetZ - center.z;
+  return new THREE.Vector3(targetX, 0, targetZ);
+}
+
+function getRoomPropFloorLift(propId: string): number {
+  if (propId === "coolant_pool") {
+    return 0.04;
+  }
+  return 0;
+}
+
+function getRoomFloorBounds(room: ZoneRoom, px: number, py: number): { minX: number; maxX: number; minZ: number; maxZ: number } {
+  return {
+    minX: (room.x - px) * roomSize - roomSize / 2,
+    maxX: (room.x + room.w - px) * roomSize - roomSize / 2,
+    minZ: (room.y - py) * roomSize - roomSize / 2,
+    maxZ: (room.y + room.h - py) * roomSize - roomSize / 2,
+  };
 }
 
 function resolveModelAssetPath(assetId: string | undefined, assetMap: Map<string, AssetDef>): string | undefined {

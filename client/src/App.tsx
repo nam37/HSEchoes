@@ -34,6 +34,8 @@ import { DungeonViewport } from "./components/DungeonViewport";
 import { MapPanel } from "./components/MapPanel";
 import { TabletOverlay } from "./components/TabletOverlay";
 
+const ACTIVE_RUN_KEY = "ehs-active-run-slot";
+
 function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean }): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
@@ -45,11 +47,13 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const [tabletOpen, setTabletOpen] = useState(false);
   const [tabletTab, setTabletTab] = useState<"messages" | "assignments" | "map">("messages");
   const [interactResult, setInteractResult] = useState<InteractResult | null>(null);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [seenQuestIds, setSeenQuestIds] = useState<Set<string>>(new Set());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const prevLogRef = useRef<string[]>([]);
   const prevZoneIdRef = useRef<string | null>(null);
+  const restoreAttemptedRef = useRef(false);
   const audio = useAudio();
 
   useEffect(() => {
@@ -133,6 +137,46 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   const selectedItem = selectedItemId ? itemMap.get(selectedItemId) ?? null : null;
   const slotCards = useMemo(() => buildSaveSlots(bootstrap?.saves ?? []), [bootstrap?.saves]);
 
+  useEffect(() => {
+    try {
+      if (run?.slotId) {
+        sessionStorage.setItem(ACTIVE_RUN_KEY, run.slotId);
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [run?.slotId]);
+
+  useEffect(() => {
+    if (!bootstrap || run || restoreAttemptedRef.current) {
+      return;
+    }
+    restoreAttemptedRef.current = true;
+
+    let savedSlotId: string | null = null;
+    try {
+      savedSlotId = sessionStorage.getItem(ACTIVE_RUN_KEY);
+    } catch {
+      savedSlotId = null;
+    }
+
+    if (!savedSlotId) {
+      return;
+    }
+
+    const saveExists = bootstrap.saves.some((save) => save.slotId === savedSlotId);
+    if (!saveExists) {
+      try {
+        sessionStorage.removeItem(ACTIVE_RUN_KEY);
+      } catch {
+        // Ignore storage failures.
+      }
+      return;
+    }
+
+    void loadSave(savedSlotId, true);
+  }, [bootstrap, run]);
+
   async function refreshBootstrap(preserveStatus = false): Promise<void> {
     try {
       setBusy(true);
@@ -175,7 +219,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     }
   }
 
-  async function loadSave(slotId: string): Promise<void> {
+  async function loadSave(slotId: string, restoring = false): Promise<void> {
     try {
       setBusy(true);
       setError(null);
@@ -185,10 +229,19 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
       startTransition(() => {
         setRun(envelope.run);
         prevLogRef.current = [...envelope.run.log];
-        setStatusText(envelope.run.log.at(-1) ?? `Loaded run ${slotId}.`);
+        setStatusText(
+          restoring
+            ? envelope.run.log.at(-1) ?? `Resumed run ${slotId}.`
+            : envelope.run.log.at(-1) ?? `Loaded run ${slotId}.`
+        );
         setToasts([]);
       });
     } catch (caught) {
+      try {
+        sessionStorage.removeItem(ACTIVE_RUN_KEY);
+      } catch {
+        // Ignore storage failures.
+      }
       setError((caught as Error).message);
     } finally {
       setBusy(false);
@@ -240,6 +293,11 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   }
 
   async function returnToSaveSlots(): Promise<void> {
+    try {
+      sessionStorage.removeItem(ACTIVE_RUN_KEY);
+    } catch {
+      // Ignore storage failures.
+    }
     startTransition(() => {
       setRun(null);
       setTabletOpen(false);
@@ -250,6 +308,42 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
     prevLogRef.current = [];
     prevZoneIdRef.current = null;
     await refreshBootstrap();
+  }
+
+  async function handleExitToSaveSlots(): Promise<void> {
+    setExitConfirmOpen(false);
+    await returnToSaveSlots();
+  }
+
+  async function saveRunInternal(): Promise<boolean> {
+    if (!run) {
+      return false;
+    }
+    try {
+      setBusy(true);
+      const envelope = await api.saveRun(run.slotId);
+      startTransition(() => {
+        setRun(envelope.run);
+        setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "The archive takes your progress.");
+      });
+      pushToasts(envelope.run.log);
+      await refreshBootstrap(true);
+      return true;
+    } catch (caught) {
+      setError((caught as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveThenExit(): Promise<void> {
+    const saved = await saveRunInternal();
+    if (!saved) {
+      return;
+    }
+    setExitConfirmOpen(false);
+    await returnToSaveSlots();
   }
 
   async function handleMove(command: "forward" | "back" | "turn-left" | "turn-right"): Promise<void> {
@@ -377,23 +471,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
   }
 
   async function saveRun(): Promise<void> {
-    if (!run) {
-      return;
-    }
-    try {
-      setBusy(true);
-      const envelope = await api.saveRun(run.slotId);
-      startTransition(() => {
-        setRun(envelope.run);
-        setStatusText(envelope.message ?? envelope.run.log.at(-1) ?? "The archive takes your progress.");
-      });
-      pushToasts(envelope.run.log);
-      await refreshBootstrap(true);
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    await saveRunInternal();
   }
 
   async function handleMarkRead(): Promise<void> {
@@ -587,6 +665,33 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
               </div>
             </div>
           )}
+          {exitConfirmOpen && (
+            <div
+              className="settings-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Exit to save slots"
+              onClick={() => setExitConfirmOpen(false)}
+            >
+              <div className="settings-modal exit-confirm-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="settings-modal-header">
+                  <div>
+                    <p className="settings-kicker">Session Control</p>
+                    <h2 className="settings-title">Exit to Save Slots</h2>
+                  </div>
+                  <button className="settings-close" onClick={() => setExitConfirmOpen(false)}>Close</button>
+                </div>
+                <div className="settings-panel exit-confirm-panel">
+                  <p className="exit-confirm-copy">Choose whether to leave immediately or save your current progress first. Your run remains available to resume from the save-slot screen.</p>
+                  <div className="exit-confirm-actions">
+                    <button className="btn-secondary" onClick={() => setExitConfirmOpen(false)} disabled={busy}>Cancel</button>
+                    <button className="btn-secondary" onClick={() => void handleExitToSaveSlots()} disabled={busy}>Exit</button>
+                    <button onClick={() => void handleSaveThenExit()} disabled={busy || run.mode === "combat"}>Save Then Exit</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {error && <p className="error-banner inline-error">{error}</p>}
 
           <section className="stage-panel">
@@ -714,6 +819,7 @@ function App({ onSignOut, isAdmin }: { onSignOut?: () => void; isAdmin?: boolean
                     Tablet{unreadCount > 0 ? ` [${unreadCount}]` : ""}
                   </button>
                   <button onClick={() => void saveRun()} disabled={busy || run.mode === "combat"}>Save</button>
+                  <button className="btn-secondary" onClick={() => setExitConfirmOpen(true)} disabled={busy}>Exit to Save Slots</button>
                 </div>
               </div>
               <div className="stat-grid">
